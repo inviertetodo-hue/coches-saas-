@@ -1,3 +1,4 @@
+import Sidebar from "./components/Sidebar"
 import DashboardStats from "./components/DashboardStats"
 import { getCars, deleteCar } from "./services/api"
 import Filters from "./components/Filters"
