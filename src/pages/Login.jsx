@@ -1,12 +1,42 @@
 import { useState } from "react"
+import { supabase } from "../lib/supabase"
 
 export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [message, setMessage] = useState("")
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault()
-    alert("Login preparado: " + email)
+    setMessage("Entrando...")
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (error) {
+      setMessage("Error: " + error.message)
+      return
+    }
+
+    setMessage("Login correcto ✅")
+  }
+
+  async function handleRegister() {
+    setMessage("Creando cuenta...")
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password
+    })
+
+    if (error) {
+      setMessage("Error: " + error.message)
+      return
+    }
+
+    setMessage("Cuenta creada. Revisa tu email ✅")
   }
 
   return (
@@ -32,7 +62,13 @@ export default function Login() {
         <button type="submit">
           Entrar
         </button>
+
+        <button type="button" onClick={handleRegister}>
+          Crear cuenta
+        </button>
       </form>
+
+      <p>{message}</p>
     </div>
   )
 }
