@@ -29,6 +29,20 @@ export default function Dashboard() {
     setCars(data)
   }
 
+  async function deleteCar(id) {
+    const { error } = await supabase
+      .from("cars")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    loadCars()
+  }
+
   async function addCar(e) {
     e.preventDefault()
 
@@ -86,6 +100,13 @@ export default function Dashboard() {
             <p>Precio: {car.price}€</p>
             <p>ROI: {car.roi}%</p>
             <h2>💰 {car.profit}€</h2>
+
+            <button
+              className="delete-btn"
+              onClick={() => deleteCar(car.id)}
+            >
+              Eliminar
+            </button>
           </div>
         ))}
       </div>

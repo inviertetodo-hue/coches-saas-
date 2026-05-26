@@ -130,3 +130,10 @@ button {
   background: #22c55e;
   color: white;
 }
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+  margin-top: 12px;
+  width: 100%;
+}
