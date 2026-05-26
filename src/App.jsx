@@ -1,4 +1,8 @@
-import Analytics from "./components/Analytics"
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom"
+import Home from "./pages/Home"
+import Dashboard from "./pages/Dashboard"
+import Deals from "./pages/Deals"
+import Importer from "./pages/Importer"
 import "./App.css"
 
 export default function App() {
@@ -8,37 +12,25 @@ export default function App() {
   ]
 
   return (
-    <div className="app">
-      <aside>
-        <h1>🚘 Coches SaaS</h1>
-        <button>📊 Dashboard</button>
-        <button>🔥 Chollos IA</button>
-        <button>🔗 Importador</button>
-      </aside>
+    <BrowserRouter>
+      <div className="app">
+        <aside>
+          <h1>🚘 Coches SaaS</h1>
+          <Link to="/">🏠 Home</Link>
+          <Link to="/dashboard">📊 Dashboard</Link>
+          <Link to="/deals">🔥 Chollos IA</Link>
+          <Link to="/importer">🔗 Importador</Link>
+        </aside>
 
-      <main>
-        <h2>Motor IA profesional</h2>
-
-        <div className="kpis">
-          <div>Total coches <strong>{cars.length}</strong></div>
-          <div>ROI medio <strong>20%</strong></div>
-          <div>Profit total <strong>12.000€</strong></div>
-        </div>
-
-        <div className="grid">
-          {cars.map((car, i) => (
-            <div className="card" key={i}>
-              <h3>{car.brand} {car.model}</h3>
-              <p>Precio: {car.price}€</p>
-              <p>ROI: {car.roi}%</p>
-              <h2>💰 {car.profit}€</h2>
-              <button>⭐ Favorito</button>
-            </div>
-          ))}
-        </div>
-
-        <Analytics />
-      </main>
-    </div>
+        <main>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard cars={cars} />} />
+            <Route path="/deals" element={<Deals />} />
+            <Route path="/importer" element={<Importer />} />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
   )
 }
