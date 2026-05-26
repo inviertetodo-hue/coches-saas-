@@ -1,3 +1,4 @@
+import Filters from "./components/Filters"
 import CarCard from "./components/CarCard"
 import Analytics from "./components/Analytics"
 import "./App.css"
