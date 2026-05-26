@@ -1,3 +1,4 @@
+import Analytics from "./components/Analytics"
 import "./App.css"
 
 export default function App() {
@@ -36,6 +37,8 @@ export default function App() {
           ))}
         </div>
       </main>
+      <Analytics />
+
     </div>
   )
 }
