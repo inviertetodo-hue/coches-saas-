@@ -1,3 +1,5 @@
+import DashboardStats from "./components/DashboardStats"
+import { getCars, deleteCar } from "./services/api"
 import Filters from "./components/Filters"
 import CarCard from "./components/CarCard"
 import Analytics from "./components/Analytics"
