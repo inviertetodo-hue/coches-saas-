@@ -15,14 +15,14 @@ export default function Importer() {
 
   const [analysis, setAnalysis] = useState(null);
 
-  const [saving, setSaving] = useState(false);
-
-  const [saved, setSaved] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const [loadingUrl, setLoadingUrl] =
+  const [saving, setSaving] =
     useState(false);
+
+  const [saved, setSaved] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
 
   function updateField(field, value) {
     setSaved(false);
@@ -31,134 +31,6 @@ export default function Importer() {
       ...car,
       [field]: value,
     });
-  }
-
-  async function parseUrl() {
-    if (!car.url) {
-      setMessage("PEGA UNA URL");
-      return;
-    }
-
-    setSaved(false);
-
-    setLoadingUrl(true);
-
-    setMessage("");
-
-    setAnalysis(null);
-
-    const semanticData =
-      parseCarFromUrl(car.url);
-
-    try {
-      const { data, error } =
-        await supabase.functions.invoke(
-          "scrape-car",
-          {
-            body: {
-              url: car.url,
-            },
-          }
-        );
-
-      if (error) {
-        setCar({
-          ...car,
-          title:
-            semanticData?.title ||
-            car.title,
-        });
-
-        setMessage(
-          "SCRAPER NO DISPONIBLE · DATOS DETECTADOS DESDE URL"
-        );
-
-        setLoadingUrl(false);
-
-        return;
-      }
-
-      if (data?.blocked) {
-        setCar({
-          ...car,
-          title:
-            semanticData?.title ||
-            car.title,
-        });
-
-        setMessage(
-          "PORTAL BLOQUEÓ SCRAPING · TÍTULO DETECTADO DESDE URL"
-        );
-
-        setLoadingUrl(false);
-
-        return;
-      }
-
-      if (!data?.success) {
-        setCar({
-          ...car,
-          title:
-            semanticData?.title ||
-            car.title,
-        });
-
-        setMessage(
-          "NO SE PUDO SCRAPEAR · TÍTULO DETECTADO DESDE URL"
-        );
-
-        setLoadingUrl(false);
-
-        return;
-      }
-
-      const parsed = data.data;
-
-      setCar({
-        ...car,
-        title:
-          parsed.title ||
-          semanticData?.title ||
-          "",
-
-        price: parsed.price || "",
-
-        km: parsed.km || "",
-
-        year: parsed.year || "",
-
-        country:
-          parsed.country ||
-          "Alemania",
-
-        url: parsed.url || car.url,
-      });
-
-      if (data.warning) {
-        setMessage(
-          "EXTRACCIÓN PARCIAL · REVISA LOS CAMPOS"
-        );
-      } else {
-        setMessage(
-          "DATOS EXTRAÍDOS CORRECTAMENTE"
-        );
-      }
-    } catch (error) {
-      console.log(error);
-
-      setCar({
-        ...car,
-        title:
-          semanticData?.title ||
-          car.title,
-      });
-
-      setMessage(
-        "ERROR SCRAPER · TÍTULO DETECTADO DESDE URL"
-      );
-    }
-
-    setLoadingUrl(false);
   }
 
   function analyzeManualCar() {
@@ -171,38 +43,31 @@ export default function Importer() {
       !car.year
     ) {
       setMessage(
-        "COMPLETA TÍTULO, PRECIO, KM Y AÑO"
+        "COMPLETA TODOS LOS CAMPOS"
       );
 
       return;
     }
 
-    const price = Number(car.price);
-
-    const km = Number(car.km);
-
-    const year = Number(car.year);
-
-    if (
-      isNaN(price) ||
-      isNaN(km) ||
-      isNaN(year)
-    ) {
-      setMessage(
-        "PRECIO, KM Y AÑO DEBEN SER NÚMEROS"
-      );
-
-      return;
-    }
+    const semanticData =
+      parseCarFromUrl(car.title);
 
     const estimatedMarketPrice =
-      Math.round(price * 1.28);
+      Math.round(
+        Number(car.price) * 1.28
+      );
 
     const result = analyzeCar({
       ...car,
-      price,
-      km,
-      year,
+
+      ...semanticData,
+
+      price: Number(car.price),
+
+      km: Number(car.km),
+
+      year: Number(car.year),
+
       estimatedMarketPrice,
     });
 
@@ -216,10 +81,6 @@ export default function Importer() {
 
     setSaving(true);
 
-    setMessage("");
-
-    const price = Number(car.price);
-
     const { error } = await supabase
       .from("import_analyses")
       .insert({
@@ -227,19 +88,15 @@ export default function Importer() {
         profit: Math.round(
           analysis.estimatedProfit
         ),
-        roi: Math.round(
-          (analysis.estimatedProfit /
-            price) *
-            100
-        ),
+        roi: analysis.roi,
         score: analysis.score,
         url: car.url,
       });
 
     if (error) {
-      console.log(error);
-
-      setMessage("ERROR AL GUARDAR");
+      setMessage(
+        "ERROR AL GUARDAR"
+      );
     } else {
       setSaved(true);
 
@@ -251,212 +108,419 @@ export default function Importer() {
     setSaving(false);
   }
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
+  function getAlertStyle(type) {
+    if (type === "success") {
+      return {
         background:
-          "linear-gradient(to bottom, #020617, #0f172a)",
-        color: "white",
-        padding: "40px",
-        fontFamily: "Arial",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "900px",
-          margin: "0 auto",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "42px",
-            marginBottom: "10px",
-          }}
-        >
-          Analiza oportunidades con IA
-        </h1>
+          "rgba(34,197,94,0.12)",
 
-        <p
-          style={{
-            color: "#94a3b8",
-            marginBottom: "30px",
-          }}
-        >
-          Score inteligente, ROI,
-          beneficio estimado y alertas
-          IA automáticas.
-        </p>
+        border:
+          "1px solid rgba(34,197,94,0.25)",
+      };
+    }
 
-        <div
-          style={{
-            background:
-              "rgba(15,23,42,0.85)",
-            borderRadius: "24px",
-            padding: "30px",
-          }}
-        >
-          <input
-            placeholder="URL"
-            value={car.url}
-            onChange={(e) =>
-              updateField(
-                "url",
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
+    if (type === "warning") {
+      return {
+        background:
+          "rgba(250,204,21,0.12)",
 
-          <button
-            onClick={parseUrl}
-            style={secondaryButtonStyle}
-          >
-            {loadingUrl
-              ? "Analizando..."
-              : "Analizar URL"}
-          </button>
+        border:
+          "1px solid rgba(250,204,21,0.25)",
+      };
+    }
 
-          <input
-            placeholder="Título"
-            value={car.title}
-            onChange={(e) =>
-              updateField(
-                "title",
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
+    return {
+      background:
+        "rgba(239,68,68,0.12)",
 
-          <input
-            placeholder="Precio"
-            value={car.price}
-            onChange={(e) =>
-              updateField(
-                "price",
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
+        border:
+          "1px solid rgba(239,68,68,0.25)",
+      };
+  }
 
-          <input
-            placeholder="Kilómetros"
-            value={car.km}
-            onChange={(e) =>
-              updateField(
-                "km",
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
+  return (
+    <div style={pageStyle}>
+      <div style={containerStyle}>
+        <div style={headerStyle}>
+          <p style={badgeStyle}>
+            Coches SaaS · IA Premium
+          </p>
 
-          <input
-            placeholder="Año"
-            value={car.year}
-            onChange={(e) =>
-              updateField(
-                "year",
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
+          <h1 style={titleStyle}>
+            Analiza oportunidades
+          </h1>
 
-          <button
-            onClick={analyzeManualCar}
-            style={buttonStyle}
-          >
-            Analizar vehículo
-          </button>
+          <p style={subtitleStyle}>
+            Score IA, semantic
+            intelligence y smart
+            alerts.
+          </p>
+        </div>
 
-          {analysis && (
-            <div
-              style={{
-                marginTop: "30px",
-              }}
+        <div style={gridStyle}>
+          <div style={cardStyle}>
+            <input
+              placeholder="URL"
+              value={car.url}
+              onChange={(e) =>
+                updateField(
+                  "url",
+                  e.target.value
+                )
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="BMW X5 xDrive M Sport PHEV"
+              value={car.title}
+              onChange={(e) =>
+                updateField(
+                  "title",
+                  e.target.value
+                )
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Precio"
+              value={car.price}
+              onChange={(e) =>
+                updateField(
+                  "price",
+                  e.target.value
+                )
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Kilómetros"
+              value={car.km}
+              onChange={(e) =>
+                updateField(
+                  "km",
+                  e.target.value
+                )
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Año"
+              value={car.year}
+              onChange={(e) =>
+                updateField(
+                  "year",
+                  e.target.value
+                )
+              }
+              style={inputStyle}
+            />
+
+            <button
+              onClick={
+                analyzeManualCar
+              }
+              style={buttonStyle}
             >
-              <h2>
-                {analysis.recommendation}
-              </h2>
+              Analizar vehículo
+            </button>
 
-              <p>
-                Score IA:{" "}
-                {analysis.score}/100
+            {message && (
+              <p style={messageStyle}>
+                {message}
               </p>
+            )}
+          </div>
 
-              <p>
-                ROI: {analysis.roi}%
-              </p>
-
-              <p>
-                Beneficio:{" "}
-                {Math.round(
-                  analysis.estimatedProfit
-                )}{" "}
-                €
-              </p>
-
-              <button
-                onClick={saveAnalysis}
-                disabled={saving || saved}
-                style={{
-                  ...buttonStyle,
-
-                  opacity:
-                    saving || saved
-                      ? 0.6
-                      : 1,
-
-                  cursor:
-                    saving || saved
-                      ? "not-allowed"
-                      : "pointer",
-                }}
+          <div style={cardStyle}>
+            {!analysis && (
+              <div
+                style={
+                  emptyStateStyle
+                }
               >
-                {saving
-                  ? "Guardando..."
-                  : saved
-                  ? "✅ Guardado"
-                  : "Guardar análisis"}
-              </button>
-            </div>
-          )}
+                <p
+                  style={
+                    emptyIconStyle
+                  }
+                >
+                  🚘
+                </p>
 
-          {message && (
-            <p
-              style={{
-                marginTop: "20px",
-                color: "#93c5fd",
-              }}
-            >
-              {message}
-            </p>
-          )}
+                <p
+                  style={
+                    emptyTitleStyle
+                  }
+                >
+                  Esperando análisis IA
+                </p>
+              </div>
+            )}
+
+            {analysis && (
+              <>
+                <div
+                  style={
+                    recommendationStyle
+                  }
+                >
+                  {
+                    analysis.recommendation
+                  }
+                </div>
+
+                <div
+                  style={
+                    scoreCircleStyle
+                  }
+                >
+                  <span
+                    style={
+                      scoreNumberStyle
+                    }
+                  >
+                    {analysis.score}
+                  </span>
+
+                  <span
+                    style={
+                      scoreTextStyle
+                    }
+                  >
+                    SCORE IA
+                  </span>
+                </div>
+
+                <div
+                  style={kpiGridStyle}
+                >
+                  <div
+                    style={
+                      kpiCardStyle
+                    }
+                  >
+                    <p
+                      style={
+                        kpiLabelStyle
+                      }
+                    >
+                      ROI
+                    </p>
+
+                    <p
+                      style={
+                        kpiValueStyle
+                      }
+                    >
+                      {
+                        analysis.roi
+                      }
+                      %
+                    </p>
+                  </div>
+
+                  <div
+                    style={
+                      kpiCardStyle
+                    }
+                  >
+                    <p
+                      style={
+                        kpiLabelStyle
+                      }
+                    >
+                      Beneficio
+                    </p>
+
+                    <p
+                      style={
+                        kpiValueStyle
+                      }
+                    >
+                      {Math.round(
+                        analysis.estimatedProfit
+                      )}{" "}
+                      €
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  style={
+                    sectionStyle
+                  }
+                >
+                  <p
+                    style={
+                      sectionTitleStyle
+                    }
+                  >
+                    🧠 IA Insights
+                  </p>
+
+                  {analysis.insights?.map(
+                    (
+                      insight,
+                      index
+                    ) => (
+                      <div
+                        key={index}
+                        style={
+                          insightCardStyle
+                        }
+                      >
+                        {
+                          insight.text
+                        }
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <div
+                  style={
+                    sectionStyle
+                  }
+                >
+                  <p
+                    style={
+                      sectionTitleStyle
+                    }
+                  >
+                    🚨 Smart Alerts
+                  </p>
+
+                  {analysis.alerts?.map(
+                    (
+                      alert,
+                      index
+                    ) => (
+                      <div
+                        key={index}
+                        style={{
+                          ...alertCardStyle,
+
+                          ...getAlertStyle(
+                            alert.type
+                          ),
+                        }}
+                      >
+                        {
+                          alert.text
+                        }
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <button
+                  onClick={
+                    saveAnalysis
+                  }
+                  disabled={
+                    saving ||
+                    saved
+                  }
+                  style={{
+                    ...buttonStyle,
+
+                    opacity:
+                      saving ||
+                      saved
+                        ? 0.6
+                        : 1,
+                  }}
+                >
+                  {saving
+                    ? "Guardando..."
+                    : saved
+                    ? "✅ Guardado"
+                    : "Guardar análisis"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+const pageStyle = {
+  minHeight: "100vh",
+  background:
+    "radial-gradient(circle at top left, #1e3a8a 0, #020617 40%, #020617 100%)",
+  color: "white",
+  padding: "48px",
+  fontFamily:
+    "Arial, sans-serif",
+};
+
+const containerStyle = {
+  maxWidth: "1250px",
+  margin: "0 auto",
+};
+
+const headerStyle = {
+  marginBottom: "40px",
+};
+
+const badgeStyle = {
+  display: "inline-block",
+  background:
+    "rgba(59,130,246,0.18)",
+  color: "#93c5fd",
+  padding: "8px 14px",
+  borderRadius: "999px",
+  fontWeight: "700",
+  marginBottom: "18px",
+};
+
+const titleStyle = {
+  fontSize: "52px",
+  margin: 0,
+};
+
+const subtitleStyle = {
+  color: "#cbd5e1",
+  marginTop: "14px",
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "1fr 1fr",
+  gap: "28px",
+};
+
+const cardStyle = {
+  background:
+    "rgba(15,23,42,0.82)",
+  borderRadius: "28px",
+  padding: "30px",
+  border:
+    "1px solid rgba(148,163,184,0.16)",
+};
+
 const inputStyle = {
   width: "100%",
   boxSizing: "border-box",
   padding: "16px",
   marginTop: "14px",
-  borderRadius: "14px",
+  borderRadius: "16px",
   border:
     "1px solid rgba(148,163,184,0.18)",
   background:
-    "rgba(2,6,23,0.75)",
+    "rgba(2,6,23,0.8)",
   color: "white",
 };
 
 const buttonStyle = {
+  marginTop: "22px",
   width: "100%",
-  marginTop: "20px",
   padding: "16px",
   borderRadius: "16px",
   border: "none",
@@ -466,15 +530,109 @@ const buttonStyle = {
   fontWeight: "900",
 };
 
-const secondaryButtonStyle = {
-  width: "100%",
+const messageStyle = {
   marginTop: "18px",
-  padding: "16px",
-  borderRadius: "16px",
-  border:
-    "1px solid rgba(59,130,246,0.3)",
-  background:
-    "rgba(37,99,235,0.12)",
   color: "#93c5fd",
+};
+
+const emptyStateStyle = {
+  minHeight: "520px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+};
+
+const emptyIconStyle = {
+  fontSize: "56px",
+};
+
+const emptyTitleStyle = {
+  fontSize: "24px",
   fontWeight: "900",
+};
+
+const recommendationStyle = {
+  display: "inline-block",
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background:
+    "rgba(34,197,94,0.18)",
+  color: "#86efac",
+  fontWeight: "900",
+  marginBottom: "24px",
+};
+
+const scoreCircleStyle = {
+  width: "180px",
+  height: "180px",
+  borderRadius: "999px",
+  background:
+    "linear-gradient(135deg, rgba(37,99,235,0.35), rgba(34,197,94,0.22))",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  margin:
+    "0 auto 28px auto",
+};
+
+const scoreNumberStyle = {
+  fontSize: "56px",
+  fontWeight: "900",
+};
+
+const scoreTextStyle = {
+  marginTop: "10px",
+  color: "#cbd5e1",
+  fontSize: "13px",
+};
+
+const kpiGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "1fr 1fr",
+  gap: "16px",
+};
+
+const kpiCardStyle = {
+  background:
+    "rgba(2,6,23,0.75)",
+  borderRadius: "20px",
+  padding: "20px",
+};
+
+const kpiLabelStyle = {
+  color: "#94a3b8",
+};
+
+const kpiValueStyle = {
+  fontSize: "30px",
+  fontWeight: "900",
+};
+
+const sectionStyle = {
+  marginTop: "28px",
+};
+
+const sectionTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  marginBottom: "14px",
+};
+
+const insightCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  background:
+    "rgba(255,255,255,0.05)",
+  fontWeight: "700",
+};
+
+const alertCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "800",
 };
