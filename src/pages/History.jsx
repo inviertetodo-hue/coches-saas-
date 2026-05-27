@@ -77,9 +77,33 @@ export default function History() {
         )
       : 0;
 
+  const averageScore =
+    analyses.length > 0
+      ? Math.round(
+          analyses.reduce(
+            (acc, item) => acc + Number(item.score || 0),
+            0
+          ) / analyses.length
+        )
+      : 0;
+
   const totalChollos = analyses.filter(
     (item) => item.score >= 85
   ).length;
+
+  const bestOpportunity =
+    analyses.length > 0
+      ? analyses.reduce((best, current) =>
+          current.score > best.score ? current : best
+        )
+      : null;
+
+  const topROI =
+    analyses.length > 0
+      ? analyses.reduce((best, current) =>
+          current.roi > best.roi ? current : best
+        )
+      : null;
 
   function getLabel(score) {
     if (score >= 85) return "🔥 CHOLLO IA";
@@ -115,37 +139,109 @@ export default function History() {
 
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · Historial Inteligente</p>
+          <p style={badgeStyle}>
+            Coches SaaS · Historial Inteligente
+          </p>
 
-          <h1 style={titleStyle}>Historial IA Premium</h1>
+          <h1 style={titleStyle}>
+            Dashboard IA Premium
+          </h1>
 
           <p style={subtitleStyle}>
-            Analiza tus mejores oportunidades de importación y clasifícalas por
-            potencial de beneficio.
+            Analiza oportunidades, ROI, score IA y
+            métricas avanzadas de importación.
           </p>
         </div>
 
         <div style={dashboardGridStyle}>
           <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>🚘 Total vehículos</p>
-            <h2 style={dashboardValueStyle}>{totalCars}</h2>
+            <p style={dashboardLabelStyle}>
+              🚘 Total vehículos
+            </p>
+
+            <h2 style={dashboardValueStyle}>
+              {totalCars}
+            </h2>
           </div>
 
           <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>💰 Beneficio total</p>
+            <p style={dashboardLabelStyle}>
+              💰 Beneficio total
+            </p>
+
             <h2 style={dashboardValueStyle}>
               {totalProfit.toLocaleString()} €
             </h2>
           </div>
 
           <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>📈 ROI medio</p>
-            <h2 style={dashboardValueStyle}>{averageROI}%</h2>
+            <p style={dashboardLabelStyle}>
+              📈 ROI medio
+            </p>
+
+            <h2 style={dashboardValueStyle}>
+              {averageROI}%
+            </h2>
           </div>
 
           <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>🔥 Chollos IA</p>
-            <h2 style={dashboardValueStyle}>{totalChollos}</h2>
+            <p style={dashboardLabelStyle}>
+              🤖 Score medio IA
+            </p>
+
+            <h2 style={dashboardValueStyle}>
+              {averageScore}/100
+            </h2>
+          </div>
+
+          <div style={dashboardCardStyle}>
+            <p style={dashboardLabelStyle}>
+              🔥 Chollos IA
+            </p>
+
+            <h2 style={dashboardValueStyle}>
+              {totalChollos}
+            </h2>
+          </div>
+
+          <div style={dashboardCardStyle}>
+            <p style={dashboardLabelStyle}>
+              🏆 Mejor Score
+            </p>
+
+            <h2 style={dashboardValueStyle}>
+              {bestOpportunity?.score || 0}
+            </h2>
+          </div>
+        </div>
+
+        <div style={analyticsGridStyle}>
+          <div style={analyticsCardStyle}>
+            <p style={analyticsTitleStyle}>
+              🏆 Mejor oportunidad IA
+            </p>
+
+            <h2 style={analyticsValueStyle}>
+              {bestOpportunity?.score || 0}/100
+            </h2>
+
+            <p style={analyticsTextStyle}>
+              Score IA más alto detectado.
+            </p>
+          </div>
+
+          <div style={analyticsCardStyle}>
+            <p style={analyticsTitleStyle}>
+              📈 ROI más alto
+            </p>
+
+            <h2 style={analyticsValueStyle}>
+              {topROI?.roi || 0}%
+            </h2>
+
+            <p style={analyticsTextStyle}>
+              Mejor oportunidad de rentabilidad.
+            </p>
           </div>
         </div>
 
@@ -178,7 +274,10 @@ export default function History() {
             🔴 Descartar
           </button>
 
-          <button onClick={exportCSV} style={exportButtonStyle}>
+          <button
+            onClick={exportCSV}
+            style={exportButtonStyle}
+          >
             📤 Exportar CSV
           </button>
         </div>
@@ -197,28 +296,45 @@ export default function History() {
                   {getLabel(item.score)}
                 </div>
 
-                <div style={scoreStyle}>{item.score}</div>
+                <div style={scoreStyle}>
+                  {item.score}
+                </div>
               </div>
 
               <div style={infoGridStyle}>
                 <div style={infoCardStyle}>
                   <p style={labelStyle}>🌍 País</p>
-                  <p style={valueStyle}>{item.country}</p>
+                  <p style={valueStyle}>
+                    {item.country}
+                  </p>
                 </div>
 
                 <div style={infoCardStyle}>
-                  <p style={labelStyle}>💰 Beneficio</p>
-                  <p style={valueStyle}>{item.profit} €</p>
+                  <p style={labelStyle}>
+                    💰 Beneficio
+                  </p>
+
+                  <p style={valueStyle}>
+                    {item.profit} €
+                  </p>
                 </div>
 
                 <div style={infoCardStyle}>
                   <p style={labelStyle}>📈 ROI</p>
-                  <p style={valueStyle}>{item.roi}%</p>
+
+                  <p style={valueStyle}>
+                    {item.roi}%
+                  </p>
                 </div>
 
                 <div style={infoCardStyle}>
-                  <p style={labelStyle}>🤖 Score IA</p>
-                  <p style={valueStyle}>{item.score}/100</p>
+                  <p style={labelStyle}>
+                    🤖 Score IA
+                  </p>
+
+                  <p style={valueStyle}>
+                    {item.score}/100
+                  </p>
                 </div>
               </div>
 
@@ -234,7 +350,9 @@ export default function History() {
               )}
 
               <button
-                onClick={() => deleteAnalysis(item.id)}
+                onClick={() =>
+                  deleteAnalysis(item.id)
+                }
                 style={deleteButtonStyle}
               >
                 Eliminar análisis
@@ -317,7 +435,8 @@ const subtitleStyle = {
 
 const dashboardGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "20px",
   marginBottom: "34px",
 };
@@ -344,6 +463,40 @@ const dashboardValueStyle = {
   fontWeight: "900",
 };
 
+const analyticsGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "20px",
+  marginBottom: "34px",
+};
+
+const analyticsCardStyle = {
+  background:
+    "linear-gradient(135deg, rgba(37,99,235,0.18), rgba(34,197,94,0.12))",
+  border: "1px solid rgba(148,163,184,0.16)",
+  borderRadius: "28px",
+  padding: "28px",
+  backdropFilter: "blur(16px)",
+};
+
+const analyticsTitleStyle = {
+  color: "#cbd5e1",
+  fontSize: "15px",
+  margin: 0,
+};
+
+const analyticsValueStyle = {
+  fontSize: "54px",
+  fontWeight: "900",
+  marginTop: "14px",
+  marginBottom: "10px",
+};
+
+const analyticsTextStyle = {
+  color: "#94a3b8",
+  margin: 0,
+};
+
 const filterBarStyle = {
   display: "flex",
   flexWrap: "wrap",
@@ -365,7 +518,8 @@ const exportButtonStyle = {
   padding: "14px 18px",
   borderRadius: "14px",
   border: "none",
-  background: "linear-gradient(135deg,#2563eb,#16a34a)",
+  background:
+    "linear-gradient(135deg,#2563eb,#16a34a)",
   color: "white",
   fontWeight: "900",
   cursor: "pointer",
@@ -373,7 +527,8 @@ const exportButtonStyle = {
 
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(320px, 1fr))",
   gap: "24px",
 };
 
