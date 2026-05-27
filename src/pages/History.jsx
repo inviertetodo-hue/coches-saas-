@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { analyzeMarketIntelligence } from "../services/profitAnalyzer";
 import { analyzeMarketTrends } from "../services/marketTrends";
+import { analyzeTemporalIntelligence } from "../services/temporalIntelligence";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
@@ -37,6 +38,7 @@ export default function History() {
 
   const market = analyzeMarketIntelligence(analyses);
   const trends = analyzeMarketTrends(analyses);
+  const temporal = analyzeTemporalIntelligence(analyses);
 
   const filteredAnalyses = useMemo(() => {
     let result = [...analyses];
@@ -94,12 +96,12 @@ export default function History() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · Market Trends</p>
+          <p style={badgeStyle}>Coches SaaS · Temporal Intelligence</p>
 
           <h1 style={titleStyle}>AI Market Intelligence</h1>
 
           <p style={subtitleStyle}>
-            Inteligencia global, tendencias y segmentos calientes basados en tu dataset IA.
+            Inteligencia global, tendencias y frescura temporal basada en tu dataset IA.
           </p>
         </div>
 
@@ -107,18 +109,29 @@ export default function History() {
           <MetricCard label="ROI Medio" value={`${market.averageROI || 0}%`} />
           <MetricCard label="Score Medio" value={market.averageScore || 0} />
           <MetricCard label="Trend Score" value={`${trends.trendScore || 0}/100`} />
-          <MetricCard label="Total Análisis" value={trends.total || 0} />
+          <MetricCard label="Freshness Score" value={`${temporal.freshnessScore || 0}/100`} />
         </div>
 
         <div style={marketGridStyle}>
+          <MetricCard label="Total Análisis" value={trends.total || 0} />
+          <MetricCard label="Recientes" value={temporal.recentOpportunities || 0} />
+          <MetricCard label="Antiguas" value={temporal.oldOpportunities || 0} />
           <MetricCard label="Marca Dominante" value={market.bestBrand || "-"} />
+        </div>
+
+        <div style={marketGridStyle}>
           <MetricCard label="Fuel Top" value={market.bestFuelType || "-"} />
           <MetricCard label="Drivetrain Top" value={market.bestDrivetrain || "-"} />
           <MetricCard label="Performance Top" value={market.bestPerformance || "-"} />
+          <MetricCard label="Configuración Top" value={market.bestConfiguration || "-"} />
         </div>
 
         <div style={insightsContainerStyle}>
           <p style={sectionTitle}>🧠 Market Insights</p>
+
+          {market.marketInsights?.length === 0 && (
+            <p style={mutedTextStyle}>Sin insights de mercado todavía.</p>
+          )}
 
           {market.marketInsights?.map((insight, index) => (
             <div key={index} style={insightCardStyle}>
@@ -130,8 +143,28 @@ export default function History() {
         <div style={insightsContainerStyle}>
           <p style={sectionTitle}>📊 Trend Insights</p>
 
+          {trends.trendInsights?.length === 0 && (
+            <p style={mutedTextStyle}>Sin tendencias suficientes todavía.</p>
+          )}
+
           {trends.trendInsights?.map((insight, index) => (
             <div key={index} style={trendCardStyle}>
+              {insight}
+            </div>
+          ))}
+        </div>
+
+        <div style={insightsContainerStyle}>
+          <p style={sectionTitle}>🕒 Temporal Insights</p>
+
+          {temporal.temporalInsights?.length === 0 && (
+            <p style={mutedTextStyle}>
+              Todavía no hay suficiente información temporal.
+            </p>
+          )}
+
+          {temporal.temporalInsights?.map((insight, index) => (
+            <div key={index} style={temporalCardStyle}>
               {insight}
             </div>
           ))}
@@ -335,6 +368,14 @@ const insightCardStyle = {
 const trendCardStyle = {
   background: "rgba(37,99,235,0.12)",
   border: "1px solid rgba(59,130,246,0.2)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+};
+
+const temporalCardStyle = {
+  background: "rgba(34,197,94,0.10)",
+  border: "1px solid rgba(34,197,94,0.2)",
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
