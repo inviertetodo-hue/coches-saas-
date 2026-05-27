@@ -34,43 +34,49 @@ export default function Importer() {
     setMessage("");
 
     try {
-      let detectedData = {
-        title: "BMW 320d Touring",
-        price: "22000",
-        km: "120000",
-        year: "2020",
-      };
+      const response = await fetch(
+        "https://ohtxirarsonewffizser.supabase.co/functions/v1/scrape-car",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: car.url,
+          }),
+        }
+      );
 
-      if (car.url.includes("mobile.de")) {
-        detectedData = {
-          title: "BMW Detectado",
-          price: "25000",
-          km: "95000",
-          year: "2021",
-        };
+      const result = await response.json();
+
+      console.log(result);
+
+      if (!result.success) {
+        setMessage("NO SE PUDO ANALIZAR LA URL");
+        setLoadingUrl(false);
+        return;
       }
 
-      if (car.url.includes("autoscout24")) {
-        detectedData = {
-          title: "Audi Detectado",
-          price: "27000",
-          km: "87000",
-          year: "2020",
-        };
-      }
+      const data = result.data;
 
       setCar({
         ...car,
-        title: detectedData.title,
-        price: detectedData.price,
-        km: detectedData.km,
-        year: detectedData.year,
+        title: data.title || "",
+        price: data.price || "",
+        km: data.km || "",
+        year: data.year || "",
+        country: data.country || "Alemania",
+        url: data.url || car.url,
       });
 
-      setMessage("DATOS AUTOCOMPLETADOS");
+      if (result.warning) {
+        setMessage(result.warning);
+      } else {
+        setMessage("DATOS EXTRAÍDOS CORRECTAMENTE");
+      }
     } catch (error) {
       console.log(error);
-      setMessage("ERROR ANALIZANDO URL");
+      setMessage("ERROR CONECTANDO CON SCRAPER");
     }
 
     setLoadingUrl(false);
@@ -177,7 +183,7 @@ export default function Importer() {
             />
 
             <button onClick={parseUrl} style={secondaryButtonStyle}>
-              {loadingUrl ? "Analizando URL..." : "Analizar URL"}
+              {loadingUrl ? "Analizando URL real..." : "Analizar URL"}
             </button>
 
             <input
@@ -236,9 +242,7 @@ export default function Importer() {
               <div style={emptyStateStyle}>
                 <p style={emptyIconStyle}>🚘</p>
 
-                <p style={emptyTitleStyle}>
-                  Esperando análisis inteligente
-                </p>
+                <p style={emptyTitleStyle}>Esperando análisis inteligente</p>
 
                 <p style={mutedTextStyle}>
                   Pega una URL o introduce datos manualmente.
@@ -265,9 +269,7 @@ export default function Importer() {
 
                 <div style={scoreContainerStyle}>
                   <div style={scoreCircleStyle}>
-                    <span style={scoreNumberStyle}>
-                      {analysis.score}
-                    </span>
+                    <span style={scoreNumberStyle}>{analysis.score}</span>
 
                     <span style={scoreTextStyle}>SCORE IA</span>
                   </div>
