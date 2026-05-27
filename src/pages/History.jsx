@@ -2,176 +2,173 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function History() {
-  const [analyses, setAnalyses] = useState([]);
-  const [filter, setFilter] = useState("TODOS");
+  const [analyses, setAnalyses] =
+    useState([]);
 
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("score");
+  const [filter, setFilter] =
+    useState("TODOS");
+
+  const [search, setSearch] =
+    useState("");
+
+  const [sortBy, setSortBy] =
+    useState("score");
 
   useEffect(() => {
     loadAnalyses();
   }, []);
 
   async function loadAnalyses() {
-    const { data, error } = await supabase
-      .from("import_analyses")
-      .select("*")
-      .order("score", { ascending: false });
+    const { data, error } =
+      await supabase
+        .from("import_analyses")
+        .select("*")
+        .order("score", {
+          ascending: false,
+        });
 
-    if (!error) setAnalyses(data);
+    if (!error) {
+      setAnalyses(data);
+    }
   }
 
   async function deleteAnalysis(id) {
-    const { error } = await supabase
-      .from("import_analyses")
-      .delete()
-      .eq("id", id);
+    const { error } =
+      await supabase
+        .from("import_analyses")
+        .delete()
+        .eq("id", id);
 
-    if (!error) loadAnalyses();
+    if (!error) {
+      loadAnalyses();
+    }
   }
 
   function exportCSV() {
     const rows = [
-      ["Pais", "Beneficio", "ROI", "Score", "URL"],
-      ...filteredAnalyses.map((item) => [
-        item.country,
-        item.profit,
-        item.roi,
-        item.score,
-        item.url || "",
-      ]),
+      [
+        "Titulo",
+        "Marca",
+        "ROI",
+        "Beneficio",
+        "Score",
+      ],
+
+      ...filteredAnalyses.map(
+        (item) => [
+          item.title || "",
+          item.brand || "",
+          item.roi || "",
+          item.profit || "",
+          item.score || "",
+        ]
+      ),
     ];
 
-    const csv = rows.map((row) => row.join(";")).join("\n");
+    const csv = rows
+      .map((row) => row.join(";"))
+      .join("\n");
 
     const blob = new Blob([csv], {
       type: "text/csv",
     });
 
-    const url = URL.createObjectURL(blob);
+    const url =
+      URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const a =
+      document.createElement("a");
 
     a.href = url;
-    a.download = "historial-coches-ia.csv";
+
+    a.download =
+      "coches-saas-history.csv";
+
     a.click();
   }
 
-  const filteredAnalyses = useMemo(() => {
-    let result = [...analyses];
+  const filteredAnalyses =
+    useMemo(() => {
+      let result = [...analyses];
 
-    result = result.filter((item) => {
-      if (filter === "TODOS") return true;
+      result = result.filter(
+        (item) => {
+          if (filter === "TODOS")
+            return true;
 
-      if (filter === "CHOLLO IA")
-        return item.score >= 85;
+          if (
+            filter === "CHOLLO IA"
+          )
+            return (
+              item.score >= 85
+            );
 
-      if (filter === "ANALIZAR")
-        return item.score >= 60 && item.score < 85;
+          if (
+            filter === "ANALIZAR"
+          )
+            return (
+              item.score >= 60 &&
+              item.score < 85
+            );
 
-      if (filter === "DESCARTAR")
-        return item.score < 60;
+          if (
+            filter === "DESCARTAR"
+          )
+            return (
+              item.score < 60
+            );
 
-      return true;
-    });
+          return true;
+        }
+      );
 
-    if (search.trim()) {
-      result = result.filter((item) => {
-        const searchText = `
-          ${item.country || ""}
-          ${item.url || ""}
-          ${item.score || ""}
-          ${item.roi || ""}
-        `.toLowerCase();
+      if (search.trim()) {
+        result = result.filter(
+          (item) => {
+            const text = `
+            ${item.title || ""}
+            ${item.brand || ""}
+            ${item.model || ""}
+            ${item.drivetrain || ""}
+            ${item.fuel_type || ""}
+            ${item.performance_package || ""}
+          `.toLowerCase();
 
-        return searchText.includes(
-          search.toLowerCase()
+            return text.includes(
+              search.toLowerCase()
+            );
+          }
         );
+      }
+
+      result.sort((a, b) => {
+        if (sortBy === "score") {
+          return (
+            b.score - a.score
+          );
+        }
+
+        if (sortBy === "roi") {
+          return b.roi - a.roi;
+        }
+
+        if (sortBy === "profit") {
+          return (
+            b.profit -
+            a.profit
+          );
+        }
+
+        return 0;
       });
-    }
 
-    result.sort((a, b) => {
-      if (sortBy === "score") {
-        return b.score - a.score;
-      }
-
-      if (sortBy === "roi") {
-        return b.roi - a.roi;
-      }
-
-      if (sortBy === "profit") {
-        return b.profit - a.profit;
-      }
-
-      return 0;
-    });
-
-    return result;
-  }, [analyses, filter, search, sortBy]);
-
-  const totalCars = analyses.length;
-
-  const totalProfit = analyses.reduce(
-    (acc, item) => acc + Number(item.profit || 0),
-    0
-  );
-
-  const averageROI =
-    analyses.length > 0
-      ? Math.round(
-          analyses.reduce(
-            (acc, item) =>
-              acc + Number(item.roi || 0),
-            0
-          ) / analyses.length
-        )
-      : 0;
-
-  const averageScore =
-    analyses.length > 0
-      ? Math.round(
-          analyses.reduce(
-            (acc, item) =>
-              acc + Number(item.score || 0),
-            0
-          ) / analyses.length
-        )
-      : 0;
-
-  const totalChollos = analyses.filter(
-    (item) => item.score >= 85
-  ).length;
-
-  const bestOpportunity =
-    analyses.length > 0
-      ? analyses.reduce((best, current) =>
-          current.score > best.score
-            ? current
-            : best
-        )
-      : null;
-
-  const topROI =
-    analyses.length > 0
-      ? analyses.reduce((best, current) =>
-          current.roi > best.roi
-            ? current
-            : best
-        )
-      : null;
-
-  const bestProfit =
-    analyses.length > 0
-      ? analyses.reduce((best, current) =>
-          current.profit > best.profit
-            ? current
-            : best
-        )
-      : null;
-
-  const topThreeCars = [...analyses]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+      return result;
+    }, [
+      analyses,
+      filter,
+      search,
+      sortBy,
+    ]);
 
   function getLabel(score) {
     if (score >= 85)
@@ -187,180 +184,104 @@ export default function History() {
     if (score >= 85) {
       return {
         border:
-          "1px solid rgba(34,197,94,0.35)",
+          "1px solid rgba(34,197,94,0.3)",
 
         boxShadow:
-          "0 0 40px rgba(34,197,94,0.18)",
+          "0 0 50px rgba(34,197,94,0.15)",
       };
     }
 
     if (score >= 60) {
       return {
         border:
-          "1px solid rgba(250,204,21,0.35)",
+          "1px solid rgba(250,204,21,0.3)",
 
         boxShadow:
-          "0 0 40px rgba(250,204,21,0.15)",
+          "0 0 50px rgba(250,204,21,0.12)",
       };
     }
 
     return {
       border:
-        "1px solid rgba(239,68,68,0.35)",
+        "1px solid rgba(239,68,68,0.3)",
 
       boxShadow:
-        "0 0 40px rgba(239,68,68,0.15)",
+        "0 0 50px rgba(239,68,68,0.12)",
     };
+  }
+
+  function Badge({
+    children,
+  }) {
+    return (
+      <div
+        style={{
+          background:
+            "rgba(255,255,255,0.06)",
+
+          border:
+            "1px solid rgba(148,163,184,0.12)",
+
+          padding:
+            "8px 12px",
+
+          borderRadius:
+            "999px",
+
+          fontSize: "13px",
+
+          fontWeight: "700",
+        }}
+      >
+        {children}
+      </div>
+    );
   }
 
   return (
     <div style={pageStyle}>
-      <div style={backgroundGlowOne}></div>
-      <div style={backgroundGlowTwo}></div>
+      <div
+        style={backgroundGlowOne}
+      />
 
-      <div style={containerStyle}>
+      <div
+        style={backgroundGlowTwo}
+      />
+
+      <div
+        style={containerStyle}
+      >
         <div style={headerStyle}>
           <p style={badgeStyle}>
-            Coches SaaS · Historial Inteligente
+            Coches SaaS · Premium
+            Intelligence
           </p>
 
           <h1 style={titleStyle}>
-            Top Opportunities Engine
+            Semantic History
+            Dashboard
           </h1>
 
           <p style={subtitleStyle}>
-            Ranking automático de las mejores
-            oportunidades detectadas por IA.
+            Historial IA enriquecido
+            con semantic
+            intelligence y ranking
+            premium.
           </p>
         </div>
 
-        <div style={dashboardGridStyle}>
-          <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>
-              🚘 Total vehículos
-            </p>
-
-            <h2 style={dashboardValueStyle}>
-              {totalCars}
-            </h2>
-          </div>
-
-          <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>
-              💰 Beneficio total
-            </p>
-
-            <h2 style={dashboardValueStyle}>
-              {totalProfit.toLocaleString()} €
-            </h2>
-          </div>
-
-          <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>
-              📈 ROI medio
-            </p>
-
-            <h2 style={dashboardValueStyle}>
-              {averageROI}%
-            </h2>
-          </div>
-
-          <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>
-              🤖 Score medio IA
-            </p>
-
-            <h2 style={dashboardValueStyle}>
-              {averageScore}/100
-            </h2>
-          </div>
-        </div>
-
-        <div style={analyticsGridStyle}>
-          <div style={analyticsCardStyle}>
-            <p style={analyticsTitleStyle}>
-              🏆 Mejor Score IA
-            </p>
-
-            <h2 style={analyticsValueStyle}>
-              {bestOpportunity?.score || 0}/100
-            </h2>
-
-            <p style={analyticsTextStyle}>
-              Mejor oportunidad global detectada.
-            </p>
-          </div>
-
-          <div style={analyticsCardStyle}>
-            <p style={analyticsTitleStyle}>
-              📈 Mejor ROI
-            </p>
-
-            <h2 style={analyticsValueStyle}>
-              {topROI?.roi || 0}%
-            </h2>
-
-            <p style={analyticsTextStyle}>
-              Máxima rentabilidad detectada.
-            </p>
-          </div>
-
-          <div style={analyticsCardStyle}>
-            <p style={analyticsTitleStyle}>
-              💰 Mejor Beneficio
-            </p>
-
-            <h2 style={analyticsValueStyle}>
-              {bestProfit?.profit || 0} €
-            </h2>
-
-            <p style={analyticsTextStyle}>
-              Mayor beneficio histórico detectado.
-            </p>
-          </div>
-        </div>
-
-        <div style={topSectionStyle}>
-          <h2 style={topTitleStyle}>
-            🔥 TOP 3 OPORTUNIDADES IA
-          </h2>
-
-          <div style={topGridStyle}>
-            {topThreeCars.map((item, index) => (
-              <div
-                key={item.id}
-                style={topCardStyle}
-              >
-                <p style={topRankStyle}>
-                  #{index + 1}
-                </p>
-
-                <p style={topScoreStyle}>
-                  {item.score}/100
-                </p>
-
-                <p style={topInfoStyle}>
-                  ROI: {item.roi}%
-                </p>
-
-                <p style={topInfoStyle}>
-                  Beneficio: {item.profit} €
-                </p>
-
-                <p style={topBadgeStyle}>
-                  {getLabel(item.score)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={controlsContainerStyle}>
+        <div
+          style={
+            controlsContainerStyle
+          }
+        >
           <input
-            placeholder="Buscar análisis..."
+            placeholder="Buscar BMW, xDrive, PHEV..."
             value={search}
             onChange={(e) =>
-              setSearch(e.target.value)
+              setSearch(
+                e.target.value
+              )
             }
             style={searchInputStyle}
           />
@@ -368,27 +289,31 @@ export default function History() {
           <select
             value={sortBy}
             onChange={(e) =>
-              setSortBy(e.target.value)
+              setSortBy(
+                e.target.value
+              )
             }
             style={selectStyle}
           >
             <option value="score">
-              Ordenar por Score
+              Score IA
             </option>
 
             <option value="roi">
-              Ordenar por ROI
+              ROI
             </option>
 
             <option value="profit">
-              Ordenar por Beneficio
+              Beneficio
             </option>
           </select>
         </div>
 
         <div style={filterBarStyle}>
           <button
-            onClick={() => setFilter("TODOS")}
+            onClick={() =>
+              setFilter("TODOS")
+            }
             style={filterButtonStyle}
           >
             Todos
@@ -396,7 +321,9 @@ export default function History() {
 
           <button
             onClick={() =>
-              setFilter("CHOLLO IA")
+              setFilter(
+                "CHOLLO IA"
+              )
             }
             style={filterButtonStyle}
           >
@@ -405,7 +332,9 @@ export default function History() {
 
           <button
             onClick={() =>
-              setFilter("ANALIZAR")
+              setFilter(
+                "ANALIZAR"
+              )
             }
             style={filterButtonStyle}
           >
@@ -414,7 +343,9 @@ export default function History() {
 
           <button
             onClick={() =>
-              setFilter("DESCARTAR")
+              setFilter(
+                "DESCARTAR"
+              )
             }
             style={filterButtonStyle}
           >
@@ -423,94 +354,181 @@ export default function History() {
 
           <button
             onClick={exportCSV}
-            style={exportButtonStyle}
+            style={
+              exportButtonStyle
+            }
           >
             📤 Exportar CSV
           </button>
         </div>
 
         <div style={gridStyle}>
-          {filteredAnalyses.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                ...cardStyle,
-                ...getCardStyle(item.score),
-              }}
-            >
-              <div style={topRowStyle}>
-                <div style={recommendationStyle}>
-                  {getLabel(item.score)}
-                </div>
+          {filteredAnalyses.map(
+            (item) => (
+              <div
+                key={item.id}
+                style={{
+                  ...cardStyle,
 
-                <div style={scoreStyle}>
-                  {item.score}
-                </div>
-              </div>
-
-              <div style={infoGridStyle}>
-                <div style={infoCardStyle}>
-                  <p style={labelStyle}>
-                    🌍 País
-                  </p>
-
-                  <p style={valueStyle}>
-                    {item.country}
-                  </p>
-                </div>
-
-                <div style={infoCardStyle}>
-                  <p style={labelStyle}>
-                    💰 Beneficio
-                  </p>
-
-                  <p style={valueStyle}>
-                    {item.profit} €
-                  </p>
-                </div>
-
-                <div style={infoCardStyle}>
-                  <p style={labelStyle}>
-                    📈 ROI
-                  </p>
-
-                  <p style={valueStyle}>
-                    {item.roi}%
-                  </p>
-                </div>
-
-                <div style={infoCardStyle}>
-                  <p style={labelStyle}>
-                    🤖 Score IA
-                  </p>
-
-                  <p style={valueStyle}>
-                    {item.score}/100
-                  </p>
-                </div>
-              </div>
-
-              {item.url && (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={linkStyle}
-                >
-                  Ver anuncio →
-                </a>
-              )}
-
-              <button
-                onClick={() =>
-                  deleteAnalysis(item.id)
-                }
-                style={deleteButtonStyle}
+                  ...getCardStyle(
+                    item.score
+                  ),
+                }}
               >
-                Eliminar análisis
-              </button>
-            </div>
-          ))}
+                <div
+                  style={
+                    topRowStyle
+                  }
+                >
+                  <div
+                    style={
+                      recommendationStyle
+                    }
+                  >
+                    {getLabel(
+                      item.score
+                    )}
+                  </div>
+
+                  <div
+                    style={
+                      scoreStyle
+                    }
+                  >
+                    {item.score}
+                  </div>
+                </div>
+
+                <h2
+                  style={
+                    titleCardStyle
+                  }
+                >
+                  {item.title ||
+                    "Vehículo IA"}
+                </h2>
+
+                <div
+                  style={
+                    badgesGridStyle
+                  }
+                >
+                  {item.brand && (
+                    <Badge>
+                      🚘{" "}
+                      {
+                        item.brand
+                      }
+                    </Badge>
+                  )}
+
+                  {item.drivetrain && (
+                    <Badge>
+                      🛞{" "}
+                      {
+                        item.drivetrain
+                      }
+                    </Badge>
+                  )}
+
+                  {item.fuel_type && (
+                    <Badge>
+                      ⚡{" "}
+                      {
+                        item.fuel_type
+                      }
+                    </Badge>
+                  )}
+
+                  {item.performance_package && (
+                    <Badge>
+                      🏁{" "}
+                      {
+                        item.performance_package
+                      }
+                    </Badge>
+                  )}
+                </div>
+
+                <div
+                  style={
+                    infoGridStyle
+                  }
+                >
+                  <div
+                    style={
+                      infoCardStyle
+                    }
+                  >
+                    <p
+                      style={
+                        labelStyle
+                      }
+                    >
+                      ROI
+                    </p>
+
+                    <p
+                      style={
+                        valueStyle
+                      }
+                    >
+                      {item.roi}%
+                    </p>
+                  </div>
+
+                  <div
+                    style={
+                      infoCardStyle
+                    }
+                  >
+                    <p
+                      style={
+                        labelStyle
+                      }
+                    >
+                      Beneficio
+                    </p>
+
+                    <p
+                      style={
+                        valueStyle
+                      }
+                    >
+                      {
+                        item.profit
+                      }{" "}
+                      €
+                    </p>
+                  </div>
+                </div>
+
+                {item.url && (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={linkStyle}
+                  >
+                    Ver anuncio →
+                  </a>
+                )}
+
+                <button
+                  onClick={() =>
+                    deleteAnalysis(
+                      item.id
+                    )
+                  }
+                  style={
+                    deleteButtonStyle
+                  }
+                >
+                  Eliminar análisis
+                </button>
+              </div>
+            )
+          )}
         </div>
       </div>
     </div>
@@ -523,7 +541,8 @@ const pageStyle = {
     "radial-gradient(circle at top left, #1e3a8a 0, #020617 40%, #020617 100%)",
   color: "white",
   padding: "48px",
-  fontFamily: "Arial, sans-serif",
+  fontFamily:
+    "Arial, sans-serif",
   position: "relative",
   overflow: "hidden",
 };
@@ -568,7 +587,6 @@ const badgeStyle = {
   color: "#93c5fd",
   padding: "8px 14px",
   borderRadius: "999px",
-  fontSize: "14px",
   fontWeight: "700",
   marginBottom: "18px",
 };
@@ -580,126 +598,7 @@ const titleStyle = {
 
 const subtitleStyle = {
   color: "#cbd5e1",
-  fontSize: "18px",
-  maxWidth: "720px",
-  marginTop: "16px",
-  lineHeight: "1.6",
-};
-
-const dashboardGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "20px",
-  marginBottom: "34px",
-};
-
-const dashboardCardStyle = {
-  background:
-    "rgba(15,23,42,0.82)",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
-  borderRadius: "24px",
-  padding: "24px",
-  backdropFilter: "blur(16px)",
-  boxShadow:
-    "0 20px 60px rgba(0,0,0,0.25)",
-};
-
-const dashboardLabelStyle = {
-  color: "#94a3b8",
-  margin: 0,
-  fontSize: "14px",
-};
-
-const dashboardValueStyle = {
   marginTop: "14px",
-  marginBottom: 0,
-  fontSize: "36px",
-  fontWeight: "900",
-};
-
-const analyticsGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "20px",
-  marginBottom: "34px",
-};
-
-const analyticsCardStyle = {
-  background:
-    "linear-gradient(135deg, rgba(37,99,235,0.18), rgba(34,197,94,0.12))",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
-  borderRadius: "28px",
-  padding: "28px",
-};
-
-const analyticsTitleStyle = {
-  color: "#cbd5e1",
-  fontSize: "15px",
-  margin: 0,
-};
-
-const analyticsValueStyle = {
-  fontSize: "54px",
-  fontWeight: "900",
-  marginTop: "14px",
-  marginBottom: "10px",
-};
-
-const analyticsTextStyle = {
-  color: "#94a3b8",
-  margin: 0,
-};
-
-const topSectionStyle = {
-  marginBottom: "40px",
-};
-
-const topTitleStyle = {
-  fontSize: "26px",
-  marginBottom: "24px",
-};
-
-const topGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: "20px",
-};
-
-const topCardStyle = {
-  background:
-    "rgba(15,23,42,0.82)",
-  border:
-    "1px solid rgba(34,197,94,0.25)",
-  borderRadius: "24px",
-  padding: "24px",
-  textAlign: "center",
-};
-
-const topRankStyle = {
-  fontSize: "18px",
-  color: "#86efac",
-  fontWeight: "900",
-};
-
-const topScoreStyle = {
-  fontSize: "48px",
-  fontWeight: "900",
-  margin: "10px 0",
-};
-
-const topInfoStyle = {
-  color: "#cbd5e1",
-  marginBottom: "8px",
-};
-
-const topBadgeStyle = {
-  marginTop: "14px",
-  fontWeight: "900",
 };
 
 const controlsContainerStyle = {
@@ -748,7 +647,6 @@ const filterButtonStyle = {
     "rgba(15,23,42,0.75)",
   color: "white",
   fontWeight: "700",
-  cursor: "pointer",
 };
 
 const exportButtonStyle = {
@@ -759,13 +657,12 @@ const exportButtonStyle = {
     "linear-gradient(135deg,#2563eb,#16a34a)",
   color: "white",
   fontWeight: "900",
-  cursor: "pointer",
 };
 
 const gridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit, minmax(320px, 1fr))",
+    "repeat(auto-fit, minmax(360px, 1fr))",
   gap: "24px",
 };
 
@@ -802,6 +699,18 @@ const scoreStyle = {
   justifyContent: "center",
   fontSize: "28px",
   fontWeight: "900",
+};
+
+const titleCardStyle = {
+  fontSize: "24px",
+  marginBottom: "18px",
+};
+
+const badgesGridStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+  marginBottom: "24px",
 };
 
 const infoGridStyle = {
@@ -848,5 +757,4 @@ const deleteButtonStyle = {
     "rgba(239,68,68,0.15)",
   color: "#fca5a5",
   fontWeight: "900",
-  cursor: "pointer",
 };
