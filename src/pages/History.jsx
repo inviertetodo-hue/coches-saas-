@@ -6,6 +6,8 @@ import { analyzeTemporalIntelligence } from "../services/temporalIntelligence";
 import { analyzeOpportunityAlerts } from "../services/opportunityAlerts";
 import { analyzePortfolioStrategy } from "../services/portfolioStrategy";
 import { analyzeRiskManagement } from "../services/riskManagement";
+import { analyzeAIConfidence } from "../services/aiConfidence";
+import { analyzeAILearning } from "../services/aiLearning";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
@@ -45,6 +47,8 @@ export default function History() {
   const opportunityAlerts = analyzeOpportunityAlerts(analyses);
   const portfolio = analyzePortfolioStrategy(analyses);
   const risk = analyzeRiskManagement(analyses);
+  const confidence = analyzeAIConfidence(analyses);
+  const learning = analyzeAILearning(analyses);
 
   const filteredAnalyses = useMemo(() => {
     let result = [...analyses];
@@ -102,95 +106,76 @@ export default function History() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · Risk Management</p>
+          <p style={badgeStyle}>Coches SaaS · Adaptive Intelligence</p>
 
           <h1 style={titleStyle}>AI Opportunity Dashboard</h1>
 
           <p style={subtitleStyle}>
-            Estrategia, riesgo, alertas IA, tendencias e inteligencia global del dataset.
+            Riesgo, aprendizaje IA, estabilidad, tendencias y portfolio estratégico.
           </p>
         </div>
 
         <div style={marketGridStyle}>
           <MetricCard label="ROI Medio" value={`${market.averageROI || 0}%`} />
-          <MetricCard label="Score Medio" value={market.averageScore || 0} />
           <MetricCard label="Risk Score" value={`${risk.riskScore || 0}/100`} />
+          <MetricCard label="Confidence Score" value={`${confidence.confidenceScore || 0}/100`} />
+          <MetricCard label="Learning Score" value={`${learning.learningScore || 0}/100`} />
+        </div>
+
+        <div style={marketGridStyle}>
           <MetricCard label="Risk Level" value={risk.riskLevel || "-"} />
+          <MetricCard label="Confidence" value={confidence.confidenceLevel || "-"} />
+          <MetricCard label="Learning Level" value={learning.learningLevel || "-"} />
+          <MetricCard label="Strategy" value={portfolio.strategy || "-"} />
         </div>
 
         <div style={marketGridStyle}>
-          <MetricCard label="Strategy Score" value={`${portfolio.strategyScore || 0}/100`} />
-          <MetricCard label="Estrategia" value={portfolio.strategy || "-"} />
-          <MetricCard label="Alert Score" value={`${opportunityAlerts.alertScore || 0}/100`} />
           <MetricCard label="Trend Score" value={`${trends.trendScore || 0}/100`} />
-        </div>
-
-        <div style={marketGridStyle}>
+          <MetricCard label="Alert Score" value={`${opportunityAlerts.alertScore || 0}/100`} />
           <MetricCard label="Freshness Score" value={`${temporal.freshnessScore || 0}/100`} />
           <MetricCard label="Total Análisis" value={trends.total || 0} />
-          <MetricCard label="Marca Dominante" value={market.bestBrand || "-"} />
-          <MetricCard label="Configuración Top" value={market.bestConfiguration || "-"} />
         </div>
 
-        <div style={segmentsGridStyle}>
-          <div style={segmentBoxStyle}>
-            <p style={sectionTitle}>🎯 Focus Areas</p>
+        <InsightSection
+          title="🧠 AI Learning Insights"
+          items={learning.learningInsights}
+          empty="Sin aprendizaje IA todavía."
+          cardStyle={learningCardStyle}
+        />
 
-            {portfolio.focusAreas.length === 0 && (
-              <p style={mutedTextStyle}>Sin áreas estratégicas todavía.</p>
-            )}
+        <InsightSection
+          title="📚 Learned Patterns"
+          items={learning.learnedPatterns}
+          empty="Sin patrones aprendidos todavía."
+          cardStyle={learningCardStyle}
+        />
 
-            {portfolio.focusAreas.map((area, index) => (
-              <Badge key={index}>{area}</Badge>
-            ))}
-          </div>
+        <InsightSection
+          title="🎯 AI Confidence"
+          items={confidence.confidenceInsights}
+          empty="Sin insights de confianza IA."
+          cardStyle={confidenceCardStyle}
+        />
 
-          <div style={segmentBoxStyle}>
-            <p style={sectionTitle}>🔥 Hot Segments</p>
-
-            {trends.hotSegments.length === 0 && (
-              <p style={mutedTextStyle}>Sin segmentos calientes todavía.</p>
-            )}
-
-            {trends.hotSegments.map((segment, index) => (
-              <Badge key={index}>{segment}</Badge>
-            ))}
-          </div>
-        </div>
+        <AlertSection
+          title="⚠️ Weak AI Signals"
+          items={confidence.unstableSignals}
+          empty="Sin señales débiles IA."
+          styleType="warning"
+        />
 
         <AlertSection
           title="🛡️ Risk Alerts"
           items={risk.riskAlerts}
-          empty="Sin alertas de riesgo importantes."
+          empty="Sin alertas de riesgo."
           styleType="risk"
         />
 
         <InsightSection
           title="🧯 Risk Insights"
           items={risk.riskInsights}
-          empty="Sin insights de riesgo todavía."
+          empty="Sin insights de riesgo."
           cardStyle={riskCardStyle}
-        />
-
-        <AlertSection
-          title="🚨 Critical Alerts"
-          items={opportunityAlerts.criticalAlerts}
-          empty="Sin alertas críticas todavía."
-          styleType="critical"
-        />
-
-        <AlertSection
-          title="🔥 Opportunity Alerts"
-          items={opportunityAlerts.opportunityAlerts}
-          empty="Sin oportunidades extremas todavía."
-          styleType="opportunity"
-        />
-
-        <AlertSection
-          title="⚠️ Warning Alerts"
-          items={opportunityAlerts.warningAlerts}
-          empty="Sin avisos importantes."
-          styleType="warning"
         />
 
         <InsightSection
@@ -220,27 +205,6 @@ export default function History() {
           empty="Todavía no hay suficiente información temporal."
           cardStyle={temporalCardStyle}
         />
-
-        <div style={segmentsGridStyle}>
-          <div style={segmentBoxStyle}>
-            <p style={sectionTitle}>⚠️ Weak Segments</p>
-
-            {trends.weakSegments.length === 0 && (
-              <p style={mutedTextStyle}>Sin debilidades importantes detectadas.</p>
-            )}
-
-            {trends.weakSegments.map((segment, index) => (
-              <Badge key={index}>{segment}</Badge>
-            ))}
-          </div>
-
-          <div style={segmentBoxStyle}>
-            <p style={sectionTitle}>🕒 Temporal Summary</p>
-
-            <Badge>Recientes: {temporal.recentOpportunities || 0}</Badge>
-            <Badge>Antiguas: {temporal.oldOpportunities || 0}</Badge>
-          </div>
-        </div>
 
         <div style={controlsContainerStyle}>
           <input
@@ -351,8 +315,6 @@ function InsightSection({ title, items, empty, cardStyle }) {
 
 function AlertSection({ title, items, empty, styleType }) {
   const styleMap = {
-    critical: criticalAlertCardStyle,
-    opportunity: opportunityAlertCardStyle,
     warning: warningAlertCardStyle,
     risk: riskAlertCardStyle,
   };
@@ -371,6 +333,8 @@ function AlertSection({ title, items, empty, styleType }) {
     </div>
   );
 }
+
+/* STYLES */
 
 const pageStyle = {
   minHeight: "100vh",
@@ -421,7 +385,6 @@ const marketCardStyle = {
   background: "rgba(15,23,42,0.82)",
   borderRadius: "22px",
   padding: "22px",
-  border: "1px solid rgba(148,163,184,0.12)",
 };
 
 const marketLabel = {
@@ -429,12 +392,12 @@ const marketLabel = {
 };
 
 const marketValue = {
-  fontSize: "32px",
+  fontSize: "30px",
   fontWeight: "900",
 };
 
 const insightsContainerStyle = {
-  marginBottom: "30px",
+  marginBottom: "28px",
 };
 
 const sectionTitle = {
@@ -450,13 +413,30 @@ const insightCardStyle = {
   marginBottom: "12px",
 };
 
+const learningCardStyle = {
+  background: "rgba(34,197,94,0.10)",
+  border: "1px solid rgba(34,197,94,0.20)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "800",
+};
+
+const confidenceCardStyle = {
+  background: "rgba(59,130,246,0.10)",
+  border: "1px solid rgba(59,130,246,0.20)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "800",
+};
+
 const riskCardStyle = {
   background: "rgba(239,68,68,0.10)",
   border: "1px solid rgba(239,68,68,0.22)",
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
-  fontWeight: "800",
 };
 
 const portfolioCardStyle = {
@@ -465,7 +445,6 @@ const portfolioCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
-  fontWeight: "800",
 };
 
 const trendCardStyle = {
@@ -484,31 +463,12 @@ const temporalCardStyle = {
   marginBottom: "12px",
 };
 
-const criticalAlertCardStyle = {
-  background: "rgba(239,68,68,0.14)",
-  border: "1px solid rgba(239,68,68,0.28)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-  fontWeight: "800",
-};
-
-const opportunityAlertCardStyle = {
-  background: "rgba(34,197,94,0.12)",
-  border: "1px solid rgba(34,197,94,0.25)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-  fontWeight: "800",
-};
-
 const warningAlertCardStyle = {
   background: "rgba(250,204,21,0.12)",
   border: "1px solid rgba(250,204,21,0.25)",
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
-  fontWeight: "800",
 };
 
 const riskAlertCardStyle = {
@@ -517,27 +477,11 @@ const riskAlertCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
-  fontWeight: "900",
-};
-
-const segmentsGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "18px",
-  marginBottom: "30px",
-};
-
-const segmentBoxStyle = {
-  background: "rgba(15,23,42,0.82)",
-  borderRadius: "22px",
-  padding: "22px",
-  border: "1px solid rgba(148,163,184,0.12)",
 };
 
 const badgeChipStyle = {
   display: "inline-block",
   background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(148,163,184,0.12)",
   padding: "8px 12px",
   borderRadius: "999px",
   fontSize: "13px",
@@ -560,7 +504,6 @@ const searchInputStyle = {
   flex: 1,
   padding: "16px",
   borderRadius: "16px",
-  border: "1px solid rgba(148,163,184,0.18)",
   background: "rgba(15,23,42,0.75)",
   color: "white",
 };
@@ -582,7 +525,6 @@ const filterBarStyle = {
 const filterButtonStyle = {
   padding: "14px 18px",
   borderRadius: "14px",
-  border: "1px solid rgba(148,163,184,0.18)",
   background: "rgba(15,23,42,0.75)",
   color: "white",
 };
