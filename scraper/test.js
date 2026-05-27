@@ -1,4 +1,4 @@
-const { chromium } = require("playwright");
+import { chromium } from "playwright";
 
 async function run() {
   console.log("INICIANDO PLAYWRIGHT...");
@@ -26,8 +26,6 @@ async function run() {
   });
 
   console.log("SCREENSHOT GUARDADO");
-
-  // NO cerramos aún para ver navegador
 }
 
 run();
