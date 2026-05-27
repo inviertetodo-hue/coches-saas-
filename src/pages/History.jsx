@@ -11,11 +11,13 @@ import { analyzeAIConfidence } from "../services/aiConfidence";
 import { analyzeAILearning } from "../services/aiLearning";
 import { generateExecutiveSummary } from "../services/executiveSummary";
 import { generateAdvancedMetrics } from "../services/advancedMetrics";
+import { generateOpportunityRadar } from "../services/opportunityRadar";
 
 import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
 import AdvancedMetricsPanel from "../components/dashboard/AdvancedMetricsPanel";
+import OpportunityRadarPanel from "../components/dashboard/OpportunityRadarPanel";
 import HistoryControls from "../components/dashboard/HistoryControls";
 import AnalysisGrid from "../components/dashboard/AnalysisGrid";
 import AIInsightsPanel from "../components/dashboard/AIInsightsPanel";
@@ -63,6 +65,9 @@ export default function History() {
 
   const advancedMetrics =
     generateAdvancedMetrics(analyses);
+
+  const radar =
+    generateOpportunityRadar(analyses);
 
   const executive = generateExecutiveSummary({
     market,
@@ -151,6 +156,10 @@ export default function History() {
 
         <AdvancedMetricsPanel
           metrics={advancedMetrics}
+        />
+
+        <OpportunityRadarPanel
+          radar={radar}
         />
 
         <ExecutiveSummaryPanel
