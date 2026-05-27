@@ -43,6 +43,9 @@ export function analyzeCar(data) {
   const currentYear =
     new Date().getFullYear();
 
+  const age =
+    currentYear - year;
+
   const estimatedProfit =
     estimatedMarketPrice - price;
 
@@ -138,8 +141,6 @@ export function analyzeCar(data) {
     YEAR
   */
 
-  const age = currentYear - year;
-
   if (year >= currentYear - 3) {
     score += 15;
 
@@ -186,11 +187,12 @@ export function analyzeCar(data) {
     "maserati",
   ];
 
-  if (
+  const isPremium =
     premiumBrands.some((b) =>
       brand.includes(b)
-    )
-  ) {
+    );
+
+  if (isPremium) {
     score += 10;
 
     insights.push({
@@ -223,11 +225,12 @@ export function analyzeCar(data) {
     DRIVETRAIN
   */
 
-  if (
+  const hasPremiumAWD =
     drivetrain.includes("quattro") ||
     drivetrain.includes("xdrive") ||
-    drivetrain.includes("4matic")
-  ) {
+    drivetrain.includes("4matic");
+
+  if (hasPremiumAWD) {
     score += 10;
 
     insights.push({
@@ -245,12 +248,13 @@ export function analyzeCar(data) {
     PERFORMANCE
   */
 
-  if (
+  const hasPerformancePack =
     performancePackage.includes("amg") ||
     performancePackage.includes("rs") ||
     performancePackage.includes("gti") ||
-    performancePackage.includes("m sport")
-  ) {
+    performancePackage.includes("m sport");
+
+  if (hasPerformancePack) {
     score += 12;
 
     insights.push({
@@ -325,6 +329,97 @@ export function analyzeCar(data) {
   }
 
   /*
+    CONTEXTUAL AI REASONING
+  */
+
+  if (
+    isPremium &&
+    hasPremiumAWD &&
+    bodyType.includes("suv")
+  ) {
+    score += 10;
+
+    insights.push({
+      type: "positive",
+      text: "SUV premium AWD con alta demanda",
+    });
+
+    alerts.push({
+      type: "success",
+      text: "📈 Configuración premium muy demandada",
+    });
+  }
+
+  if (
+    hasPerformancePack &&
+    kilometers >= 150000
+  ) {
+    score -= 12;
+
+    insights.push({
+      type: "negative",
+      text: "Vehículo performance con kilometraje elevado",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "⚠️ Riesgo mecánico elevado",
+    });
+  }
+
+  if (
+    brand.includes("tesla") &&
+    age >= 8
+  ) {
+    score -= 8;
+
+    insights.push({
+      type: "negative",
+      text: "Tesla antiguo con posible degradación",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "🔋 Posible desgaste de batería",
+    });
+  }
+
+  if (
+    fuelType.includes("phev") &&
+    age <= 5
+  ) {
+    score += 8;
+
+    insights.push({
+      type: "positive",
+      text: "PHEV moderno con alta demanda urbana",
+    });
+
+    alerts.push({
+      type: "success",
+      text: "🏙️ Configuración urbana premium",
+    });
+  }
+
+  if (
+    bodyType.includes("wagon") &&
+    isPremium &&
+    fuelType.includes("diesel")
+  ) {
+    score += 7;
+
+    insights.push({
+      type: "positive",
+      text: "Wagon premium diesel valorado en exportación europea",
+    });
+
+    alerts.push({
+      type: "success",
+      text: "🌍 Alta demanda de exportación",
+    });
+  }
+
+  /*
     PRICE
   */
 
@@ -371,9 +466,11 @@ export function analyzeCar(data) {
     LIMITS
   */
 
-  if (score > 100) score = 100;
+  if (score > 100)
+    score = 100;
 
-  if (score < 0) score = 0;
+  if (score < 0)
+    score = 0;
 
   /*
     RECOMMENDATION
