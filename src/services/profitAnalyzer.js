@@ -21,7 +21,27 @@ export function analyzeCar(data) {
     data.engine || ""
   ).toLowerCase();
 
-  const currentYear = new Date().getFullYear();
+  const drivetrain = String(
+    data.drivetrain || ""
+  ).toLowerCase();
+
+  const performancePackage = String(
+    data.performancePackage || ""
+  ).toLowerCase();
+
+  const fuelType = String(
+    data.fuelType || ""
+  ).toLowerCase();
+
+  const bodyType = String(
+    data.bodyType || ""
+  ).toLowerCase();
+
+  const electrified =
+    Boolean(data.electrified);
+
+  const currentYear =
+    new Date().getFullYear();
 
   const estimatedProfit =
     estimatedMarketPrice - price;
@@ -188,7 +208,9 @@ export function analyzeCar(data) {
     TRANSMISSION
   */
 
-  if (transmission.includes("autom")) {
+  if (
+    transmission.includes("autom")
+  ) {
     score += 5;
 
     insights.push({
@@ -198,24 +220,107 @@ export function analyzeCar(data) {
   }
 
   /*
-    ENGINE
+    DRIVETRAIN
   */
 
   if (
-    engine.includes("hybrid") ||
-    engine.includes("eléctrico") ||
-    engine.includes("electric")
+    drivetrain.includes("quattro") ||
+    drivetrain.includes("xdrive") ||
+    drivetrain.includes("4matic")
   ) {
-    score += 5;
+    score += 10;
 
     insights.push({
       type: "positive",
-      text: "Motorización eficiente",
+      text: "Sistema AWD premium detectado",
     });
 
     alerts.push({
       type: "success",
-      text: "⚡ Tecnología eficiente detectada",
+      text: "🛞 Tracción premium detectada",
+    });
+  }
+
+  /*
+    PERFORMANCE
+  */
+
+  if (
+    performancePackage.includes("amg") ||
+    performancePackage.includes("rs") ||
+    performancePackage.includes("gti") ||
+    performancePackage.includes("m sport")
+  ) {
+    score += 12;
+
+    insights.push({
+      type: "positive",
+      text: "Pack performance detectado",
+    });
+
+    alerts.push({
+      type: "success",
+      text: "🏁 Vehículo performance detectado",
+    });
+  }
+
+  /*
+    ELECTRIFIED
+  */
+
+  if (electrified) {
+    score += 8;
+
+    insights.push({
+      type: "positive",
+      text: "Vehículo electrificado",
+    });
+
+    alerts.push({
+      type: "success",
+      text: "⚡ Tecnología electrificada detectada",
+    });
+  }
+
+  /*
+    FUEL TYPE
+  */
+
+  if (
+    fuelType.includes("phev") ||
+    fuelType.includes("ev")
+  ) {
+    score += 6;
+
+    insights.push({
+      type: "positive",
+      text: "Motorización moderna detectada",
+    });
+  }
+
+  /*
+    BODY TYPE
+  */
+
+  if (
+    bodyType.includes("suv")
+  ) {
+    score += 4;
+
+    insights.push({
+      type: "positive",
+      text: "SUV con alta demanda",
+    });
+  }
+
+  if (
+    bodyType.includes("wagon")
+  ) {
+    score += 3;
+
+    insights.push({
+      type: "positive",
+      text: "Carrocería familiar valorada en Europa",
     });
   }
 
@@ -237,7 +342,10 @@ export function analyzeCar(data) {
     });
   }
 
-  if (price >= 15000 && price <= 40000) {
+  if (
+    price >= 15000 &&
+    price <= 40000
+  ) {
     score += 5;
 
     insights.push({
@@ -271,17 +379,20 @@ export function analyzeCar(data) {
     RECOMMENDATION
   */
 
-  let recommendation = "🟡 ANALIZAR";
+  let recommendation =
+    "🟡 ANALIZAR";
 
   if (score >= 85) {
-    recommendation = "🔥 CHOLLO IA";
+    recommendation =
+      "🔥 CHOLLO IA";
 
     alerts.push({
       type: "success",
       text: "🏆 Score IA extremadamente alto",
     });
   } else if (score <= 45) {
-    recommendation = "❌ DESCARTAR";
+    recommendation =
+      "❌ DESCARTAR";
 
     alerts.push({
       type: "danger",
@@ -303,7 +414,10 @@ export function compareCars(
   currentCar,
   referenceCar
 ) {
-  if (!currentCar || !referenceCar) {
+  if (
+    !currentCar ||
+    !referenceCar
+  ) {
     return null;
   }
 
@@ -336,15 +450,19 @@ export function compareCars(
   );
 
   const scoreDifference =
-    currentScore - referenceScore;
+    currentScore -
+    referenceScore;
 
   const roiDifference =
-    currentROI - referenceROI;
+    currentROI -
+    referenceROI;
 
   const profitDifference =
-    currentProfit - referenceProfit;
+    currentProfit -
+    referenceProfit;
 
-  let winner = "Empate técnico";
+  let winner =
+    "Empate técnico";
 
   let recommendation =
     "Ambas opciones requieren análisis manual.";
@@ -361,17 +479,23 @@ export function compareCars(
     scoreDifference < 0 &&
     roiDifference <= 0
   ) {
-    winner = "Coche histórico";
+    winner =
+      "Coche histórico";
 
     recommendation =
       "El coche histórico sigue siendo mejor referencia según score IA y ROI.";
-  } else if (profitDifference > 0) {
+  } else if (
+    profitDifference > 0
+  ) {
     winner = "Coche actual";
 
     recommendation =
       "El coche actual destaca más por beneficio estimado.";
-  } else if (profitDifference < 0) {
-    winner = "Coche histórico";
+  } else if (
+    profitDifference < 0
+  ) {
+    winner =
+      "Coche histórico";
 
     recommendation =
       "El coche histórico ofrece mejor beneficio estimado.";
