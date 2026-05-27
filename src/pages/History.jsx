@@ -19,6 +19,7 @@ import { generateDealPipeline } from "../services/dealPipeline";
 import { generateDealDecisions } from "../services/dealDecisionEngine";
 import { simulatePortfolio } from "../services/portfolioSimulator";
 import { validateAnalysesDataset } from "../services/validationRules";
+import { sanitizeAnalysesDataset } from "../services/analysisSanitizer";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import InstantDecisionPanel from "../components/dashboard/InstantDecisionPanel";
@@ -54,7 +55,7 @@ export default function History() {
       .order("score", { ascending: false });
 
     if (!error) {
-      setAnalyses(data || []);
+      setAnalyses(sanitizeAnalysesDataset(data || []));
     }
   }
 
@@ -69,23 +70,28 @@ export default function History() {
     }
   }
 
-  const market = analyzeMarketIntelligence(analyses);
-  const trends = analyzeMarketTrends(analyses);
-  const temporal = analyzeTemporalIntelligence(analyses);
-  const opportunityAlerts = analyzeOpportunityAlerts(analyses);
-  const portfolio = analyzePortfolioStrategy(analyses);
-  const risk = analyzeRiskManagement(analyses);
-  const confidence = analyzeAIConfidence(analyses);
-  const learning = analyzeAILearning(analyses);
+  const cleanAnalyses = useMemo(
+    () => sanitizeAnalysesDataset(analyses),
+    [analyses]
+  );
 
-  const validation = validateAnalysesDataset(analyses);
-  const advancedMetrics = generateAdvancedMetrics(analyses);
-  const radar = generateOpportunityRadar(analyses);
-  const ranking = generateOpportunityRanking(analyses);
-  const watchlist = generateWatchlist(analyses);
-  const pipeline = generateDealPipeline(analyses);
-  const decisions = generateDealDecisions(analyses);
-  const simulation = simulatePortfolio(analyses);
+  const market = analyzeMarketIntelligence(cleanAnalyses);
+  const trends = analyzeMarketTrends(cleanAnalyses);
+  const temporal = analyzeTemporalIntelligence(cleanAnalyses);
+  const opportunityAlerts = analyzeOpportunityAlerts(cleanAnalyses);
+  const portfolio = analyzePortfolioStrategy(cleanAnalyses);
+  const risk = analyzeRiskManagement(cleanAnalyses);
+  const confidence = analyzeAIConfidence(cleanAnalyses);
+  const learning = analyzeAILearning(cleanAnalyses);
+
+  const validation = validateAnalysesDataset(cleanAnalyses);
+  const advancedMetrics = generateAdvancedMetrics(cleanAnalyses);
+  const radar = generateOpportunityRadar(cleanAnalyses);
+  const ranking = generateOpportunityRanking(cleanAnalyses);
+  const watchlist = generateWatchlist(cleanAnalyses);
+  const pipeline = generateDealPipeline(cleanAnalyses);
+  const decisions = generateDealDecisions(cleanAnalyses);
+  const simulation = simulatePortfolio(cleanAnalyses);
 
   const executive = generateExecutiveSummary({
     market,
@@ -99,7 +105,7 @@ export default function History() {
   });
 
   const filteredAnalyses = useMemo(() => {
-    let result = [...analyses];
+    let result = [...cleanAnalyses];
 
     if (search.trim()) {
       result = result.filter((item) => {
@@ -138,7 +144,7 @@ export default function History() {
     });
 
     return result;
-  }, [analyses, filter, search, sortBy]);
+  }, [cleanAnalyses, filter, search, sortBy]);
 
   return (
     <div style={pageStyle}>
