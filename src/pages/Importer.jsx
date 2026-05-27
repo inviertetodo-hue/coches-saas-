@@ -3,28 +3,51 @@ import { supabase } from "../lib/supabase";
 import { analyzeCar } from "../services/profitAnalyzer";
 
 export default function Importer() {
+  const [car, setCar] = useState({
+    title: "",
+    price: "",
+    km: "",
+    year: "",
+    country: "Alemania",
+    url: "",
+  });
+
+  const [analysis, setAnalysis] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  const car = {
-    title: "BMW 320d Touring",
-    price: 18900,
-    km: 95000,
-    year: 2020,
-    country: "Alemania",
-    url: "https://suchen.mobile.de/fahrzeuge/details.html?id=397445030",
-  };
+  function updateField(field, value) {
+    setCar({
+      ...car,
+      [field]: value,
+    });
+  }
 
-  const analysis = analyzeCar(car);
+  function analyzeManualCar() {
+    const carData = {
+      ...car,
+      price: Number(car.price),
+      km: Number(car.km),
+      year: Number(car.year),
+    };
+
+    const result = analyzeCar(carData);
+    setAnalysis(result);
+    setMessage("");
+  }
 
   async function saveAnalysis() {
+    if (!analysis) return;
+
     setSaving(true);
     setMessage("");
+
+    const price = Number(car.price);
 
     const { error } = await supabase.from("import_analyses").insert({
       country: car.country,
       profit: Math.round(analysis.estimatedProfit),
-      roi: Math.round((analysis.estimatedProfit / car.price) * 100),
+      roi: Math.round((analysis.estimatedProfit / price) * 100),
       score: analysis.score,
       url: car.url,
     });
@@ -57,46 +80,114 @@ export default function Importer() {
           padding: "30px",
           borderRadius: "12px",
           marginTop: "30px",
+          maxWidth: "700px",
         }}
       >
-        <h2>{car.title}</h2>
+        <h2>Datos del vehículo</h2>
 
-        <p>Precio Alemania: {car.price} €</p>
-        <p>Kilómetros: {car.km}</p>
-        <p>Año: {car.year}</p>
-        <p>País: {car.country}</p>
+        <input
+          placeholder="Ej: BMW 320d Touring"
+          value={car.title}
+          onChange={(e) => updateField("title", e.target.value)}
+          style={inputStyle}
+        />
 
-        <hr />
+        <input
+          placeholder="Precio compra Alemania"
+          value={car.price}
+          onChange={(e) => updateField("price", e.target.value)}
+          style={inputStyle}
+        />
 
-        <h2>ANÁLISIS IA</h2>
+        <input
+          placeholder="Kilómetros"
+          value={car.km}
+          onChange={(e) => updateField("km", e.target.value)}
+          style={inputStyle}
+        />
 
-        <p>Score IA: {analysis.score}/100</p>
-        <p>Recomendación: {analysis.recommendation}</p>
-        <p>Precio estimado venta España: {Math.round(analysis.estimatedSalePrice)} €</p>
-        <p>Beneficio estimado: {Math.round(analysis.estimatedProfit)} €</p>
-        <p>ROI estimado: {Math.round((analysis.estimatedProfit / car.price) * 100)}%</p>
+        <input
+          placeholder="Año"
+          value={car.year}
+          onChange={(e) => updateField("year", e.target.value)}
+          style={inputStyle}
+        />
 
-        <button
-          onClick={saveAnalysis}
-          disabled={saving}
-          style={{
-            marginTop: "20px",
-            padding: "14px 22px",
-            borderRadius: "10px",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "16px",
-          }}
-        >
-          {saving ? "Guardando..." : "Guardar análisis"}
+        <input
+          placeholder="País"
+          value={car.country}
+          onChange={(e) => updateField("country", e.target.value)}
+          style={inputStyle}
+        />
+
+        <input
+          placeholder="URL del anuncio"
+          value={car.url}
+          onChange={(e) => updateField("url", e.target.value)}
+          style={inputStyle}
+        />
+
+        <button onClick={analyzeManualCar} style={buttonStyle}>
+          Analizar vehículo
         </button>
 
-        {message && (
-          <p style={{ marginTop: "20px", fontWeight: "bold" }}>
-            {message}
-          </p>
+        {analysis && (
+          <div
+            style={{
+              marginTop: "30px",
+              background: "#020617",
+              padding: "25px",
+              borderRadius: "12px",
+            }}
+          >
+            <h2>{car.title || "Vehículo analizado"}</h2>
+
+            <p>Score IA: {analysis.score}/100</p>
+            <p>Recomendación: {analysis.recommendation}</p>
+            <p>
+              Precio estimado venta España:{" "}
+              {Math.round(analysis.estimatedSalePrice)} €
+            </p>
+            <p>Beneficio estimado: {Math.round(analysis.estimatedProfit)} €</p>
+            <p>
+              ROI estimado:{" "}
+              {Math.round(
+                (analysis.estimatedProfit / Number(car.price)) * 100
+              )}
+              %
+            </p>
+
+            <button
+              onClick={saveAnalysis}
+              disabled={saving}
+              style={buttonStyle}
+            >
+              {saving ? "Guardando..." : "Guardar análisis"}
+            </button>
+
+            {message && <p style={{ fontWeight: "bold" }}>{message}</p>}
+          </div>
         )}
       </div>
     </div>
   );
 }
+
+const inputStyle = {
+  display: "block",
+  width: "100%",
+  padding: "14px",
+  marginTop: "14px",
+  borderRadius: "10px",
+  border: "none",
+  fontSize: "16px",
+};
+
+const buttonStyle = {
+  marginTop: "20px",
+  padding: "14px 22px",
+  borderRadius: "10px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "16px",
+};
