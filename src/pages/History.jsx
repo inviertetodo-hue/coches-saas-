@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
   const [filter, setFilter] = useState("TODOS");
+
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("score");
 
   useEffect(() => {
     loadAnalyses();
@@ -41,7 +44,9 @@ export default function History() {
 
     const csv = rows.map((row) => row.join(";")).join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], {
+      type: "text/csv",
+    });
 
     const url = URL.createObjectURL(blob);
 
@@ -52,13 +57,56 @@ export default function History() {
     a.click();
   }
 
-  const filteredAnalyses = analyses.filter((item) => {
-    if (filter === "TODOS") return true;
-    if (filter === "CHOLLO IA") return item.score >= 85;
-    if (filter === "ANALIZAR") return item.score >= 60 && item.score < 85;
-    if (filter === "DESCARTAR") return item.score < 60;
-    return true;
-  });
+  const filteredAnalyses = useMemo(() => {
+    let result = [...analyses];
+
+    result = result.filter((item) => {
+      if (filter === "TODOS") return true;
+      if (filter === "CHOLLO IA")
+        return item.score >= 85;
+
+      if (filter === "ANALIZAR")
+        return item.score >= 60 && item.score < 85;
+
+      if (filter === "DESCARTAR")
+        return item.score < 60;
+
+      return true;
+    });
+
+    if (search.trim()) {
+      result = result.filter((item) => {
+        const searchText = `
+          ${item.country || ""}
+          ${item.url || ""}
+          ${item.score || ""}
+          ${item.roi || ""}
+        `.toLowerCase();
+
+        return searchText.includes(
+          search.toLowerCase()
+        );
+      });
+    }
+
+    result.sort((a, b) => {
+      if (sortBy === "score") {
+        return b.score - a.score;
+      }
+
+      if (sortBy === "roi") {
+        return b.roi - a.roi;
+      }
+
+      if (sortBy === "profit") {
+        return b.profit - a.profit;
+      }
+
+      return 0;
+    });
+
+    return result;
+  }, [analyses, filter, search, sortBy]);
 
   const totalCars = analyses.length;
 
@@ -71,7 +119,8 @@ export default function History() {
     analyses.length > 0
       ? Math.round(
           analyses.reduce(
-            (acc, item) => acc + Number(item.roi || 0),
+            (acc, item) =>
+              acc + Number(item.roi || 0),
             0
           ) / analyses.length
         )
@@ -81,7 +130,8 @@ export default function History() {
     analyses.length > 0
       ? Math.round(
           analyses.reduce(
-            (acc, item) => acc + Number(item.score || 0),
+            (acc, item) =>
+              acc + Number(item.score || 0),
             0
           ) / analyses.length
         )
@@ -94,41 +144,58 @@ export default function History() {
   const bestOpportunity =
     analyses.length > 0
       ? analyses.reduce((best, current) =>
-          current.score > best.score ? current : best
+          current.score > best.score
+            ? current
+            : best
         )
       : null;
 
   const topROI =
     analyses.length > 0
       ? analyses.reduce((best, current) =>
-          current.roi > best.roi ? current : best
+          current.roi > best.roi
+            ? current
+            : best
         )
       : null;
 
   function getLabel(score) {
-    if (score >= 85) return "🔥 CHOLLO IA";
-    if (score >= 60) return "🟡 ANALIZAR";
+    if (score >= 85)
+      return "🔥 CHOLLO IA";
+
+    if (score >= 60)
+      return "🟡 ANALIZAR";
+
     return "🔴 DESCARTAR";
   }
 
   function getCardStyle(score) {
     if (score >= 85) {
       return {
-        border: "1px solid rgba(34,197,94,0.35)",
-        boxShadow: "0 0 40px rgba(34,197,94,0.18)",
+        border:
+          "1px solid rgba(34,197,94,0.35)",
+
+        boxShadow:
+          "0 0 40px rgba(34,197,94,0.18)",
       };
     }
 
     if (score >= 60) {
       return {
-        border: "1px solid rgba(250,204,21,0.35)",
-        boxShadow: "0 0 40px rgba(250,204,21,0.15)",
+        border:
+          "1px solid rgba(250,204,21,0.35)",
+
+        boxShadow:
+          "0 0 40px rgba(250,204,21,0.15)",
       };
     }
 
     return {
-      border: "1px solid rgba(239,68,68,0.35)",
-      boxShadow: "0 0 40px rgba(239,68,68,0.15)",
+      border:
+        "1px solid rgba(239,68,68,0.35)",
+
+      boxShadow:
+        "0 0 40px rgba(239,68,68,0.15)",
     };
   }
 
@@ -148,8 +215,8 @@ export default function History() {
           </h1>
 
           <p style={subtitleStyle}>
-            Analiza oportunidades, ROI, score IA y
-            métricas avanzadas de importación.
+            Analiza oportunidades, ROI,
+            score IA y métricas avanzadas.
           </p>
         </div>
 
@@ -240,9 +307,40 @@ export default function History() {
             </h2>
 
             <p style={analyticsTextStyle}>
-              Mejor oportunidad de rentabilidad.
+              Mejor oportunidad detectada.
             </p>
           </div>
+        </div>
+
+        <div style={controlsContainerStyle}>
+          <input
+            placeholder="Buscar análisis..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            style={searchInputStyle}
+          />
+
+          <select
+            value={sortBy}
+            onChange={(e) =>
+              setSortBy(e.target.value)
+            }
+            style={selectStyle}
+          >
+            <option value="score">
+              Ordenar por Score
+            </option>
+
+            <option value="roi">
+              Ordenar por ROI
+            </option>
+
+            <option value="profit">
+              Ordenar por Beneficio
+            </option>
+          </select>
         </div>
 
         <div style={filterBarStyle}>
@@ -254,21 +352,27 @@ export default function History() {
           </button>
 
           <button
-            onClick={() => setFilter("CHOLLO IA")}
+            onClick={() =>
+              setFilter("CHOLLO IA")
+            }
             style={filterButtonStyle}
           >
             🔥 Chollos
           </button>
 
           <button
-            onClick={() => setFilter("ANALIZAR")}
+            onClick={() =>
+              setFilter("ANALIZAR")
+            }
             style={filterButtonStyle}
           >
             🟡 Analizar
           </button>
 
           <button
-            onClick={() => setFilter("DESCARTAR")}
+            onClick={() =>
+              setFilter("DESCARTAR")
+            }
             style={filterButtonStyle}
           >
             🔴 Descartar
@@ -303,7 +407,10 @@ export default function History() {
 
               <div style={infoGridStyle}>
                 <div style={infoCardStyle}>
-                  <p style={labelStyle}>🌍 País</p>
+                  <p style={labelStyle}>
+                    🌍 País
+                  </p>
+
                   <p style={valueStyle}>
                     {item.country}
                   </p>
@@ -320,7 +427,9 @@ export default function History() {
                 </div>
 
                 <div style={infoCardStyle}>
-                  <p style={labelStyle}>📈 ROI</p>
+                  <p style={labelStyle}>
+                    📈 ROI
+                  </p>
 
                   <p style={valueStyle}>
                     {item.roi}%
@@ -411,7 +520,8 @@ const headerStyle = {
 
 const badgeStyle = {
   display: "inline-block",
-  background: "rgba(59,130,246,0.18)",
+  background:
+    "rgba(59,130,246,0.18)",
   color: "#93c5fd",
   padding: "8px 14px",
   borderRadius: "999px",
@@ -442,12 +552,15 @@ const dashboardGridStyle = {
 };
 
 const dashboardCardStyle = {
-  background: "rgba(15,23,42,0.82)",
-  border: "1px solid rgba(148,163,184,0.16)",
+  background:
+    "rgba(15,23,42,0.82)",
+  border:
+    "1px solid rgba(148,163,184,0.16)",
   borderRadius: "24px",
   padding: "24px",
   backdropFilter: "blur(16px)",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+  boxShadow:
+    "0 20px 60px rgba(0,0,0,0.25)",
 };
 
 const dashboardLabelStyle = {
@@ -473,7 +586,8 @@ const analyticsGridStyle = {
 const analyticsCardStyle = {
   background:
     "linear-gradient(135deg, rgba(37,99,235,0.18), rgba(34,197,94,0.12))",
-  border: "1px solid rgba(148,163,184,0.16)",
+  border:
+    "1px solid rgba(148,163,184,0.16)",
   borderRadius: "28px",
   padding: "28px",
   backdropFilter: "blur(16px)",
@@ -497,6 +611,37 @@ const analyticsTextStyle = {
   margin: 0,
 };
 
+const controlsContainerStyle = {
+  display: "flex",
+  gap: "16px",
+  marginBottom: "24px",
+  flexWrap: "wrap",
+};
+
+const searchInputStyle = {
+  flex: 1,
+  minWidth: "260px",
+  padding: "16px",
+  borderRadius: "16px",
+  border:
+    "1px solid rgba(148,163,184,0.18)",
+  background:
+    "rgba(15,23,42,0.75)",
+  color: "white",
+  fontSize: "15px",
+};
+
+const selectStyle = {
+  padding: "16px",
+  borderRadius: "16px",
+  border:
+    "1px solid rgba(148,163,184,0.18)",
+  background:
+    "rgba(15,23,42,0.75)",
+  color: "white",
+  fontWeight: "700",
+};
+
 const filterBarStyle = {
   display: "flex",
   flexWrap: "wrap",
@@ -507,8 +652,10 @@ const filterBarStyle = {
 const filterButtonStyle = {
   padding: "14px 18px",
   borderRadius: "14px",
-  border: "1px solid rgba(148,163,184,0.18)",
-  background: "rgba(15,23,42,0.75)",
+  border:
+    "1px solid rgba(148,163,184,0.18)",
+  background:
+    "rgba(15,23,42,0.75)",
   color: "white",
   fontWeight: "700",
   cursor: "pointer",
@@ -533,7 +680,8 @@ const gridStyle = {
 };
 
 const cardStyle = {
-  background: "rgba(15,23,42,0.82)",
+  background:
+    "rgba(15,23,42,0.82)",
   borderRadius: "28px",
   padding: "24px",
   backdropFilter: "blur(16px)",
@@ -550,7 +698,8 @@ const topRowStyle = {
 const recommendationStyle = {
   padding: "10px 14px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
+  background:
+    "rgba(255,255,255,0.08)",
   fontWeight: "900",
 };
 
@@ -574,10 +723,12 @@ const infoGridStyle = {
 };
 
 const infoCardStyle = {
-  background: "rgba(2,6,23,0.75)",
+  background:
+    "rgba(2,6,23,0.75)",
   borderRadius: "18px",
   padding: "18px",
-  border: "1px solid rgba(148,163,184,0.12)",
+  border:
+    "1px solid rgba(148,163,184,0.12)",
 };
 
 const labelStyle = {
@@ -607,7 +758,8 @@ const deleteButtonStyle = {
   padding: "14px",
   borderRadius: "14px",
   border: "none",
-  background: "rgba(239,68,68,0.15)",
+  background:
+    "rgba(239,68,68,0.15)",
   color: "#fca5a5",
   fontWeight: "900",
   cursor: "pointer",
