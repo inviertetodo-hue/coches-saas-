@@ -13,7 +13,11 @@ export default function Importer() {
     url: "",
   });
 
-  const [analysis, setAnalysis] = useState(null);
+  const [analysis, setAnalysis] =
+    useState(null);
+
+  const [semanticData, setSemanticData] =
+    useState(null);
 
   const [saving, setSaving] =
     useState(false);
@@ -49,8 +53,10 @@ export default function Importer() {
       return;
     }
 
-    const semanticData =
+    const parsed =
       parseCarFromUrl(car.title);
+
+    setSemanticData(parsed);
 
     const estimatedMarketPrice =
       Math.round(
@@ -60,7 +66,7 @@ export default function Importer() {
     const result = analyzeCar({
       ...car,
 
-      ...semanticData,
+      ...parsed,
 
       price: Number(car.price),
 
@@ -84,16 +90,42 @@ export default function Importer() {
     const { error } = await supabase
       .from("import_analyses")
       .insert({
+        title: car.title,
+
+        brand:
+          semanticData?.brand || null,
+
+        model:
+          semanticData?.model || null,
+
+        fuel_type:
+          semanticData?.fuelType ||
+          null,
+
+        drivetrain:
+          semanticData?.drivetrain ||
+          null,
+
+        performance_package:
+          semanticData?.performancePackage ||
+          null,
+
         country: car.country,
+
         profit: Math.round(
           analysis.estimatedProfit
         ),
+
         roi: analysis.roi,
+
         score: analysis.score,
+
         url: car.url,
       });
 
     if (error) {
+      console.log(error);
+
       setMessage(
         "ERROR AL GUARDAR"
       );
@@ -133,9 +165,9 @@ export default function Importer() {
       background:
         "rgba(239,68,68,0.12)",
 
-        border:
-          "1px solid rgba(239,68,68,0.25)",
-      };
+      border:
+        "1px solid rgba(239,68,68,0.25)",
+    };
   }
 
   return (
