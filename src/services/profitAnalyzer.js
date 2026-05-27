@@ -1,137 +1,141 @@
-export function analyzeCar(car) {
-  let score = 0;
+export function analyzeCar(data) {
+  const price = Number(data.price || 0);
+  const estimatedMarketPrice =
+    Number(data.estimatedMarketPrice || 0);
 
-  const title = (car.title || "").toLowerCase();
+  const kilometers = Number(data.kilometers || 0);
+  const year = Number(data.year || 0);
 
-  // =========================
-  // PRECIO
-  // =========================
+  const brand = String(data.brand || "").toLowerCase();
 
-  if (car.price < 15000) {
-    score += 30;
-  } else if (car.price < 25000) {
-    score += 20;
-  } else if (car.price < 40000) {
-    score += 10;
-  }
+  const transmission = String(
+    data.transmission || ""
+  ).toLowerCase();
 
-  // =========================
-  // KILÓMETROS
-  // =========================
+  const engine = String(data.engine || "").toLowerCase();
 
-  if (car.km < 80000) {
-    score += 30;
-  } else if (car.km < 120000) {
-    score += 20;
-  } else if (car.km < 180000) {
-    score += 10;
-  } else {
-    score -= 20;
-  }
+  const currentYear = new Date().getFullYear();
 
-  // =========================
-  // AÑO
-  // =========================
+  const estimatedProfit =
+    estimatedMarketPrice - price;
 
-  if (car.year >= 2021) {
-    score += 30;
-  } else if (car.year >= 2018) {
-    score += 20;
-  } else if (car.year >= 2015) {
-    score += 10;
-  } else {
-    score -= 20;
-  }
+  const roi =
+    price > 0
+      ? Math.round(
+          (estimatedProfit / price) * 100
+        )
+      : 0;
 
-  // =========================
-  // MARCAS PREMIUM
-  // =========================
+  let score = 50;
+
+  /*
+    ROI
+  */
+
+  if (roi >= 35) score += 25;
+  else if (roi >= 25) score += 18;
+  else if (roi >= 15) score += 10;
+  else if (roi < 5) score -= 15;
+
+  /*
+    KILOMETERS
+  */
+
+  if (kilometers <= 50000) score += 15;
+  else if (kilometers <= 100000) score += 8;
+  else if (kilometers >= 180000) score -= 15;
+
+  /*
+    YEAR
+  */
+
+  const age = currentYear - year;
+
+  if (year >= currentYear - 3) score += 15;
+  else if (year >= currentYear - 6) score += 8;
+  else if (age >= 15) score -= 15;
+
+  /*
+    PREMIUM BRANDS
+  */
 
   const premiumBrands = [
     "bmw",
     "audi",
-    "mercedes",
+    "mercedes-benz",
     "porsche",
+    "tesla",
     "lexus",
-    "range rover",
+    "land rover",
+    "jaguar",
+    "ferrari",
+    "lamborghini",
+    "maserati",
   ];
 
-  const isPremium = premiumBrands.some((brand) =>
-    title.includes(brand)
-  );
-
-  if (isPremium) {
-    score += 15;
-  }
-
-  // =========================
-  // BENEFICIO ESTIMADO
-  // =========================
-
-  let multiplier = 1.25;
-
-  if (isPremium) {
-    multiplier = 1.32;
-  }
-
-  const estimatedSalePrice = car.price * multiplier;
-
-  const estimatedProfit =
-    estimatedSalePrice - car.price;
-
-  // =========================
-  // ROI
-  // =========================
-
-  const roi =
-    (estimatedProfit / car.price) * 100;
-
-  if (roi >= 30) {
-    score += 20;
-  } else if (roi >= 20) {
+  if (
+    premiumBrands.some((b) =>
+      brand.includes(b)
+    )
+  ) {
     score += 10;
   }
 
-  // =========================
-  // BENEFICIO
-  // =========================
+  /*
+    TRANSMISSION
+  */
 
-  if (estimatedProfit >= 8000) {
-    score += 20;
-  } else if (estimatedProfit >= 5000) {
-    score += 10;
+  if (transmission.includes("autom")) {
+    score += 5;
   }
 
-  // =========================
-  // NORMALIZAR SCORE
-  // =========================
+  /*
+    ENGINE BONUS
+  */
 
-  if (score > 100) {
-    score = 100;
+  if (
+    engine.includes("hybrid") ||
+    engine.includes("eléctrico") ||
+    engine.includes("electric")
+  ) {
+    score += 5;
   }
 
-  if (score < 0) {
-    score = 0;
+  /*
+    PRICE LOGIC
+  */
+
+  if (price <= 5000) {
+    score -= 10;
   }
 
-  // =========================
-  // RECOMENDACIÓN
-  // =========================
+  if (price >= 15000 && price <= 40000) {
+    score += 5;
+  }
 
-  let recommendation = "DESCARTAR";
+  /*
+    LIMITS
+  */
 
-  if (score >= 80) {
+  if (score > 100) score = 100;
+  if (score < 0) score = 0;
+
+  /*
+    RECOMMENDATION
+  */
+
+  let recommendation = "🟡 ANALIZAR";
+
+  if (score >= 85) {
     recommendation = "🔥 CHOLLO IA";
-  } else if (score >= 60) {
-    recommendation = "🟡 ANALIZAR";
+  } else if (score <= 45) {
+    recommendation = "❌ DESCARTAR";
   }
 
   return {
     score,
     recommendation,
-    estimatedSalePrice,
     estimatedProfit,
     roi,
-    isPremium,
   };
 }
