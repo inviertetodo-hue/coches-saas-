@@ -22,6 +22,7 @@ import { simulatePortfolio } from "../services/portfolioSimulator";
 import { validateAnalysesDataset } from "../services/validationRules";
 import { sanitizeAnalysesDataset } from "../services/analysisSanitizer";
 import { evaluateAnalysisHealth } from "../services/analysisHealthGate";
+import { filterValidAnalyses } from "../services/analysisGuard";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SystemHealthBanner from "../components/dashboard/SystemHealthBanner";
@@ -58,7 +59,10 @@ export default function History() {
       .order("score", { ascending: false });
 
     if (!error) {
-      setAnalyses(sanitizeAnalysesDataset(data || []));
+      const sanitized = sanitizeAnalysesDataset(data || []);
+      const valid = filterValidAnalyses(sanitized);
+
+      setAnalyses(valid);
     }
   }
 
@@ -73,10 +77,11 @@ export default function History() {
     }
   }
 
-  const cleanAnalyses = useMemo(
-    () => sanitizeAnalysesDataset(analyses),
-    [analyses]
-  );
+  const cleanAnalyses = useMemo(() => {
+    const sanitized = sanitizeAnalysesDataset(analyses);
+
+    return filterValidAnalyses(sanitized);
+  }, [analyses]);
 
   const market = analyzeMarketIntelligence(cleanAnalyses);
   const trends = analyzeMarketTrends(cleanAnalyses);
@@ -145,6 +150,7 @@ export default function History() {
       if (sortBy === "score") return b.score - a.score;
       if (sortBy === "roi") return b.roi - a.roi;
       if (sortBy === "profit") return b.profit - a.profit;
+
       return 0;
     });
 
