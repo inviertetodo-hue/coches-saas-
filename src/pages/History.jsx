@@ -60,6 +60,27 @@ export default function History() {
     return true;
   });
 
+  const totalCars = analyses.length;
+
+  const totalProfit = analyses.reduce(
+    (acc, item) => acc + Number(item.profit || 0),
+    0
+  );
+
+  const averageROI =
+    analyses.length > 0
+      ? Math.round(
+          analyses.reduce(
+            (acc, item) => acc + Number(item.roi || 0),
+            0
+          ) / analyses.length
+        )
+      : 0;
+
+  const totalChollos = analyses.filter(
+    (item) => item.score >= 85
+  ).length;
+
   function getLabel(score) {
     if (score >= 85) return "🔥 CHOLLO IA";
     if (score >= 60) return "🟡 ANALIZAR";
@@ -102,6 +123,30 @@ export default function History() {
             Analiza tus mejores oportunidades de importación y clasifícalas por
             potencial de beneficio.
           </p>
+        </div>
+
+        <div style={dashboardGridStyle}>
+          <div style={dashboardCardStyle}>
+            <p style={dashboardLabelStyle}>🚘 Total vehículos</p>
+            <h2 style={dashboardValueStyle}>{totalCars}</h2>
+          </div>
+
+          <div style={dashboardCardStyle}>
+            <p style={dashboardLabelStyle}>💰 Beneficio total</p>
+            <h2 style={dashboardValueStyle}>
+              {totalProfit.toLocaleString()} €
+            </h2>
+          </div>
+
+          <div style={dashboardCardStyle}>
+            <p style={dashboardLabelStyle}>📈 ROI medio</p>
+            <h2 style={dashboardValueStyle}>{averageROI}%</h2>
+          </div>
+
+          <div style={dashboardCardStyle}>
+            <p style={dashboardLabelStyle}>🔥 Chollos IA</p>
+            <h2 style={dashboardValueStyle}>{totalChollos}</h2>
+          </div>
         </div>
 
         <div style={filterBarStyle}>
@@ -268,6 +313,35 @@ const subtitleStyle = {
   maxWidth: "720px",
   marginTop: "16px",
   lineHeight: "1.6",
+};
+
+const dashboardGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "20px",
+  marginBottom: "34px",
+};
+
+const dashboardCardStyle = {
+  background: "rgba(15,23,42,0.82)",
+  border: "1px solid rgba(148,163,184,0.16)",
+  borderRadius: "24px",
+  padding: "24px",
+  backdropFilter: "blur(16px)",
+  boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+};
+
+const dashboardLabelStyle = {
+  color: "#94a3b8",
+  margin: 0,
+  fontSize: "14px",
+};
+
+const dashboardValueStyle = {
+  marginTop: "14px",
+  marginBottom: 0,
+  fontSize: "36px",
+  fontWeight: "900",
 };
 
 const filterBarStyle = {
