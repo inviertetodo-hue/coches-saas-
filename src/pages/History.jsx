@@ -12,13 +12,13 @@ import { analyzeAILearning } from "../services/aiLearning";
 import { generateExecutiveSummary } from "../services/executiveSummary";
 import { generateAdvancedMetrics } from "../services/advancedMetrics";
 
-import { InsightSection, AlertSection } from "../components/dashboard/DashboardBlocks";
 import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
 import AdvancedMetricsPanel from "../components/dashboard/AdvancedMetricsPanel";
 import HistoryControls from "../components/dashboard/HistoryControls";
 import AnalysisGrid from "../components/dashboard/AnalysisGrid";
+import AIInsightsPanel from "../components/dashboard/AIInsightsPanel";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
@@ -60,7 +60,9 @@ export default function History() {
   const risk = analyzeRiskManagement(analyses);
   const confidence = analyzeAIConfidence(analyses);
   const learning = analyzeAILearning(analyses);
-  const advancedMetrics = generateAdvancedMetrics(analyses);
+
+  const advancedMetrics =
+    generateAdvancedMetrics(analyses);
 
   const executive = generateExecutiveSummary({
     market,
@@ -87,26 +89,42 @@ export default function History() {
           ${item.performance_package || ""}
         `.toLowerCase();
 
-        return text.includes(search.toLowerCase());
+        return text.includes(
+          search.toLowerCase()
+        );
       });
     }
 
     if (filter === "CHOLLO IA") {
-      result = result.filter((item) => item.score >= 85);
+      result = result.filter(
+        (item) => item.score >= 85
+      );
     }
 
     if (filter === "ANALIZAR") {
-      result = result.filter((item) => item.score >= 60 && item.score < 85);
+      result = result.filter(
+        (item) =>
+          item.score >= 60 &&
+          item.score < 85
+      );
     }
 
     if (filter === "DESCARTAR") {
-      result = result.filter((item) => item.score < 60);
+      result = result.filter(
+        (item) => item.score < 60
+      );
     }
 
     result.sort((a, b) => {
-      if (sortBy === "score") return b.score - a.score;
-      if (sortBy === "roi") return b.roi - a.roi;
-      if (sortBy === "profit") return b.profit - a.profit;
+      if (sortBy === "score")
+        return b.score - a.score;
+
+      if (sortBy === "roi")
+        return b.roi - a.roi;
+
+      if (sortBy === "profit")
+        return b.profit - a.profit;
+
       return 0;
     });
 
@@ -125,82 +143,28 @@ export default function History() {
           learning={learning}
           portfolio={portfolio}
           trends={trends}
-          opportunityAlerts={opportunityAlerts}
+          opportunityAlerts={
+            opportunityAlerts
+          }
           temporal={temporal}
         />
 
-        <AdvancedMetricsPanel metrics={advancedMetrics} />
-
-        <ExecutiveSummaryPanel executive={executive} />
-
-        <InsightSection
-          title="🧠 AI Learning Insights"
-          items={learning.learningInsights}
-          empty="Sin aprendizaje IA todavía."
-          cardStyle={learningCardStyle}
+        <AdvancedMetricsPanel
+          metrics={advancedMetrics}
         />
 
-        <InsightSection
-          title="📚 Learned Patterns"
-          items={learning.learnedPatterns}
-          empty="Sin patrones aprendidos todavía."
-          cardStyle={learningCardStyle}
+        <ExecutiveSummaryPanel
+          executive={executive}
         />
 
-        <InsightSection
-          title="🎯 AI Confidence"
-          items={confidence.confidenceInsights}
-          empty="Sin insights de confianza IA."
-          cardStyle={confidenceCardStyle}
-        />
-
-        <AlertSection
-          title="⚠️ Weak AI Signals"
-          items={confidence.unstableSignals}
-          empty="Sin señales débiles IA."
-          styleType="warning"
-        />
-
-        <AlertSection
-          title="🛡️ Risk Alerts"
-          items={risk.riskAlerts}
-          empty="Sin alertas de riesgo."
-          styleType="risk"
-        />
-
-        <InsightSection
-          title="🧯 Risk Insights"
-          items={risk.riskInsights}
-          empty="Sin insights de riesgo."
-          cardStyle={riskCardStyle}
-        />
-
-        <InsightSection
-          title="📈 Portfolio Strategy"
-          items={portfolio.strategyInsights}
-          empty="Sin estrategia suficiente todavía."
-          cardStyle={portfolioCardStyle}
-        />
-
-        <InsightSection
-          title="🧠 Market Insights"
-          items={market.marketInsights}
-          empty="Sin insights de mercado todavía."
-          cardStyle={insightCardStyle}
-        />
-
-        <InsightSection
-          title="📊 Trend Insights"
-          items={trends.trendInsights}
-          empty="Sin tendencias suficientes todavía."
-          cardStyle={trendCardStyle}
-        />
-
-        <InsightSection
-          title="🕒 Temporal Insights"
-          items={temporal.temporalInsights}
-          empty="Todavía no hay suficiente información temporal."
-          cardStyle={temporalCardStyle}
+        <AIInsightsPanel
+          learning={learning}
+          confidence={confidence}
+          risk={risk}
+          portfolio={portfolio}
+          market={market}
+          trends={trends}
+          temporal={temporal}
         />
 
         <HistoryControls
@@ -233,61 +197,4 @@ const pageStyle = {
 const containerStyle = {
   maxWidth: "1300px",
   margin: "0 auto",
-};
-
-const insightCardStyle = {
-  background: "rgba(255,255,255,0.05)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-};
-
-const learningCardStyle = {
-  background: "rgba(34,197,94,0.10)",
-  border: "1px solid rgba(34,197,94,0.20)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-  fontWeight: "800",
-};
-
-const confidenceCardStyle = {
-  background: "rgba(59,130,246,0.10)",
-  border: "1px solid rgba(59,130,246,0.20)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-  fontWeight: "800",
-};
-
-const riskCardStyle = {
-  background: "rgba(239,68,68,0.10)",
-  border: "1px solid rgba(239,68,68,0.22)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-};
-
-const portfolioCardStyle = {
-  background: "rgba(168,85,247,0.12)",
-  border: "1px solid rgba(168,85,247,0.25)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-};
-
-const trendCardStyle = {
-  background: "rgba(37,99,235,0.12)",
-  border: "1px solid rgba(59,130,246,0.2)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-};
-
-const temporalCardStyle = {
-  background: "rgba(34,197,94,0.10)",
-  border: "1px solid rgba(34,197,94,0.2)",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
 };
