@@ -17,19 +17,23 @@ import { generateOpportunityRanking } from "../services/opportunityRanking";
 import { generateWatchlist } from "../services/watchlistEngine";
 import { generateDealPipeline } from "../services/dealPipeline";
 import { generateDealDecisions } from "../services/dealDecisionEngine";
+import { simulatePortfolio } from "../services/portfolioSimulator";
 
-import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
+import InstantDecisionPanel from "../components/dashboard/InstantDecisionPanel";
 import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
+import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
+import AdvancedIntelligencePanel from "../components/dashboard/AdvancedIntelligencePanel";
 import AdvancedMetricsPanel from "../components/dashboard/AdvancedMetricsPanel";
 import OpportunityRadarPanel from "../components/dashboard/OpportunityRadarPanel";
 import OpportunityRankingPanel from "../components/dashboard/OpportunityRankingPanel";
 import WatchlistPanel from "../components/dashboard/WatchlistPanel";
 import DealPipelinePanel from "../components/dashboard/DealPipelinePanel";
 import DealDecisionPanel from "../components/dashboard/DealDecisionPanel";
+import PortfolioSimulatorPanel from "../components/dashboard/PortfolioSimulatorPanel";
+import AIInsightsPanel from "../components/dashboard/AIInsightsPanel";
 import HistoryControls from "../components/dashboard/HistoryControls";
 import AnalysisGrid from "../components/dashboard/AnalysisGrid";
-import AIInsightsPanel from "../components/dashboard/AIInsightsPanel";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
@@ -72,23 +76,13 @@ export default function History() {
   const confidence = analyzeAIConfidence(analyses);
   const learning = analyzeAILearning(analyses);
 
-  const advancedMetrics =
-    generateAdvancedMetrics(analyses);
-
-  const radar =
-    generateOpportunityRadar(analyses);
-
-  const ranking =
-    generateOpportunityRanking(analyses);
-
-  const watchlist =
-    generateWatchlist(analyses);
-
-  const pipeline =
-    generateDealPipeline(analyses);
-
-  const decisions =
-    generateDealDecisions(analyses);
+  const advancedMetrics = generateAdvancedMetrics(analyses);
+  const radar = generateOpportunityRadar(analyses);
+  const ranking = generateOpportunityRanking(analyses);
+  const watchlist = generateWatchlist(analyses);
+  const pipeline = generateDealPipeline(analyses);
+  const decisions = generateDealDecisions(analyses);
+  const simulation = simulatePortfolio(analyses);
 
   const executive = generateExecutiveSummary({
     market,
@@ -115,42 +109,28 @@ export default function History() {
           ${item.performance_package || ""}
         `.toLowerCase();
 
-        return text.includes(
-          search.toLowerCase()
-        );
+        return text.includes(search.toLowerCase());
       });
     }
 
     if (filter === "CHOLLO IA") {
-      result = result.filter(
-        (item) => item.score >= 85
-      );
+      result = result.filter((item) => item.score >= 85);
     }
 
     if (filter === "ANALIZAR") {
       result = result.filter(
-        (item) =>
-          item.score >= 60 &&
-          item.score < 85
+        (item) => item.score >= 60 && item.score < 85
       );
     }
 
     if (filter === "DESCARTAR") {
-      result = result.filter(
-        (item) => item.score < 60
-      );
+      result = result.filter((item) => item.score < 60);
     }
 
     result.sort((a, b) => {
-      if (sortBy === "score")
-        return b.score - a.score;
-
-      if (sortBy === "roi")
-        return b.roi - a.roi;
-
-      if (sortBy === "profit")
-        return b.profit - a.profit;
-
+      if (sortBy === "score") return b.score - a.score;
+      if (sortBy === "roi") return b.roi - a.roi;
+      if (sortBy === "profit") return b.profit - a.profit;
       return 0;
     });
 
@@ -162,6 +142,8 @@ export default function History() {
       <div style={containerStyle}>
         <DashboardHeader />
 
+        <InstantDecisionPanel decisions={decisions} />
+
         <GlobalStatsPanel
           market={market}
           risk={risk}
@@ -169,49 +151,37 @@ export default function History() {
           learning={learning}
           portfolio={portfolio}
           trends={trends}
-          opportunityAlerts={
-            opportunityAlerts
-          }
+          opportunityAlerts={opportunityAlerts}
           temporal={temporal}
         />
 
-        <AdvancedMetricsPanel
-          metrics={advancedMetrics}
-        />
+        <ExecutiveSummaryPanel executive={executive} />
 
-        <OpportunityRadarPanel
-          radar={radar}
-        />
+        <AdvancedIntelligencePanel>
+          <AdvancedMetricsPanel metrics={advancedMetrics} />
 
-        <OpportunityRankingPanel
-          ranking={ranking}
-        />
+          <OpportunityRadarPanel radar={radar} />
 
-        <WatchlistPanel
-          watchlist={watchlist}
-        />
+          <OpportunityRankingPanel ranking={ranking} />
 
-        <DealPipelinePanel
-          pipeline={pipeline}
-        />
+          <WatchlistPanel watchlist={watchlist} />
 
-        <DealDecisionPanel
-          decisions={decisions}
-        />
+          <DealPipelinePanel pipeline={pipeline} />
 
-        <ExecutiveSummaryPanel
-          executive={executive}
-        />
+          <DealDecisionPanel decisions={decisions} />
 
-        <AIInsightsPanel
-          learning={learning}
-          confidence={confidence}
-          risk={risk}
-          portfolio={portfolio}
-          market={market}
-          trends={trends}
-          temporal={temporal}
-        />
+          <PortfolioSimulatorPanel simulation={simulation} />
+
+          <AIInsightsPanel
+            learning={learning}
+            confidence={confidence}
+            risk={risk}
+            portfolio={portfolio}
+            market={market}
+            trends={trends}
+            temporal={temporal}
+          />
+        </AdvancedIntelligencePanel>
 
         <HistoryControls
           search={search}
