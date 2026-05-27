@@ -14,9 +14,13 @@ export default function Importer() {
   });
 
   const [analysis, setAnalysis] = useState(null);
+
   const [saving, setSaving] = useState(false);
+
   const [message, setMessage] = useState("");
-  const [loadingUrl, setLoadingUrl] = useState(false);
+
+  const [loadingUrl, setLoadingUrl] =
+    useState(false);
 
   function updateField(field, value) {
     setCar({
@@ -32,51 +36,73 @@ export default function Importer() {
     }
 
     setLoadingUrl(true);
+
     setMessage("");
+
     setAnalysis(null);
 
-    const semanticData = parseCarFromUrl(car.url);
+    const semanticData =
+      parseCarFromUrl(car.url);
 
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-car", {
-        body: {
-          url: car.url,
-        },
-      });
-
-      console.log(data);
-      console.log(error);
+      const { data, error } =
+        await supabase.functions.invoke(
+          "scrape-car",
+          {
+            body: {
+              url: car.url,
+            },
+          }
+        );
 
       if (error) {
         setCar({
           ...car,
-          title: semanticData?.title || car.title,
+          title:
+            semanticData?.title ||
+            car.title,
         });
 
-        setMessage("SCRAPER NO DISPONIBLE · DATOS DETECTADOS DESDE URL");
+        setMessage(
+          "SCRAPER NO DISPONIBLE · DATOS DETECTADOS DESDE URL"
+        );
+
         setLoadingUrl(false);
+
         return;
       }
 
       if (data?.blocked) {
         setCar({
           ...car,
-          title: semanticData?.title || car.title,
+          title:
+            semanticData?.title ||
+            car.title,
         });
 
-        setMessage("PORTAL BLOQUEÓ SCRAPING · TÍTULO DETECTADO DESDE URL");
+        setMessage(
+          "PORTAL BLOQUEÓ SCRAPING · TÍTULO DETECTADO DESDE URL"
+        );
+
         setLoadingUrl(false);
+
         return;
       }
 
       if (!data?.success) {
         setCar({
           ...car,
-          title: semanticData?.title || car.title,
+          title:
+            semanticData?.title ||
+            car.title,
         });
 
-        setMessage("NO SE PUDO SCRAPEAR · TÍTULO DETECTADO DESDE URL");
+        setMessage(
+          "NO SE PUDO SCRAPEAR · TÍTULO DETECTADO DESDE URL"
+        );
+
         setLoadingUrl(false);
+
         return;
       }
 
@@ -84,58 +110,96 @@ export default function Importer() {
 
       setCar({
         ...car,
-        title: parsed.title || semanticData?.title || "",
+        title:
+          parsed.title ||
+          semanticData?.title ||
+          "",
+
         price: parsed.price || "",
+
         km: parsed.km || "",
+
         year: parsed.year || "",
-        country: parsed.country || "Alemania",
+
+        country:
+          parsed.country ||
+          "Alemania",
+
         url: parsed.url || car.url,
       });
 
       if (data.warning) {
-        setMessage("EXTRACCIÓN PARCIAL · REVISA LOS CAMPOS");
+        setMessage(
+          "EXTRACCIÓN PARCIAL · REVISA LOS CAMPOS"
+        );
       } else {
-        setMessage("DATOS EXTRAÍDOS CORRECTAMENTE");
+        setMessage(
+          "DATOS EXTRAÍDOS CORRECTAMENTE"
+        );
       }
     } catch (error) {
       console.log(error);
 
       setCar({
         ...car,
-        title: semanticData?.title || car.title,
+        title:
+          semanticData?.title ||
+          car.title,
       });
 
-      setMessage("ERROR SCRAPER · TÍTULO DETECTADO DESDE URL");
+      setMessage(
+        "ERROR SCRAPER · TÍTULO DETECTADO DESDE URL"
+      );
     }
 
     setLoadingUrl(false);
   }
 
   function analyzeManualCar() {
-    if (!car.title || !car.price || !car.km || !car.year) {
-      setMessage("COMPLETA TÍTULO, PRECIO, KM Y AÑO");
+    if (
+      !car.title ||
+      !car.price ||
+      !car.km ||
+      !car.year
+    ) {
+      setMessage(
+        "COMPLETA TÍTULO, PRECIO, KM Y AÑO"
+      );
+
       return;
     }
 
     const price = Number(car.price);
+
     const km = Number(car.km);
+
     const year = Number(car.year);
 
-    if (isNaN(price) || isNaN(km) || isNaN(year)) {
-      setMessage("PRECIO, KM Y AÑO DEBEN SER NÚMEROS");
+    if (
+      isNaN(price) ||
+      isNaN(km) ||
+      isNaN(year)
+    ) {
+      setMessage(
+        "PRECIO, KM Y AÑO DEBEN SER NÚMEROS"
+      );
+
       return;
     }
 
-    const carData = {
+    const estimatedMarketPrice =
+      Math.round(price * 1.28);
+
+    const result = analyzeCar({
       ...car,
       price,
       km,
       year,
-    };
-
-    const result = analyzeCar(carData);
+      estimatedMarketPrice,
+    });
 
     setAnalysis(result);
+
     setMessage("");
   }
 
@@ -143,155 +207,263 @@ export default function Importer() {
     if (!analysis) return;
 
     setSaving(true);
+
     setMessage("");
 
     const price = Number(car.price);
 
-    const { error } = await supabase.from("import_analyses").insert({
-      country: car.country,
-      profit: Math.round(analysis.estimatedProfit),
-      roi: Math.round((analysis.estimatedProfit / price) * 100),
-      score: analysis.score,
-      url: car.url,
-    });
+    const { error } = await supabase
+      .from("import_analyses")
+      .insert({
+        country: car.country,
+        profit: Math.round(
+          analysis.estimatedProfit
+        ),
+        roi: Math.round(
+          (analysis.estimatedProfit /
+            price) *
+            100
+        ),
+        score: analysis.score,
+        url: car.url,
+      });
 
     if (error) {
       console.log(error);
+
       setMessage("ERROR AL GUARDAR");
     } else {
-      setMessage("ANÁLISIS GUARDADO EN HISTORIAL");
+      setMessage(
+        "ANÁLISIS GUARDADO EN HISTORIAL"
+      );
     }
 
     setSaving(false);
   }
 
-  function getRecommendationStyles(recommendation) {
-    if (recommendation?.includes("CHOLLO")) {
+  function getRecommendationStyles(
+    recommendation
+  ) {
+    if (
+      recommendation?.includes("CHOLLO")
+    ) {
       return {
-        background: "rgba(34, 197, 94, 0.18)",
+        background:
+          "rgba(34, 197, 94, 0.18)",
+
         color: "#86efac",
-        border: "1px solid rgba(34, 197, 94, 0.4)",
-        glow: "0 0 40px rgba(34,197,94,0.25)",
+
+        border:
+          "1px solid rgba(34, 197, 94, 0.4)",
+
+        glow:
+          "0 0 40px rgba(34,197,94,0.25)",
       };
     }
 
-    if (recommendation?.includes("ANALIZAR")) {
+    if (
+      recommendation?.includes("ANALIZAR")
+    ) {
       return {
-        background: "rgba(250, 204, 21, 0.15)",
+        background:
+          "rgba(250, 204, 21, 0.15)",
+
         color: "#fde68a",
-        border: "1px solid rgba(250, 204, 21, 0.35)",
-        glow: "0 0 40px rgba(250,204,21,0.18)",
+
+        border:
+          "1px solid rgba(250, 204, 21, 0.35)",
+
+        glow:
+          "0 0 40px rgba(250,204,21,0.18)",
       };
     }
 
     return {
-      background: "rgba(239, 68, 68, 0.15)",
+      background:
+        "rgba(239, 68, 68, 0.15)",
+
       color: "#fca5a5",
-      border: "1px solid rgba(239, 68, 68, 0.35)",
-      glow: "0 0 40px rgba(239,68,68,0.18)",
+
+      border:
+        "1px solid rgba(239, 68, 68, 0.35)",
+
+      glow:
+        "0 0 40px rgba(239,68,68,0.18)",
     };
   }
 
-  const recommendationStyles = analysis
-    ? getRecommendationStyles(analysis.recommendation)
-    : null;
+  function getAlertStyle(type) {
+    if (type === "success") {
+      return {
+        background:
+          "rgba(34,197,94,0.12)",
+
+        border:
+          "1px solid rgba(34,197,94,0.25)",
+      };
+    }
+
+    if (type === "warning") {
+      return {
+        background:
+          "rgba(250,204,21,0.12)",
+
+        border:
+          "1px solid rgba(250,204,21,0.25)",
+      };
+    }
+
+    return {
+      background:
+        "rgba(239,68,68,0.12)",
+
+      border:
+        "1px solid rgba(239,68,68,0.25)",
+    };
+  }
+
+  const recommendationStyles =
+    analysis
+      ? getRecommendationStyles(
+          analysis.recommendation
+        )
+      : null;
 
   return (
     <div style={pageStyle}>
       <div style={backgroundGlowOne}></div>
+
       <div style={backgroundGlowTwo}></div>
 
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · Importador Inteligente</p>
+          <p style={badgeStyle}>
+            Coches SaaS · Importador Inteligente
+          </p>
 
           <h1 style={titleStyle}>
-            Analiza oportunidades de importación con IA
+            Analiza oportunidades con IA
           </h1>
 
           <p style={subtitleStyle}>
-            Score inteligente, ROI, beneficio estimado y oportunidades reales
-            de importación.
+            Score inteligente, ROI,
+            beneficio estimado y alertas
+            IA automáticas.
           </p>
         </div>
 
         <div style={gridStyle}>
           <div style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Datos del vehículo</h2>
+            <h2 style={sectionTitleStyle}>
+              Datos del vehículo
+            </h2>
 
             <input
               placeholder="URL del anuncio"
               value={car.url}
-              onChange={(e) => updateField("url", e.target.value)}
+              onChange={(e) =>
+                updateField(
+                  "url",
+                  e.target.value
+                )
+              }
               style={inputStyle}
             />
 
-            <button onClick={parseUrl} style={secondaryButtonStyle}>
-              {loadingUrl ? "Analizando URL..." : "Analizar URL"}
+            <button
+              onClick={parseUrl}
+              style={secondaryButtonStyle}
+            >
+              {loadingUrl
+                ? "Analizando URL..."
+                : "Analizar URL"}
             </button>
 
             <input
-              placeholder="Ej: BMW 320d Touring"
+              placeholder="BMW 320d Touring"
               value={car.title}
-              onChange={(e) => updateField("title", e.target.value)}
+              onChange={(e) =>
+                updateField(
+                  "title",
+                  e.target.value
+                )
+              }
               style={inputStyle}
             />
 
             <input
-              placeholder="Precio compra Alemania"
+              placeholder="Precio"
               value={car.price}
-              onChange={(e) => updateField("price", e.target.value)}
+              onChange={(e) =>
+                updateField(
+                  "price",
+                  e.target.value
+                )
+              }
               style={inputStyle}
             />
 
             <input
               placeholder="Kilómetros"
               value={car.km}
-              onChange={(e) => updateField("km", e.target.value)}
+              onChange={(e) =>
+                updateField(
+                  "km",
+                  e.target.value
+                )
+              }
               style={inputStyle}
             />
 
             <input
               placeholder="Año"
               value={car.year}
-              onChange={(e) => updateField("year", e.target.value)}
+              onChange={(e) =>
+                updateField(
+                  "year",
+                  e.target.value
+                )
+              }
               style={inputStyle}
             />
 
-            <input
-              placeholder="País"
-              value={car.country}
-              onChange={(e) => updateField("country", e.target.value)}
-              style={inputStyle}
-            />
-
-            <button onClick={analyzeManualCar} style={buttonStyle}>
+            <button
+              onClick={analyzeManualCar}
+              style={buttonStyle}
+            >
               Analizar vehículo
             </button>
 
-            {message && <p style={messageStyle}>{message}</p>}
+            {message && (
+              <p style={messageStyle}>
+                {message}
+              </p>
+            )}
           </div>
 
           <div
             style={{
               ...cardStyle,
-              boxShadow: recommendationStyles
-                ? recommendationStyles.glow
-                : cardStyle.boxShadow,
+
+              boxShadow:
+                recommendationStyles
+                  ? recommendationStyles.glow
+                  : cardStyle.boxShadow,
             }}
           >
-            <h2 style={sectionTitleStyle}>Resultado IA</h2>
-
             {!analysis && (
               <div style={emptyStateStyle}>
-                <p style={emptyIconStyle}>🚘</p>
+                <p style={emptyIconStyle}>
+                  🚘
+                </p>
 
                 <p style={emptyTitleStyle}>
-                  Esperando análisis inteligente
+                  Esperando análisis IA
                 </p>
 
                 <p style={mutedTextStyle}>
-                  Pega una URL o introduce datos manualmente.
+                  Introduce un coche para
+                  generar insights y alertas.
                 </p>
               </div>
             )}
@@ -301,23 +473,41 @@ export default function Importer() {
                 <div
                   style={{
                     ...recommendationStyle,
-                    background: recommendationStyles.background,
-                    color: recommendationStyles.color,
-                    border: recommendationStyles.border,
+
+                    background:
+                      recommendationStyles.background,
+
+                    color:
+                      recommendationStyles.color,
+
+                    border:
+                      recommendationStyles.border,
                   }}
                 >
                   {analysis.recommendation}
                 </div>
 
-                <h2 style={carTitleStyle}>{car.title}</h2>
+                <h2 style={carTitleStyle}>
+                  {car.title}
+                </h2>
 
-                <div style={scoreContainerStyle}>
-                  <div style={scoreCircleStyle}>
-                    <span style={scoreNumberStyle}>
+                <div
+                  style={scoreContainerStyle}
+                >
+                  <div
+                    style={scoreCircleStyle}
+                  >
+                    <span
+                      style={
+                        scoreNumberStyle
+                      }
+                    >
                       {analysis.score}
                     </span>
 
-                    <span style={scoreTextStyle}>
+                    <span
+                      style={scoreTextStyle}
+                    >
                       SCORE IA
                     </span>
                   </div>
@@ -325,20 +515,19 @@ export default function Importer() {
 
                 <div style={kpiGridStyle}>
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>ROI estimado</p>
+                    <p style={kpiLabelStyle}>
+                      ROI
+                    </p>
 
                     <p style={kpiValueStyle}>
-                      {Math.round(
-                        (analysis.estimatedProfit /
-                          Number(car.price)) *
-                          100
-                      )}
-                      %
+                      {analysis.roi}%
                     </p>
                   </div>
 
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>Beneficio</p>
+                    <p style={kpiLabelStyle}>
+                      Beneficio
+                    </p>
 
                     <p style={kpiValueStyle}>
                       {Math.round(
@@ -347,63 +536,56 @@ export default function Importer() {
                       €
                     </p>
                   </div>
-
-                  <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>
-                      Venta España
-                    </p>
-
-                    <p style={kpiValueStyle}>
-                      {Math.round(
-                        analysis.estimatedSalePrice || 0
-                      )}{" "}
-                      €
-                    </p>
-                  </div>
-
-                  <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>Mercado</p>
-
-                    <p style={kpiValueStyle}>ES</p>
-                  </div>
                 </div>
 
-                <div style={insightsContainerStyle}>
+                <div
+                  style={
+                    insightsContainerStyle
+                  }
+                >
                   <p style={insightsTitleStyle}>
                     IA Explainability
                   </p>
 
                   {analysis.insights?.map(
-                    (insight, index) => (
+                    (
+                      insight,
+                      index
+                    ) => (
+                      <div
+                        key={index}
+                        style={
+                          insightCardStyle
+                        }
+                      >
+                        {insight.text}
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <div
+                  style={
+                    alertsContainerStyle
+                  }
+                >
+                  <p style={alertsTitleStyle}>
+                    🚨 Smart Alerts Engine
+                  </p>
+
+                  {analysis.alerts?.map(
+                    (alert, index) => (
                       <div
                         key={index}
                         style={{
-                          ...insightCardStyle,
+                          ...alertCardStyle,
 
-                          background:
-                            insight.type === "positive"
-                              ? "rgba(34,197,94,0.12)"
-                              : insight.type === "negative"
-                              ? "rgba(239,68,68,0.12)"
-                              : "rgba(250,204,21,0.12)",
-
-                          border:
-                            insight.type === "positive"
-                              ? "1px solid rgba(34,197,94,0.25)"
-                              : insight.type === "negative"
-                              ? "1px solid rgba(239,68,68,0.25)"
-                              : "1px solid rgba(250,204,21,0.25)",
+                          ...getAlertStyle(
+                            alert.type
+                          ),
                         }}
                       >
-                        <span style={insightEmojiStyle}>
-                          {insight.type === "positive"
-                            ? "✅"
-                            : insight.type === "negative"
-                            ? "❌"
-                            : "⚠️"}
-                        </span>
-
-                        <span>{insight.text}</span>
+                        {alert.text}
                       </div>
                     )
                   )}
@@ -434,8 +616,6 @@ const pageStyle = {
   color: "white",
   padding: "48px",
   fontFamily: "Arial, sans-serif",
-  position: "relative",
-  overflow: "hidden",
 };
 
 const backgroundGlowOne = {
@@ -445,8 +625,6 @@ const backgroundGlowOne = {
   background: "#2563eb",
   filter: "blur(140px)",
   opacity: 0.18,
-  top: "-100px",
-  left: "-100px",
 };
 
 const backgroundGlowTwo = {
@@ -456,8 +634,8 @@ const backgroundGlowTwo = {
   background: "#16a34a",
   filter: "blur(120px)",
   opacity: 0.12,
-  bottom: "-80px",
-  right: "-60px",
+  right: 0,
+  bottom: 0,
 };
 
 const containerStyle = {
@@ -468,126 +646,120 @@ const containerStyle = {
 };
 
 const headerStyle = {
-  marginBottom: "42px",
+  marginBottom: "40px",
 };
 
 const badgeStyle = {
   display: "inline-block",
-  background: "rgba(59, 130, 246, 0.18)",
+  background:
+    "rgba(59,130,246,0.18)",
   color: "#93c5fd",
   padding: "8px 14px",
   borderRadius: "999px",
-  fontSize: "14px",
   fontWeight: "700",
   marginBottom: "18px",
 };
 
 const titleStyle = {
   fontSize: "52px",
-  lineHeight: "1.05",
   margin: 0,
-  maxWidth: "800px",
 };
 
 const subtitleStyle = {
   color: "#cbd5e1",
-  fontSize: "19px",
-  maxWidth: "700px",
-  marginTop: "16px",
+  fontSize: "18px",
+  marginTop: "14px",
 };
 
 const gridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "28px",
-  alignItems: "start",
 };
 
 const cardStyle = {
-  background: "rgba(15, 23, 42, 0.82)",
-  border: "1px solid rgba(148, 163, 184, 0.18)",
-  boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
-  padding: "30px",
+  background:
+    "rgba(15,23,42,0.82)",
   borderRadius: "28px",
-  backdropFilter: "blur(18px)",
+  padding: "30px",
+  border:
+    "1px solid rgba(148,163,184,0.16)",
+  boxShadow:
+    "0 24px 80px rgba(0,0,0,0.35)",
 };
 
 const sectionTitleStyle = {
   fontSize: "24px",
   marginTop: 0,
-  marginBottom: "22px",
 };
 
 const inputStyle = {
-  display: "block",
   width: "100%",
   boxSizing: "border-box",
   padding: "16px",
   marginTop: "14px",
   borderRadius: "16px",
-  border: "1px solid rgba(148, 163, 184, 0.22)",
-  background: "rgba(2, 6, 23, 0.85)",
+  border:
+    "1px solid rgba(148,163,184,0.18)",
+  background:
+    "rgba(2,6,23,0.8)",
   color: "white",
-  fontSize: "16px",
-  outline: "none",
 };
 
 const buttonStyle = {
-  marginTop: "24px",
+  marginTop: "22px",
   width: "100%",
-  padding: "16px 22px",
+  padding: "16px",
   borderRadius: "16px",
   border: "none",
-  cursor: "pointer",
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "white",
   background:
-    "linear-gradient(135deg, #2563eb, #16a34a)",
+    "linear-gradient(135deg,#2563eb,#16a34a)",
+  color: "white",
+  fontWeight: "900",
+  cursor: "pointer",
 };
 
 const secondaryButtonStyle = {
   marginTop: "18px",
   width: "100%",
-  padding: "16px 22px",
+  padding: "16px",
   borderRadius: "16px",
-  border: "1px solid rgba(59,130,246,0.3)",
-  cursor: "pointer",
-  fontSize: "16px",
-  fontWeight: "900",
+  border:
+    "1px solid rgba(59,130,246,0.3)",
+  background:
+    "rgba(37,99,235,0.12)",
   color: "#93c5fd",
-  background: "rgba(37,99,235,0.12)",
+  fontWeight: "900",
+  cursor: "pointer",
+};
+
+const messageStyle = {
+  marginTop: "18px",
+  color: "#93c5fd",
+  fontWeight: "700",
 };
 
 const emptyStateStyle = {
-  minHeight: "480px",
-  border: "1px dashed rgba(148, 163, 184, 0.22)",
-  borderRadius: "22px",
+  minHeight: "500px",
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
   justifyContent: "center",
-  color: "#cbd5e1",
+  alignItems: "center",
   textAlign: "center",
-  padding: "30px",
 };
 
 const emptyIconStyle = {
   fontSize: "56px",
-  margin: 0,
 };
 
 const emptyTitleStyle = {
-  fontSize: "24px",
-  fontWeight: "800",
-  marginTop: "14px",
+  fontSize: "26px",
+  fontWeight: "900",
 };
 
 const mutedTextStyle = {
   color: "#94a3b8",
-  marginTop: "6px",
-  maxWidth: "380px",
-  lineHeight: "1.6",
+  maxWidth: "320px",
 };
 
 const recommendationStyle = {
@@ -600,8 +772,6 @@ const recommendationStyle = {
 
 const carTitleStyle = {
   fontSize: "30px",
-  marginTop: 0,
-  marginBottom: "28px",
 };
 
 const scoreContainerStyle = {
@@ -625,7 +795,6 @@ const scoreCircleStyle = {
 const scoreNumberStyle = {
   fontSize: "56px",
   fontWeight: "900",
-  lineHeight: 1,
 };
 
 const scoreTextStyle = {
@@ -633,7 +802,6 @@ const scoreTextStyle = {
   color: "#cbd5e1",
   fontSize: "13px",
   fontWeight: "700",
-  letterSpacing: "2px",
 };
 
 const kpiGridStyle = {
@@ -643,28 +811,19 @@ const kpiGridStyle = {
 };
 
 const kpiCardStyle = {
-  background: "rgba(2, 6, 23, 0.75)",
-  border: "1px solid rgba(148, 163, 184, 0.12)",
+  background:
+    "rgba(2,6,23,0.75)",
   borderRadius: "20px",
   padding: "20px",
 };
 
 const kpiLabelStyle = {
   color: "#94a3b8",
-  fontSize: "14px",
-  margin: 0,
 };
 
 const kpiValueStyle = {
   fontSize: "30px",
   fontWeight: "900",
-  margin: "10px 0 0",
-};
-
-const messageStyle = {
-  marginTop: "18px",
-  fontWeight: "900",
-  color: "#93c5fd",
 };
 
 const insightsContainerStyle = {
@@ -674,23 +833,31 @@ const insightsContainerStyle = {
 const insightsTitleStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#cbd5e1",
   marginBottom: "16px",
-  letterSpacing: "1px",
 };
 
 const insightCardStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
+  background:
+    "rgba(255,255,255,0.05)",
   fontWeight: "700",
-  color: "white",
-  backdropFilter: "blur(10px)",
 };
 
-const insightEmojiStyle = {
-  fontSize: "18px",
+const alertsContainerStyle = {
+  marginTop: "28px",
+};
+
+const alertsTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  marginBottom: "16px",
+};
+
+const alertCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "800",
 };
