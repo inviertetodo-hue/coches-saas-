@@ -34,43 +34,38 @@ export default function Importer() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        "https://ohtxirarsonewffizser.supabase.co/functions/v1/scrape-car",
+      const { data, error } = await supabase.functions.invoke(
+        "scrape-car",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+          body: {
             url: car.url,
-          }),
+          },
         }
       );
 
-      const result = await response.json();
+      console.log(data);
+      console.log(error);
 
-      console.log(result);
-
-      if (!result.success) {
+      if (error || !data?.success) {
         setMessage("NO SE PUDO ANALIZAR LA URL");
         setLoadingUrl(false);
         return;
       }
 
-      const data = result.data;
+      const parsed = data.data;
 
       setCar({
         ...car,
-        title: data.title || "",
-        price: data.price || "",
-        km: data.km || "",
-        year: data.year || "",
-        country: data.country || "Alemania",
-        url: data.url || car.url,
+        title: parsed.title || "",
+        price: parsed.price || "",
+        km: parsed.km || "",
+        year: parsed.year || "",
+        country: parsed.country || "Alemania",
+        url: parsed.url || car.url,
       });
 
-      if (result.warning) {
-        setMessage(result.warning);
+      if (data.warning) {
+        setMessage(data.warning);
       } else {
         setMessage("DATOS EXTRAÍDOS CORRECTAMENTE");
       }
@@ -91,6 +86,7 @@ export default function Importer() {
     };
 
     const result = analyzeCar(carData);
+
     setAnalysis(result);
     setMessage("");
   }
@@ -242,7 +238,9 @@ export default function Importer() {
               <div style={emptyStateStyle}>
                 <p style={emptyIconStyle}>🚘</p>
 
-                <p style={emptyTitleStyle}>Esperando análisis inteligente</p>
+                <p style={emptyTitleStyle}>
+                  Esperando análisis inteligente
+                </p>
 
                 <p style={mutedTextStyle}>
                   Pega una URL o introduce datos manualmente.
@@ -269,7 +267,9 @@ export default function Importer() {
 
                 <div style={scoreContainerStyle}>
                   <div style={scoreCircleStyle}>
-                    <span style={scoreNumberStyle}>{analysis.score}</span>
+                    <span style={scoreNumberStyle}>
+                      {analysis.score}
+                    </span>
 
                     <span style={scoreTextStyle}>SCORE IA</span>
                   </div>
