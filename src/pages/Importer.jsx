@@ -13,20 +13,12 @@ export default function Importer() {
     url: "",
   });
 
-  const [analysis, setAnalysis] =
-    useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [semanticData, setSemanticData] = useState(null);
 
-  const [semanticData, setSemanticData] =
-    useState(null);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [saved, setSaved] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState("");
 
   function updateField(field, value) {
     setSaved(false);
@@ -46,34 +38,24 @@ export default function Importer() {
       !car.km ||
       !car.year
     ) {
-      setMessage(
-        "COMPLETA TODOS LOS CAMPOS"
-      );
-
+      setMessage("COMPLETA TODOS LOS CAMPOS");
       return;
     }
 
-    const parsed =
-      parseCarFromUrl(car.title);
+    const parsed = parseCarFromUrl(car.title);
 
     setSemanticData(parsed);
 
-    const estimatedMarketPrice =
-      Math.round(
-        Number(car.price) * 1.28
-      );
+    const estimatedMarketPrice = Math.round(
+      Number(car.price) * 1.28
+    );
 
     const result = analyzeCar({
       ...car,
-
       ...parsed,
-
       price: Number(car.price),
-
       km: Number(car.km),
-
       year: Number(car.year),
-
       estimatedMarketPrice,
     });
 
@@ -99,16 +81,13 @@ export default function Importer() {
           semanticData?.model || null,
 
         fuel_type:
-          semanticData?.fuelType ||
-          null,
+          semanticData?.fuelType || null,
 
         drivetrain:
-          semanticData?.drivetrain ||
-          null,
+          semanticData?.drivetrain || null,
 
         performance_package:
-          semanticData?.performancePackage ||
-          null,
+          semanticData?.performancePackage || null,
 
         country: car.country,
 
@@ -126,9 +105,7 @@ export default function Importer() {
     if (error) {
       console.log(error);
 
-      setMessage(
-        "ERROR AL GUARDAR"
-      );
+      setMessage("ERROR AL GUARDAR");
     } else {
       setSaved(true);
 
@@ -170,6 +147,24 @@ export default function Importer() {
     };
   }
 
+  function PredictiveCard({
+    label,
+    value,
+    emoji,
+  }) {
+    return (
+      <div style={predictiveCardStyle}>
+        <p style={predictiveLabelStyle}>
+          {emoji} {label}
+        </p>
+
+        <h2 style={predictiveValueStyle}>
+          {value}/100
+        </h2>
+      </div>
+    );
+  }
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -183,9 +178,8 @@ export default function Importer() {
           </h1>
 
           <p style={subtitleStyle}>
-            Score IA, semantic
-            intelligence y smart
-            alerts.
+            Score IA, semantic intelligence,
+            predictive AI y smart alerts.
           </p>
         </div>
 
@@ -252,9 +246,7 @@ export default function Importer() {
             />
 
             <button
-              onClick={
-                analyzeManualCar
-              }
+              onClick={analyzeManualCar}
               style={buttonStyle}
             >
               Analizar vehículo
@@ -269,24 +261,12 @@ export default function Importer() {
 
           <div style={cardStyle}>
             {!analysis && (
-              <div
-                style={
-                  emptyStateStyle
-                }
-              >
-                <p
-                  style={
-                    emptyIconStyle
-                  }
-                >
+              <div style={emptyStateStyle}>
+                <p style={emptyIconStyle}>
                   🚘
                 </p>
 
-                <p
-                  style={
-                    emptyTitleStyle
-                  }
-                >
+                <p style={emptyTitleStyle}>
                   Esperando análisis IA
                 </p>
               </div>
@@ -294,174 +274,139 @@ export default function Importer() {
 
             {analysis && (
               <>
-                <div
-                  style={
-                    recommendationStyle
-                  }
-                >
-                  {
-                    analysis.recommendation
-                  }
+                <div style={recommendationStyle}>
+                  {analysis.recommendation}
                 </div>
 
-                <div
-                  style={
-                    scoreCircleStyle
-                  }
-                >
-                  <span
-                    style={
-                      scoreNumberStyle
-                    }
-                  >
+                <div style={scoreCircleStyle}>
+                  <span style={scoreNumberStyle}>
                     {analysis.score}
                   </span>
 
-                  <span
-                    style={
-                      scoreTextStyle
-                    }
-                  >
+                  <span style={scoreTextStyle}>
                     SCORE IA
                   </span>
                 </div>
 
-                <div
-                  style={kpiGridStyle}
-                >
-                  <div
-                    style={
-                      kpiCardStyle
-                    }
-                  >
-                    <p
-                      style={
-                        kpiLabelStyle
-                      }
-                    >
+                <div style={kpiGridStyle}>
+                  <div style={kpiCardStyle}>
+                    <p style={kpiLabelStyle}>
                       ROI
                     </p>
 
-                    <p
-                      style={
-                        kpiValueStyle
-                      }
-                    >
-                      {
-                        analysis.roi
-                      }
-                      %
+                    <p style={kpiValueStyle}>
+                      {analysis.roi}%
                     </p>
                   </div>
 
-                  <div
-                    style={
-                      kpiCardStyle
-                    }
-                  >
-                    <p
-                      style={
-                        kpiLabelStyle
-                      }
-                    >
+                  <div style={kpiCardStyle}>
+                    <p style={kpiLabelStyle}>
                       Beneficio
                     </p>
 
-                    <p
-                      style={
-                        kpiValueStyle
-                      }
-                    >
+                    <p style={kpiValueStyle}>
                       {Math.round(
                         analysis.estimatedProfit
-                      )}{" "}
-                      €
+                      )} €
                     </p>
                   </div>
                 </div>
 
-                <div
-                  style={
-                    sectionStyle
-                  }
-                >
-                  <p
+                <div style={sectionStyle}>
+                  <p style={sectionTitleStyle}>
+                    🔮 Predictive AI Engine
+                  </p>
+
+                  <div
                     style={
-                      sectionTitleStyle
+                      predictiveGridStyle
                     }
                   >
+                    <PredictiveCard
+                      label="Demand"
+                      value={
+                        analysis.demandScore
+                      }
+                      emoji="📈"
+                    />
+
+                    <PredictiveCard
+                      label="Resale"
+                      value={
+                        analysis.resaleScore
+                      }
+                      emoji="💰"
+                    />
+
+                    <PredictiveCard
+                      label="Liquidity"
+                      value={
+                        analysis.liquidityScore
+                      }
+                      emoji="⚡"
+                    />
+
+                    <PredictiveCard
+                      label="Future"
+                      value={
+                        analysis.futurePotential
+                      }
+                      emoji="🚀"
+                    />
+                  </div>
+                </div>
+
+                <div style={sectionStyle}>
+                  <p style={sectionTitleStyle}>
                     🧠 IA Insights
                   </p>
 
                   {analysis.insights?.map(
-                    (
-                      insight,
-                      index
-                    ) => (
+                    (insight, index) => (
                       <div
                         key={index}
                         style={
                           insightCardStyle
                         }
                       >
-                        {
-                          insight.text
-                        }
+                        {insight.text}
                       </div>
                     )
                   )}
                 </div>
 
-                <div
-                  style={
-                    sectionStyle
-                  }
-                >
-                  <p
-                    style={
-                      sectionTitleStyle
-                    }
-                  >
+                <div style={sectionStyle}>
+                  <p style={sectionTitleStyle}>
                     🚨 Smart Alerts
                   </p>
 
                   {analysis.alerts?.map(
-                    (
-                      alert,
-                      index
-                    ) => (
+                    (alert, index) => (
                       <div
                         key={index}
                         style={{
                           ...alertCardStyle,
-
                           ...getAlertStyle(
                             alert.type
                           ),
                         }}
                       >
-                        {
-                          alert.text
-                        }
+                        {alert.text}
                       </div>
                     )
                   )}
                 </div>
 
                 <button
-                  onClick={
-                    saveAnalysis
-                  }
+                  onClick={saveAnalysis}
                   disabled={
-                    saving ||
-                    saved
+                    saving || saved
                   }
                   style={{
                     ...buttonStyle,
 
                     opacity:
-                      saving ||
-                      saved
+                      saving || saved
                         ? 0.6
                         : 1,
                   }}
@@ -651,6 +596,31 @@ const sectionTitleStyle = {
   fontSize: "15px",
   fontWeight: "900",
   marginBottom: "14px",
+};
+
+const predictiveGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "1fr 1fr",
+  gap: "14px",
+};
+
+const predictiveCardStyle = {
+  background:
+    "rgba(255,255,255,0.05)",
+  borderRadius: "18px",
+  padding: "18px",
+};
+
+const predictiveLabelStyle = {
+  color: "#cbd5e1",
+  fontSize: "14px",
+};
+
+const predictiveValueStyle = {
+  fontSize: "34px",
+  fontWeight: "900",
+  marginTop: "10px",
 };
 
 const insightCardStyle = {
