@@ -14,6 +14,7 @@ function cleanText(value: string) {
 
 function extractTitle(html: string) {
   const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
+
   if (!titleMatch) return "";
 
   return cleanText(titleMatch[1])
@@ -48,11 +49,14 @@ function extractYear(html: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", {
+      headers: corsHeaders,
+    });
   }
 
   try {
     const body = await req.json();
+
     const url = body?.url;
 
     if (!url) {
@@ -60,7 +64,6 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: false,
           error: "URL_REQUIRED",
-          message: "Falta la URL del anuncio",
         }),
         {
           status: 400,
@@ -84,6 +87,28 @@ Deno.serve(async (req) => {
 
     const html = await response.text();
 
+    if (
+      html.includes("Access denied") ||
+      html.includes("Zugriff verweigert") ||
+      html.includes("captcha") ||
+      html.includes("blocked")
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          blocked: true,
+          message: "El portal ha bloqueado el scraping simple",
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
     const title = extractTitle(html);
     const price = extractPrice(html);
     const km = extractKm(html);
@@ -92,7 +117,6 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        source: "scrape-car-light-v1",
         data: {
           title,
           price,
@@ -103,7 +127,7 @@ Deno.serve(async (req) => {
         },
         warning:
           !price || !km || !year
-            ? "Extracción parcial. Revisa los campos antes de analizar."
+            ? "Extracción parcial. Revisa manualmente."
             : null,
       }),
       {
@@ -118,8 +142,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: "SCRAPE_ERROR",
-        message: String(error),
+        error: String(error),
       }),
       {
         status: 500,
