@@ -62,6 +62,7 @@ export default function History() {
 
     result = result.filter((item) => {
       if (filter === "TODOS") return true;
+
       if (filter === "CHOLLO IA")
         return item.score >= 85;
 
@@ -159,6 +160,19 @@ export default function History() {
         )
       : null;
 
+  const bestProfit =
+    analyses.length > 0
+      ? analyses.reduce((best, current) =>
+          current.profit > best.profit
+            ? current
+            : best
+        )
+      : null;
+
+  const topThreeCars = [...analyses]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
   function getLabel(score) {
     if (score >= 85)
       return "🔥 CHOLLO IA";
@@ -211,12 +225,12 @@ export default function History() {
           </p>
 
           <h1 style={titleStyle}>
-            Dashboard IA Premium
+            Top Opportunities Engine
           </h1>
 
           <p style={subtitleStyle}>
-            Analiza oportunidades, ROI,
-            score IA y métricas avanzadas.
+            Ranking automático de las mejores
+            oportunidades detectadas por IA.
           </p>
         </div>
 
@@ -260,32 +274,12 @@ export default function History() {
               {averageScore}/100
             </h2>
           </div>
-
-          <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>
-              🔥 Chollos IA
-            </p>
-
-            <h2 style={dashboardValueStyle}>
-              {totalChollos}
-            </h2>
-          </div>
-
-          <div style={dashboardCardStyle}>
-            <p style={dashboardLabelStyle}>
-              🏆 Mejor Score
-            </p>
-
-            <h2 style={dashboardValueStyle}>
-              {bestOpportunity?.score || 0}
-            </h2>
-          </div>
         </div>
 
         <div style={analyticsGridStyle}>
           <div style={analyticsCardStyle}>
             <p style={analyticsTitleStyle}>
-              🏆 Mejor oportunidad IA
+              🏆 Mejor Score IA
             </p>
 
             <h2 style={analyticsValueStyle}>
@@ -293,13 +287,13 @@ export default function History() {
             </h2>
 
             <p style={analyticsTextStyle}>
-              Score IA más alto detectado.
+              Mejor oportunidad global detectada.
             </p>
           </div>
 
           <div style={analyticsCardStyle}>
             <p style={analyticsTitleStyle}>
-              📈 ROI más alto
+              📈 Mejor ROI
             </p>
 
             <h2 style={analyticsValueStyle}>
@@ -307,8 +301,57 @@ export default function History() {
             </h2>
 
             <p style={analyticsTextStyle}>
-              Mejor oportunidad detectada.
+              Máxima rentabilidad detectada.
             </p>
+          </div>
+
+          <div style={analyticsCardStyle}>
+            <p style={analyticsTitleStyle}>
+              💰 Mejor Beneficio
+            </p>
+
+            <h2 style={analyticsValueStyle}>
+              {bestProfit?.profit || 0} €
+            </h2>
+
+            <p style={analyticsTextStyle}>
+              Mayor beneficio histórico detectado.
+            </p>
+          </div>
+        </div>
+
+        <div style={topSectionStyle}>
+          <h2 style={topTitleStyle}>
+            🔥 TOP 3 OPORTUNIDADES IA
+          </h2>
+
+          <div style={topGridStyle}>
+            {topThreeCars.map((item, index) => (
+              <div
+                key={item.id}
+                style={topCardStyle}
+              >
+                <p style={topRankStyle}>
+                  #{index + 1}
+                </p>
+
+                <p style={topScoreStyle}>
+                  {item.score}/100
+                </p>
+
+                <p style={topInfoStyle}>
+                  ROI: {item.roi}%
+                </p>
+
+                <p style={topInfoStyle}>
+                  Beneficio: {item.profit} €
+                </p>
+
+                <p style={topBadgeStyle}>
+                  {getLabel(item.score)}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -578,7 +621,8 @@ const dashboardValueStyle = {
 
 const analyticsGridStyle = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(280px, 1fr))",
   gap: "20px",
   marginBottom: "34px",
 };
@@ -590,7 +634,6 @@ const analyticsCardStyle = {
     "1px solid rgba(148,163,184,0.16)",
   borderRadius: "28px",
   padding: "28px",
-  backdropFilter: "blur(16px)",
 };
 
 const analyticsTitleStyle = {
@@ -611,6 +654,54 @@ const analyticsTextStyle = {
   margin: 0,
 };
 
+const topSectionStyle = {
+  marginBottom: "40px",
+};
+
+const topTitleStyle = {
+  fontSize: "26px",
+  marginBottom: "24px",
+};
+
+const topGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: "20px",
+};
+
+const topCardStyle = {
+  background:
+    "rgba(15,23,42,0.82)",
+  border:
+    "1px solid rgba(34,197,94,0.25)",
+  borderRadius: "24px",
+  padding: "24px",
+  textAlign: "center",
+};
+
+const topRankStyle = {
+  fontSize: "18px",
+  color: "#86efac",
+  fontWeight: "900",
+};
+
+const topScoreStyle = {
+  fontSize: "48px",
+  fontWeight: "900",
+  margin: "10px 0",
+};
+
+const topInfoStyle = {
+  color: "#cbd5e1",
+  marginBottom: "8px",
+};
+
+const topBadgeStyle = {
+  marginTop: "14px",
+  fontWeight: "900",
+};
+
 const controlsContainerStyle = {
   display: "flex",
   gap: "16px",
@@ -628,7 +719,6 @@ const searchInputStyle = {
   background:
     "rgba(15,23,42,0.75)",
   color: "white",
-  fontSize: "15px",
 };
 
 const selectStyle = {
@@ -684,8 +774,6 @@ const cardStyle = {
     "rgba(15,23,42,0.82)",
   borderRadius: "28px",
   padding: "24px",
-  backdropFilter: "blur(16px)",
-  transition: "0.3s",
 };
 
 const topRowStyle = {
@@ -727,8 +815,6 @@ const infoCardStyle = {
     "rgba(2,6,23,0.75)",
   borderRadius: "18px",
   padding: "18px",
-  border:
-    "1px solid rgba(148,163,184,0.12)",
 };
 
 const labelStyle = {
