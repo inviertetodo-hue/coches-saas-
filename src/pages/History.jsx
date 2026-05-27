@@ -18,10 +18,13 @@ import { generateWatchlist } from "../services/watchlistEngine";
 import { generateDealPipeline } from "../services/dealPipeline";
 import { generateDealDecisions } from "../services/dealDecisionEngine";
 import { simulatePortfolio } from "../services/portfolioSimulator";
+
 import { validateAnalysesDataset } from "../services/validationRules";
 import { sanitizeAnalysesDataset } from "../services/analysisSanitizer";
+import { evaluateAnalysisHealth } from "../services/analysisHealthGate";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
+import SystemHealthBanner from "../components/dashboard/SystemHealthBanner";
 import InstantDecisionPanel from "../components/dashboard/InstantDecisionPanel";
 import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
 import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
@@ -85,6 +88,8 @@ export default function History() {
   const learning = analyzeAILearning(cleanAnalyses);
 
   const validation = validateAnalysesDataset(cleanAnalyses);
+  const systemHealth = evaluateAnalysisHealth(validation);
+
   const advancedMetrics = generateAdvancedMetrics(cleanAnalyses);
   const radar = generateOpportunityRadar(cleanAnalyses);
   const ranking = generateOpportunityRanking(cleanAnalyses);
@@ -151,6 +156,8 @@ export default function History() {
       <div style={containerStyle}>
         <DashboardHeader />
 
+        <SystemHealthBanner health={systemHealth} />
+
         <InstantDecisionPanel decisions={decisions} />
 
         <GlobalStatsPanel
@@ -166,33 +173,35 @@ export default function History() {
 
         <ExecutiveSummaryPanel executive={executive} />
 
-        <AdvancedIntelligencePanel>
-          <DataQualityPanel validation={validation} />
+        {systemHealth.canShowAdvanced && (
+          <AdvancedIntelligencePanel>
+            <DataQualityPanel validation={validation} />
 
-          <AdvancedMetricsPanel metrics={advancedMetrics} />
+            <AdvancedMetricsPanel metrics={advancedMetrics} />
 
-          <OpportunityRadarPanel radar={radar} />
+            <OpportunityRadarPanel radar={radar} />
 
-          <OpportunityRankingPanel ranking={ranking} />
+            <OpportunityRankingPanel ranking={ranking} />
 
-          <WatchlistPanel watchlist={watchlist} />
+            <WatchlistPanel watchlist={watchlist} />
 
-          <DealPipelinePanel pipeline={pipeline} />
+            <DealPipelinePanel pipeline={pipeline} />
 
-          <DealDecisionPanel decisions={decisions} />
+            <DealDecisionPanel decisions={decisions} />
 
-          <PortfolioSimulatorPanel simulation={simulation} />
+            <PortfolioSimulatorPanel simulation={simulation} />
 
-          <AIInsightsPanel
-            learning={learning}
-            confidence={confidence}
-            risk={risk}
-            portfolio={portfolio}
-            market={market}
-            trends={trends}
-            temporal={temporal}
-          />
-        </AdvancedIntelligencePanel>
+            <AIInsightsPanel
+              learning={learning}
+              confidence={confidence}
+              risk={risk}
+              portfolio={portfolio}
+              market={market}
+              trends={trends}
+              temporal={temporal}
+            />
+          </AdvancedIntelligencePanel>
+        )}
 
         <HistoryControls
           search={search}
