@@ -205,7 +205,9 @@ export default function Importer() {
         <div style={headerStyle}>
           <p style={badgeStyle}>Coches SaaS · Importador Inteligente</p>
 
-          <h1 style={titleStyle}>Analiza oportunidades de importación con IA</h1>
+          <h1 style={titleStyle}>
+            Analiza oportunidades de importación con IA
+          </h1>
 
           <p style={subtitleStyle}>
             Score inteligente, ROI, beneficio estimado y oportunidades reales
@@ -284,7 +286,9 @@ export default function Importer() {
               <div style={emptyStateStyle}>
                 <p style={emptyIconStyle}>🚘</p>
 
-                <p style={emptyTitleStyle}>Esperando análisis inteligente</p>
+                <p style={emptyTitleStyle}>
+                  Esperando análisis inteligente
+                </p>
 
                 <p style={mutedTextStyle}>
                   Pega una URL o introduce datos manualmente.
@@ -309,17 +313,25 @@ export default function Importer() {
 
                 <div style={scoreContainerStyle}>
                   <div style={scoreCircleStyle}>
-                    <span style={scoreNumberStyle}>{analysis.score}</span>
-                    <span style={scoreTextStyle}>SCORE IA</span>
+                    <span style={scoreNumberStyle}>
+                      {analysis.score}
+                    </span>
+
+                    <span style={scoreTextStyle}>
+                      SCORE IA
+                    </span>
                   </div>
                 </div>
 
                 <div style={kpiGridStyle}>
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>ROI estimado</p>
+
                     <p style={kpiValueStyle}>
                       {Math.round(
-                        (analysis.estimatedProfit / Number(car.price)) * 100
+                        (analysis.estimatedProfit /
+                          Number(car.price)) *
+                          100
                       )}
                       %
                     </p>
@@ -327,22 +339,74 @@ export default function Importer() {
 
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>Beneficio</p>
+
                     <p style={kpiValueStyle}>
-                      {Math.round(analysis.estimatedProfit)} €
+                      {Math.round(
+                        analysis.estimatedProfit
+                      )}{" "}
+                      €
                     </p>
                   </div>
 
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>Venta España</p>
+                    <p style={kpiLabelStyle}>
+                      Venta España
+                    </p>
+
                     <p style={kpiValueStyle}>
-                      {Math.round(analysis.estimatedSalePrice)} €
+                      {Math.round(
+                        analysis.estimatedSalePrice || 0
+                      )}{" "}
+                      €
                     </p>
                   </div>
 
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>Mercado</p>
+
                     <p style={kpiValueStyle}>ES</p>
                   </div>
+                </div>
+
+                <div style={insightsContainerStyle}>
+                  <p style={insightsTitleStyle}>
+                    IA Explainability
+                  </p>
+
+                  {analysis.insights?.map(
+                    (insight, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          ...insightCardStyle,
+
+                          background:
+                            insight.type === "positive"
+                              ? "rgba(34,197,94,0.12)"
+                              : insight.type === "negative"
+                              ? "rgba(239,68,68,0.12)"
+                              : "rgba(250,204,21,0.12)",
+
+                          border:
+                            insight.type === "positive"
+                              ? "1px solid rgba(34,197,94,0.25)"
+                              : insight.type === "negative"
+                              ? "1px solid rgba(239,68,68,0.25)"
+                              : "1px solid rgba(250,204,21,0.25)",
+                        }}
+                      >
+                        <span style={insightEmojiStyle}>
+                          {insight.type === "positive"
+                            ? "✅"
+                            : insight.type === "negative"
+                            ? "❌"
+                            : "⚠️"}
+                        </span>
+
+                        <span>{insight.text}</span>
+                      </div>
+                    )
+                  )}
                 </div>
 
                 <button
@@ -350,7 +414,9 @@ export default function Importer() {
                   disabled={saving}
                   style={buttonStyle}
                 >
-                  {saving ? "Guardando..." : "Guardar análisis"}
+                  {saving
+                    ? "Guardando..."
+                    : "Guardar análisis"}
                 </button>
               </div>
             )}
@@ -476,7 +542,8 @@ const buttonStyle = {
   fontSize: "16px",
   fontWeight: "900",
   color: "white",
-  background: "linear-gradient(135deg, #2563eb, #16a34a)",
+  background:
+    "linear-gradient(135deg, #2563eb, #16a34a)",
 };
 
 const secondaryButtonStyle = {
@@ -598,4 +665,32 @@ const messageStyle = {
   marginTop: "18px",
   fontWeight: "900",
   color: "#93c5fd",
+};
+
+const insightsContainerStyle = {
+  marginTop: "28px",
+};
+
+const insightsTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#cbd5e1",
+  marginBottom: "16px",
+  letterSpacing: "1px",
+};
+
+const insightCardStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "700",
+  color: "white",
+  backdropFilter: "blur(10px)",
+};
+
+const insightEmojiStyle = {
+  fontSize: "18px",
 };
