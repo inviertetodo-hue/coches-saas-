@@ -54,30 +54,54 @@ export function parseCarFromUrl(url) {
   };
 
   const knownModels = [
-    "a1", "a3", "a4", "a5", "a6", "a7", "a8", "q2", "q3", "q5", "q7", "q8",
-    "rs3", "rs4", "rs5", "rs6", "rs7", "s3", "s4", "s5", "s6", "tt",
-    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 7",
-    "x1", "x2", "x3", "x4", "x5", "x6", "x7", "m2", "m3", "m4", "m5",
-    "classe a", "classe b", "classe c", "classe e", "classe s",
-    "cla", "cls", "gla", "glb", "glc", "gle", "gls", "amg",
-    "golf", "polo", "passat", "tiguan", "touareg", "arteon", "t roc", "t cross",
-    "leon", "ibiza", "ateca", "arona", "formentor",
-    "911", "cayenne", "macan", "panamera", "taycan", "boxster", "cayman",
-    "model 3", "model y", "model s", "model x",
-    "focus", "fiesta", "kuga", "mondeo", "mustang",
-    "corolla", "yaris", "rav4", "chr", "land cruiser",
-    "clio", "megane", "captur", "kadjar", "koleos",
-    "sportage", "ceed", "rio", "sorento",
-    "tucson", "i20", "i30", "kona", "santa fe",
-    "308", "3008", "5008", "208", "2008",
+    "a1", "a3", "a4", "a5", "a6", "a7", "a8",
+    "q2", "q3", "q5", "q7", "q8",
+    "rs3", "rs4", "rs5", "rs6", "rs7",
+    "s3", "s4", "s5", "s6",
+    "tt",
+    "serie 1", "serie 2", "serie 3",
+    "serie 4", "serie 5", "serie 7",
+    "x1", "x2", "x3", "x4", "x5",
+    "x6", "x7",
+    "m2", "m3", "m4", "m5",
+    "classe a", "classe b",
+    "classe c", "classe e",
+    "classe s",
+    "cla", "cls",
+    "gla", "glb", "glc",
+    "gle", "gls",
+    "golf", "polo",
+    "passat", "tiguan",
+    "touareg", "arteon",
+    "leon", "ibiza",
+    "ateca", "formentor",
+    "911", "cayenne",
+    "macan", "panamera",
+    "taycan",
+    "model 3",
+    "model y",
+    "model s",
+    "model x",
   ];
 
   const stopWords = [
-    "http", "https", "www", "mobile", "autoscout24", "kleinanzeigen",
-    "de", "com", "es", "it", "fr", "nl", "at", "be",
-    "auto", "cars", "car", "vehiculo", "vehicle", "gebrauchtwagen",
-    "neuwagen", "details", "offer", "ad", "suchen", "search",
-    "id", "utm", "source", "campaign", "ref",
+    "http",
+    "https",
+    "www",
+    "mobile",
+    "autoscout24",
+    "de",
+    "com",
+    "es",
+    "it",
+    "fr",
+    "auto",
+    "cars",
+    "vehicle",
+    "details",
+    "search",
+    "campaign",
+    "ref",
   ];
 
   const parts = cleanUrl
@@ -89,8 +113,13 @@ export function parseCarFromUrl(url) {
 
   const usefulParts = parts.filter((part) => {
     if (part.length < 2) return false;
-    if (stopWords.includes(part)) return false;
-    if (/^\d{6,}$/.test(part)) return false;
+
+    if (stopWords.includes(part))
+      return false;
+
+    if (/^\d{6,}$/.test(part))
+      return false;
+
     return true;
   });
 
@@ -98,57 +127,66 @@ export function parseCarFromUrl(url) {
 
   for (const part of usefulParts) {
     if (brandAliases[part]) {
-      detectedBrand = brandAliases[part];
+      detectedBrand =
+        brandAliases[part];
+
       break;
     }
   }
 
-  if (!detectedBrand) {
-    for (const alias of Object.keys(brandAliases)) {
-      if (cleanUrl.includes(alias)) {
-        detectedBrand = brandAliases[alias];
-        break;
-      }
-    }
-  }
-
-  const normalizedText = usefulParts.join(" ");
+  const normalizedText =
+    usefulParts.join(" ");
 
   let detectedModel = "";
 
   for (const model of knownModels) {
-    const modelKey = model.replaceAll(" ", "-");
+    const modelKey =
+      model.replaceAll(" ", "-");
+
     if (
       normalizedText.includes(model) ||
       cleanUrl.includes(modelKey)
     ) {
-      detectedModel = formatModel(model);
+      detectedModel =
+        formatModel(model);
+
       break;
     }
   }
 
   if (!detectedModel) {
-    const brandKeys = Object.keys(brandAliases);
-
-    const candidateParts = usefulParts.filter((part) => {
-      if (brandKeys.includes(part)) return false;
-      if (Object.values(brandAliases).some((brand) => brand.toLowerCase().includes(part))) return false;
-      if (/^\d{4}$/.test(part)) return false;
-      if (/^\d+$/.test(part)) return false;
-      if (part.length > 25) return false;
-      return true;
-    });
-
-    detectedModel = candidateParts
+    detectedModel = usefulParts
       .slice(0, 4)
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
   }
 
-  const detectedYear = detectYear(cleanUrl);
-  const detectedEngine = detectEngine(cleanUrl);
-  const detectedTransmission = detectTransmission(cleanUrl);
+  const detectedYear =
+    detectYear(cleanUrl);
+
+  const detectedEngine =
+    detectEngine(cleanUrl);
+
+  const detectedTransmission =
+    detectTransmission(cleanUrl);
+
+  const detectedDrivetrain =
+    detectDrivetrain(cleanUrl);
+
+  const detectedPerformance =
+    detectPerformancePackage(
+      cleanUrl
+    );
+
+  const detectedFuelType =
+    detectFuelType(cleanUrl);
+
+  const detectedBodyType =
+    detectBodyType(cleanUrl);
+
+  const electrified =
+    detectElectrified(cleanUrl);
 
   const finalTitle = [
     detectedBrand,
@@ -156,6 +194,8 @@ export function parseCarFromUrl(url) {
     detectedYear,
     detectedEngine,
     detectedTransmission,
+    detectedDrivetrain,
+    detectedPerformance,
   ]
     .filter(Boolean)
     .join(" ")
@@ -167,17 +207,27 @@ export function parseCarFromUrl(url) {
     model: detectedModel,
     year: detectedYear,
     engine: detectedEngine,
-    transmission: detectedTransmission,
+    transmission:
+      detectedTransmission,
+    drivetrain:
+      detectedDrivetrain,
+    performancePackage:
+      detectedPerformance,
+    fuelType:
+      detectedFuelType,
+    bodyType:
+      detectedBodyType,
+    electrified,
     title: finalTitle,
   };
 }
 
 function detectYear(text) {
-  const years = text.match(/\b(200[5-9]|201[0-9]|202[0-6])\b/g);
+  const years = text.match(
+    /\b(200[5-9]|201[0-9]|202[0-6])\b/g
+  );
 
-  if (!years || years.length === 0) {
-    return "";
-  }
+  if (!years) return "";
 
   return years[0];
 }
@@ -189,26 +239,21 @@ function detectEngine(text) {
     /\b\d\.\d\s?tsi\b/,
     /\b\d\.\d\s?dci\b/,
     /\b\d\.\d\s?hdi\b/,
-    /\b\d\.\d\s?bluehdi\b/,
     /\b\d\.\d\s?hybrid\b/,
     /\b\d\.\d\s?phev\b/,
-    /\b\d\.\d\s?turbo\b/,
-    /\b\d{2,3}\s?kw\b/,
     /\b\d{2,3}\s?cv\b/,
     /\b\d{2,3}\s?ps\b/,
   ];
 
   for (const pattern of enginePatterns) {
     const match = text.match(pattern);
+
     if (match) {
-      return formatEngine(match[0]);
+      return formatEngine(
+        match[0]
+      );
     }
   }
-
-  if (text.includes("diesel")) return "Diesel";
-  if (text.includes("benzina") || text.includes("gasolina") || text.includes("petrol")) return "Gasolina";
-  if (text.includes("hybrid") || text.includes("hibrido") || text.includes("híbrido")) return "Híbrido";
-  if (text.includes("electric") || text.includes("electrico") || text.includes("eléctrico")) return "Eléctrico";
 
   return "";
 }
@@ -217,46 +262,225 @@ function detectTransmission(text) {
   const automaticWords = [
     "automatic",
     "automatik",
-    "automatica",
-    "automático",
-    "auto",
     "dsg",
     "s-tronic",
-    "stronic",
     "tiptronic",
     "steptronic",
     "pdk",
   ];
 
-  const manualWords = [
-    "manual",
-    "schaltgetriebe",
-  ];
-
-  if (automaticWords.some((word) => text.includes(word))) {
+  if (
+    automaticWords.some((word) =>
+      text.includes(word)
+    )
+  ) {
     return "Automático";
   }
 
-  if (manualWords.some((word) => text.includes(word))) {
+  if (
+    text.includes("manual")
+  ) {
     return "Manual";
   }
 
   return "";
 }
 
+function detectDrivetrain(text) {
+  if (
+    text.includes("quattro")
+  ) {
+    return "quattro AWD";
+  }
+
+  if (
+    text.includes("xdrive")
+  ) {
+    return "xDrive AWD";
+  }
+
+  if (
+    text.includes("4matic")
+  ) {
+    return "4Matic AWD";
+  }
+
+  if (
+    text.includes("awd")
+  ) {
+    return "AWD";
+  }
+
+  if (
+    text.includes("rwd")
+  ) {
+    return "RWD";
+  }
+
+  if (
+    text.includes("fwd")
+  ) {
+    return "FWD";
+  }
+
+  return "";
+}
+
+function detectPerformancePackage(
+  text
+) {
+  if (text.includes("amg"))
+    return "AMG";
+
+  if (text.includes("rs"))
+    return "RS";
+
+  if (text.includes("gti"))
+    return "GTI";
+
+  if (
+    text.includes("m-sport") ||
+    text.includes("msport")
+  ) {
+    return "M Sport";
+  }
+
+  if (
+    text.includes("s-line") ||
+    text.includes("sline")
+  ) {
+    return "S Line";
+  }
+
+  if (
+    text.includes("cupra")
+  ) {
+    return "Cupra";
+  }
+
+  return "";
+}
+
+function detectFuelType(text) {
+  if (
+    text.includes("phev")
+  ) {
+    return "PHEV";
+  }
+
+  if (
+    text.includes("hybrid")
+  ) {
+    return "Hybrid";
+  }
+
+  if (
+    text.includes("electric") ||
+    text.includes("electrico") ||
+    text.includes("eléctrico")
+  ) {
+    return "EV";
+  }
+
+  if (
+    text.includes("diesel")
+  ) {
+    return "Diesel";
+  }
+
+  if (
+    text.includes("gasolina") ||
+    text.includes("petrol")
+  ) {
+    return "Gasolina";
+  }
+
+  return "";
+}
+
+function detectBodyType(text) {
+  if (
+    text.includes("suv")
+  ) {
+    return "SUV";
+  }
+
+  if (
+    text.includes("wagon") ||
+    text.includes("touring") ||
+    text.includes("avant")
+  ) {
+    return "Wagon";
+  }
+
+  if (
+    text.includes("sedan") ||
+    text.includes("berlina")
+  ) {
+    return "Sedan";
+  }
+
+  if (
+    text.includes("coupe")
+  ) {
+    return "Coupe";
+  }
+
+  if (
+    text.includes("cabrio") ||
+    text.includes("cabriolet")
+  ) {
+    return "Cabrio";
+  }
+
+  return "";
+}
+
+function detectElectrified(
+  text
+) {
+  return (
+    text.includes("hybrid") ||
+    text.includes("phev") ||
+    text.includes("electric") ||
+    text.includes("electrico") ||
+    text.includes("eléctrico")
+  );
+}
+
 function formatModel(model) {
   return model
     .split(" ")
     .map((word) => {
-      if (/^[a-z]\d$/i.test(word)) return word.toUpperCase();
-      if (/^rs\d$/i.test(word)) return word.toUpperCase();
-      if (/^s\d$/i.test(word)) return word.toUpperCase();
-      if (/^m\d$/i.test(word)) return word.toUpperCase();
-      if (/^x\d$/i.test(word)) return word.toUpperCase();
-      if (/^q\d$/i.test(word)) return word.toUpperCase();
-      if (word === "amg") return "AMG";
-      if (word === "chr") return "C-HR";
-      return word.charAt(0).toUpperCase() + word.slice(1);
+      if (
+        /^[a-z]\d$/i.test(word)
+      )
+        return word.toUpperCase();
+
+      if (
+        /^rs\d$/i.test(word)
+      )
+        return word.toUpperCase();
+
+      if (
+        /^m\d$/i.test(word)
+      )
+        return word.toUpperCase();
+
+      if (
+        /^x\d$/i.test(word)
+      )
+        return word.toUpperCase();
+
+      if (
+        /^q\d$/i.test(word)
+      )
+        return word.toUpperCase();
+
+      return (
+        word.charAt(0).toUpperCase() +
+        word.slice(1)
+      );
     })
     .join(" ");
 }
@@ -269,10 +493,8 @@ function formatEngine(engine) {
     .replace("tsi", "TSI")
     .replace("dci", "DCI")
     .replace("hdi", "HDI")
-    .replace("bluehdi", "BlueHDi")
     .replace("hybrid", "Hybrid")
     .replace("phev", "PHEV")
-    .replace("kw", "kW")
     .replace("cv", "CV")
     .replace("ps", "PS")
     .trim();
