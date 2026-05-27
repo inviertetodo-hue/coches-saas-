@@ -24,23 +24,24 @@ export default function Importer() {
 
       const data = await response.json();
 
-      console.log(data);
+      console.log("RESPUESTA SCRAPE:", data);
 
       if (data.ok) {
-        setResultado(`
-HTML OK
+        setResultado(
+          `HTML OK
 
+Status: ${data.status}
 Tamaño HTML: ${data.htmlLength}
 
 Vista previa:
-${data.preview}
-        `);
+${data.preview}`
+        );
       } else {
-        setResultado("ERROR SCRAPING");
+        setResultado(`ERROR SCRAPING: ${data.error}`);
       }
     } catch (error) {
-      console.log(error);
-      setResultado("ERROR GENERAL");
+      console.log("ERROR IMPORTER:", error);
+      setResultado(`ERROR GENERAL: ${error.message}`);
     }
 
     setLoading(false);
