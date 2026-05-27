@@ -18,12 +18,14 @@ import { generateWatchlist } from "../services/watchlistEngine";
 import { generateDealPipeline } from "../services/dealPipeline";
 import { generateDealDecisions } from "../services/dealDecisionEngine";
 import { simulatePortfolio } from "../services/portfolioSimulator";
+import { validateAnalysesDataset } from "../services/validationRules";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import InstantDecisionPanel from "../components/dashboard/InstantDecisionPanel";
 import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
 import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
 import AdvancedIntelligencePanel from "../components/dashboard/AdvancedIntelligencePanel";
+import DataQualityPanel from "../components/dashboard/DataQualityPanel";
 import AdvancedMetricsPanel from "../components/dashboard/AdvancedMetricsPanel";
 import OpportunityRadarPanel from "../components/dashboard/OpportunityRadarPanel";
 import OpportunityRankingPanel from "../components/dashboard/OpportunityRankingPanel";
@@ -76,6 +78,7 @@ export default function History() {
   const confidence = analyzeAIConfidence(analyses);
   const learning = analyzeAILearning(analyses);
 
+  const validation = validateAnalysesDataset(analyses);
   const advancedMetrics = generateAdvancedMetrics(analyses);
   const radar = generateOpportunityRadar(analyses);
   const ranking = generateOpportunityRanking(analyses);
@@ -158,6 +161,8 @@ export default function History() {
         <ExecutiveSummaryPanel executive={executive} />
 
         <AdvancedIntelligencePanel>
+          <DataQualityPanel validation={validation} />
+
           <AdvancedMetricsPanel metrics={advancedMetrics} />
 
           <OpportunityRadarPanel radar={radar} />
