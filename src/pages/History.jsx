@@ -14,6 +14,7 @@ import { generateExecutiveSummary } from "../services/executiveSummary";
 import { generateAdvancedMetrics } from "../services/advancedMetrics";
 import { generateOpportunityRadar } from "../services/opportunityRadar";
 import { generateOpportunityRanking } from "../services/opportunityRanking";
+import { generateWatchlist } from "../services/watchlistEngine";
 
 import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -21,6 +22,7 @@ import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
 import AdvancedMetricsPanel from "../components/dashboard/AdvancedMetricsPanel";
 import OpportunityRadarPanel from "../components/dashboard/OpportunityRadarPanel";
 import OpportunityRankingPanel from "../components/dashboard/OpportunityRankingPanel";
+import WatchlistPanel from "../components/dashboard/WatchlistPanel";
 import HistoryControls from "../components/dashboard/HistoryControls";
 import AnalysisGrid from "../components/dashboard/AnalysisGrid";
 import AIInsightsPanel from "../components/dashboard/AIInsightsPanel";
@@ -74,6 +76,9 @@ export default function History() {
 
   const ranking =
     generateOpportunityRanking(analyses);
+
+  const watchlist =
+    generateWatchlist(analyses);
 
   const executive = generateExecutiveSummary({
     market,
@@ -170,6 +175,10 @@ export default function History() {
 
         <OpportunityRankingPanel
           ranking={ranking}
+        />
+
+        <WatchlistPanel
+          watchlist={watchlist}
         />
 
         <ExecutiveSummaryPanel
