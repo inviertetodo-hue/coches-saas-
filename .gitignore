@@ -4,3 +4,7 @@ dist
 __pycache__
 *.pyc
 .DS_Store
+# Playwright / scraping temporal
+playwright-data/
+mobile-test.png
+mobile-home.png

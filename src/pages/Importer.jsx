@@ -1,51 +1,14 @@
-import { useState } from "react";
+import { analyzeCar } from "../services/profitAnalyzer";
 
 export default function Importer() {
-  const [loading, setLoading] = useState(false);
-  const [resultado, setResultado] = useState("");
-
-  const analizarVehiculo = async () => {
-    try {
-      setLoading(true);
-      setResultado("");
-
-      const response = await fetch(
-        "https://ohtxirarsonewffizser.supabase.co/functions/v1/scrape-car",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: "https://suchen.mobile.de/fahrzeuge/details.html?id=397445030",
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      console.log("RESPUESTA SCRAPE:", data);
-
-      if (data.ok) {
-        setResultado(
-          `HTML OK
-
-Status: ${data.status}
-Tamaño HTML: ${data.htmlLength}
-
-Vista previa:
-${data.preview}`
-        );
-      } else {
-        setResultado(`ERROR SCRAPING: ${data.error}`);
-      }
-    } catch (error) {
-      console.log("ERROR IMPORTER:", error);
-      setResultado(`ERROR GENERAL: ${error.message}`);
-    }
-
-    setLoading(false);
+  const car = {
+    title: "BMW 320d Touring",
+    price: 18900,
+    km: 95000,
+    year: 2020,
   };
+
+  const analysis = analyzeCar(car);
 
   return (
     <div
@@ -59,33 +22,42 @@ ${data.preview}`
     >
       <h1>Importador IA</h1>
 
-      <button
-        onClick={analizarVehiculo}
+      <div
         style={{
-          padding: "15px 25px",
-          borderRadius: "10px",
-          border: "none",
-          cursor: "pointer",
-          fontSize: "18px",
-          marginTop: "20px",
-        }}
-      >
-        {loading ? "Cargando..." : "Analizar Vehículo"}
-      </button>
-
-      <pre
-        style={{
-          marginTop: "30px",
           background: "#111827",
-          padding: "20px",
-          borderRadius: "10px",
-          whiteSpace: "pre-wrap",
-          fontSize: "14px",
-          overflow: "auto",
+          padding: "30px",
+          borderRadius: "12px",
+          marginTop: "30px",
         }}
       >
-        {resultado}
-      </pre>
+        <h2>{car.title}</h2>
+
+        <p>Precio Alemania: {car.price} €</p>
+
+        <p>Kilómetros: {car.km}</p>
+
+        <p>Año: {car.year}</p>
+
+        <hr />
+
+        <h2>ANÁLISIS IA</h2>
+
+        <p>Score IA: {analysis.score}/100</p>
+
+        <p>Recomendación: {analysis.recommendation}</p>
+
+        <p>
+          Precio estimado venta España:
+          {" "}
+          {Math.round(analysis.estimatedSalePrice)} €
+        </p>
+
+        <p>
+          Beneficio estimado:
+          {" "}
+          {Math.round(analysis.estimatedProfit)} €
+        </p>
+      </div>
     </div>
   );
 }
