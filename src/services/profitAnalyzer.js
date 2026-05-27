@@ -3,7 +3,9 @@ export function analyzeCar(data) {
   const estimatedMarketPrice =
     Number(data.estimatedMarketPrice || 0);
 
-  const kilometers = Number(data.kilometers || 0);
+  const kilometers =
+    Number(data.kilometers || data.km || 0);
+
   const year = Number(data.year || 0);
 
   const brand = String(data.brand || "").toLowerCase();
@@ -12,7 +14,9 @@ export function analyzeCar(data) {
     data.transmission || ""
   ).toLowerCase();
 
-  const engine = String(data.engine || "").toLowerCase();
+  const engine = String(
+    data.engine || ""
+  ).toLowerCase();
 
   const currentYear = new Date().getFullYear();
 
@@ -28,22 +32,68 @@ export function analyzeCar(data) {
 
   let score = 50;
 
+  const insights = [];
+
   /*
     ROI
   */
 
-  if (roi >= 35) score += 25;
-  else if (roi >= 25) score += 18;
-  else if (roi >= 15) score += 10;
-  else if (roi < 5) score -= 15;
+  if (roi >= 35) {
+    score += 25;
+
+    insights.push({
+      type: "positive",
+      text: "ROI muy alto detectado",
+    });
+  } else if (roi >= 25) {
+    score += 18;
+
+    insights.push({
+      type: "positive",
+      text: "Buen ROI potencial",
+    });
+  } else if (roi >= 15) {
+    score += 10;
+
+    insights.push({
+      type: "neutral",
+      text: "ROI aceptable",
+    });
+  } else if (roi < 5) {
+    score -= 15;
+
+    insights.push({
+      type: "negative",
+      text: "ROI demasiado bajo",
+    });
+  }
 
   /*
     KILOMETERS
   */
 
-  if (kilometers <= 50000) score += 15;
-  else if (kilometers <= 100000) score += 8;
-  else if (kilometers >= 180000) score -= 15;
+  if (kilometers <= 50000) {
+    score += 15;
+
+    insights.push({
+      type: "positive",
+      text: "Kilometraje bajo",
+    });
+  } else if (kilometers <= 100000) {
+    score += 8;
+
+    insights.push({
+      type: "positive",
+      text: "Kilometraje razonable",
+    });
+  } else if (kilometers >= 180000) {
+    score -= 15;
+
+    insights.push({
+      type: "negative",
+      text: "Muchos kilómetros",
+    });
+  }
 
   /*
     YEAR
@@ -51,9 +101,28 @@ export function analyzeCar(data) {
 
   const age = currentYear - year;
 
-  if (year >= currentYear - 3) score += 15;
-  else if (year >= currentYear - 6) score += 8;
-  else if (age >= 15) score -= 15;
+  if (year >= currentYear - 3) {
+    score += 15;
+
+    insights.push({
+      type: "positive",
+      text: "Vehículo moderno",
+    });
+  } else if (year >= currentYear - 6) {
+    score += 8;
+
+    insights.push({
+      type: "positive",
+      text: "Año competitivo",
+    });
+  } else if (age >= 15) {
+    score -= 15;
+
+    insights.push({
+      type: "negative",
+      text: "Vehículo antiguo",
+    });
+  }
 
   /*
     PREMIUM BRANDS
@@ -79,6 +148,11 @@ export function analyzeCar(data) {
     )
   ) {
     score += 10;
+
+    insights.push({
+      type: "positive",
+      text: "Marca premium detectada",
+    });
   }
 
   /*
@@ -87,10 +161,15 @@ export function analyzeCar(data) {
 
   if (transmission.includes("autom")) {
     score += 5;
+
+    insights.push({
+      type: "positive",
+      text: "Cambio automático",
+    });
   }
 
   /*
-    ENGINE BONUS
+    ENGINE
   */
 
   if (
@@ -99,6 +178,11 @@ export function analyzeCar(data) {
     engine.includes("electric")
   ) {
     score += 5;
+
+    insights.push({
+      type: "positive",
+      text: "Motorización eficiente",
+    });
   }
 
   /*
@@ -107,10 +191,20 @@ export function analyzeCar(data) {
 
   if (price <= 5000) {
     score -= 10;
+
+    insights.push({
+      type: "negative",
+      text: "Precio sospechosamente bajo",
+    });
   }
 
   if (price >= 15000 && price <= 40000) {
     score += 5;
+
+    insights.push({
+      type: "positive",
+      text: "Rango de precio saludable",
+    });
   }
 
   /*
@@ -137,5 +231,6 @@ export function analyzeCar(data) {
     recommendation,
     estimatedProfit,
     roi,
+    insights,
   };
 }
