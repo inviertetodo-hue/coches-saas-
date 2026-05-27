@@ -22,31 +22,48 @@ export function evaluateAnalysisHealth(validation = {}) {
 
   if (errorCount > 0) {
     status = "Crítico";
-    messages.push("Hay errores críticos en el dataset. Revisar antes de confiar en la IA.");
+
+    messages.push(
+      "Hay errores críticos en el dataset. Revisar antes de confiar en la IA."
+    );
   } else if (qualityScore >= 85) {
     status = "Saludable";
     canTrustAI = true;
     canShowAdvanced = true;
-    messages.push("El dataset tiene buena calidad y puede usarse con confianza.");
+
+    messages.push(
+      "El dataset tiene buena calidad y puede usarse con confianza."
+    );
   } else if (qualityScore >= 70) {
     status = "Aceptable";
     canTrustAI = true;
     canShowAdvanced = true;
-    messages.push("El dataset es utilizable, aunque existen avisos menores.");
+
+    messages.push(
+      "El dataset es utilizable, aunque existen avisos menores."
+    );
   } else if (qualityScore >= 50) {
     status = "Débil";
     canTrustAI = false;
     canShowAdvanced = true;
-    messages.push("La IA puede mostrar señales, pero conviene revisar coherencia.");
+
+    messages.push(
+      "La IA puede mostrar señales, pero conviene revisar coherencia."
+    );
   } else {
     status = "No fiable";
     canTrustAI = false;
     canShowAdvanced = false;
-    messages.push("La calidad del dataset es baja. No conviene tomar decisiones todavía.");
+
+    messages.push(
+      "La calidad del dataset es baja. No conviene tomar decisiones todavía."
+    );
   }
 
   if (warningCount > 0) {
-    messages.push(`${warningCount} aviso(s) de coherencia detectados.`);
+    messages.push(
+      `${warningCount} aviso(s) de coherencia detectados.`
+    );
   }
 
   return {
