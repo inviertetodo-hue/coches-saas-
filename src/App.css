@@ -5,8 +5,13 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #0f172a;
+  background: #020617;
   color: white;
+}
+
+a {
+  color: white;
+  text-decoration: none;
 }
 
 .app {
@@ -17,7 +22,7 @@ body {
 aside {
   width: 260px;
   min-height: 100vh;
-  background: #020617;
+  background: #0f172a;
   padding: 28px;
   display: flex;
   flex-direction: column;
@@ -26,17 +31,16 @@ aside {
 }
 
 aside h1 {
-  font-size: 26px;
+  font-size: 30px;
   margin-bottom: 24px;
 }
 
 aside a {
-  color: white;
-  text-decoration: none;
-  background: rgba(255,255,255,0.08);
-  padding: 14px 16px;
-  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  padding: 14px 18px;
+  border-radius: 16px;
   font-weight: bold;
+  transition: 0.2s;
 }
 
 aside a:hover {
@@ -45,123 +49,140 @@ aside a:hover {
 
 main {
   flex: 1;
+  width: 100%;
   padding: 40px;
 }
 
-.kpis,
-.admin-grid {
+.importer-page {
+  width: 100%;
+  min-height: calc(100vh - 80px);
+}
+
+.importer-card,
+.result-card {
+  width: 100%;
+  max-width: 1000px;
+  margin: auto;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+.importer-card h1 {
+  font-size: 50px;
+  margin: 0 0 10px;
+}
+
+.importer-card p {
+  color: #94a3b8;
+  margin-bottom: 24px;
+  font-size: 18px;
+}
+
+.importer-card textarea {
+  width: 100%;
+  min-height: 220px;
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  padding: 18px;
+  color: white;
+  font-size: 16px;
+  resize: vertical;
+  outline: none;
+}
+
+.importer-card button {
+  width: 100%;
+  margin-top: 20px;
+  border: none;
+  border-radius: 18px;
+  padding: 18px;
+  background: linear-gradient(135deg,#22c55e,#14b8a6);
+  color: #020617;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.result-card {
+  margin-top: 28px;
+}
+
+.result-card h2 {
+  font-size: 36px;
+  margin-bottom: 24px;
+}
+
+.result-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin: 24px 0;
-}
-
-.kpis div,
-.admin-card {
-  background: rgba(255,255,255,0.08);
-  padding: 24px;
-  border-radius: 20px;
-}
-
-.kpis strong,
-.admin-card strong {
-  display: block;
-  font-size: 32px;
-  margin-top: 8px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(2,1fr);
   gap: 20px;
 }
 
-.card,
-.car-card {
-  background: rgba(255,255,255,0.08);
-  padding: 24px;
-  border-radius: 22px;
-}
-
-button {
-  border: none;
-  cursor: pointer;
-  border-radius: 12px;
-  padding: 12px 16px;
-  font-weight: bold;
-}
-
-.filters-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 24px 0;
-}
-
-.filter-chip {
-  background: #1e293b;
-  color: white;
-}
-
-.insight-box {
-  margin-top: 32px;
-  background: linear-gradient(135deg, #1e40af, #0f172a);
-  padding: 32px;
-  border-radius: 24px;
-}
-
-.car-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin: 24px 0;
-  background: rgba(255,255,255,0.06);
+.info-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
   padding: 20px;
-  border-radius: 20px;
 }
 
-.car-form input {
-  padding: 14px;
-  border-radius: 12px;
-  border: none;
+.info-box p {
+  color: #94a3b8;
+  margin-bottom: 10px;
+  font-size: 14px;
 }
 
-.car-form button {
-  background: #22c55e;
+.info-box strong {
+  font-size: 24px;
   color: white;
 }
 
-.delete-btn {
-  background: #ef4444;
-  color: white;
-  margin-top: 12px;
-  width: 100%;
-}
-
-.importer-box {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin: 28px 0;
-  background: rgba(255,255,255,0.06);
-  padding: 24px;
-  border-radius: 22px;
-}
-
-.importer-box input,
-.importer-box select {
-  padding: 14px;
-  border-radius: 12px;
-  border: none;
-}
-
-.result-box {
-  background: linear-gradient(135deg, #064e3b, #0f172a);
+.verdict-box {
+  margin-top: 28px;
+  background: linear-gradient(135deg,#064e3b,#020617);
   border-radius: 24px;
   padding: 28px;
-  margin-top: 24px;
 }
 
-.result-box h2 {
-  font-size: 34px;
+.verdict-box p {
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.verdict-box h3 {
+  font-size: 38px;
+  margin-bottom: 16px;
+}
+
+.verdict-box strong {
+  display: block;
+  color: #4ade80;
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.verdict-box span {
+  color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+  }
+
+  aside {
+    width: 100%;
+    min-height: auto;
+  }
+
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .importer-card h1 {
+    font-size: 38px;
+  }
 }

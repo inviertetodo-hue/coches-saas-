@@ -1,119 +1,90 @@
-import { useState } from "react"
+import { useState } from "react";
 
 export default function Importer() {
-  const [form, setForm] = useState({
-    url: "",
-    country: "Alemania",
-    buyPrice: "",
-    transport: "",
-    registration: "",
-    repair: "",
-    spainPrice: ""
-  })
+  const [loading, setLoading] = useState(false);
+  const [resultado, setResultado] = useState("");
 
-  const totalCost =
-    Number(form.buyPrice) +
-    Number(form.transport) +
-    Number(form.registration) +
-    Number(form.repair)
+  const analizarVehiculo = async () => {
+    try {
+      setLoading(true);
+      setResultado("");
 
-  const profit =
-    Number(form.spainPrice) - totalCost
+      const response = await fetch(
+        "https://ohtxirarsonewffizser.supabase.co/functions/v1/scrape-car",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: "https://suchen.mobile.de/fahrzeuge/details.html?id=397445030",
+          }),
+        }
+      );
 
-  const roi =
-    form.buyPrice
-      ? ((profit / Number(form.buyPrice)) * 100).toFixed(1)
-      : 0
+      const data = await response.json();
 
-  const score =
-    profit > 6000 && roi > 18
-      ? 92
-      : profit > 3500 && roi > 12
-        ? 78
-        : profit > 1500
-          ? 58
-          : 30
+      console.log(data);
 
-  const verdict =
-    score >= 85
-      ? "🔥 CHOLLO IA"
-      : score >= 70
-        ? "🟢 MUY INTERESANTE"
-        : score >= 50
-          ? "🟡 ANALIZAR CON CALMA"
-          : "🔴 DESCARTAR"
+      if (data.ok) {
+        setResultado(`
+HTML OK
+
+Tamaño HTML: ${data.htmlLength}
+
+Vista previa:
+${data.preview}
+        `);
+      } else {
+        setResultado("ERROR SCRAPING");
+      }
+    } catch (error) {
+      console.log(error);
+      setResultado("ERROR GENERAL");
+    }
+
+    setLoading(false);
+  };
 
   return (
-    <div>
-      <h1>🔗 Importador IA Europa → España</h1>
+    <div
+      style={{
+        background: "#0f172a",
+        minHeight: "100vh",
+        color: "white",
+        padding: "40px",
+        fontFamily: "Arial",
+      }}
+    >
+      <h1>Importador IA</h1>
 
-      <p>
-        Pega una URL de un coche europeo y calcula si merece la pena importarlo.
-      </p>
+      <button
+        onClick={analizarVehiculo}
+        style={{
+          padding: "15px 25px",
+          borderRadius: "10px",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "18px",
+          marginTop: "20px",
+        }}
+      >
+        {loading ? "Cargando..." : "Analizar Vehículo"}
+      </button>
 
-      <div className="importer-box">
-        <input
-          placeholder="URL del anuncio europeo"
-          value={form.url}
-          onChange={(e)=>setForm({...form, url:e.target.value})}
-        />
-
-        <select
-          value={form.country}
-          onChange={(e)=>setForm({...form, country:e.target.value})}
-        >
-          <option>Alemania</option>
-          <option>Francia</option>
-          <option>Bélgica</option>
-          <option>Holanda</option>
-          <option>Italia</option>
-        </select>
-
-        <input
-          placeholder="Precio compra Europa"
-          value={form.buyPrice}
-          onChange={(e)=>setForm({...form, buyPrice:e.target.value})}
-        />
-
-        <input
-          placeholder="Transporte"
-          value={form.transport}
-          onChange={(e)=>setForm({...form, transport:e.target.value})}
-        />
-
-        <input
-          placeholder="Matriculación / impuestos"
-          value={form.registration}
-          onChange={(e)=>setForm({...form, registration:e.target.value})}
-        />
-
-        <input
-          placeholder="Reparación / preparación"
-          value={form.repair}
-          onChange={(e)=>setForm({...form, repair:e.target.value})}
-        />
-
-        <input
-          placeholder="Precio mercado España"
-          value={form.spainPrice}
-          onChange={(e)=>setForm({...form, spainPrice:e.target.value})}
-        />
-      </div>
-
-      <div className="result-box">
-        <h2>{verdict}</h2>
-
-        <p>🌍 País origen: {form.country}</p>
-        <p>💵 Coste total importación: {totalCost}€</p>
-        <p>💰 Beneficio estimado: {profit}€</p>
-        <p>📈 ROI estimado: {roi}%</p>
-        <p>🤖 Score IA: {score}/100</p>
-
-        <p>
-          La IA recomienda esta operación según margen,
-          coste total, ROI y potencial de reventa en España.
-        </p>
-      </div>
+      <pre
+        style={{
+          marginTop: "30px",
+          background: "#111827",
+          padding: "20px",
+          borderRadius: "10px",
+          whiteSpace: "pre-wrap",
+          fontSize: "14px",
+          overflow: "auto",
+        }}
+      >
+        {resultado}
+      </pre>
     </div>
-  )
+  );
 }

@@ -1,0 +1,35 @@
+Deno.serve(async (req) => {
+  try {
+    const body = await req.json();
+
+    const url = body.url;
+
+    if (!url) {
+      return Response.json({
+        ok: false,
+        error: "URL requerida",
+      });
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "Accept-Language":
+          "de-DE,de;q=0.9,en;q=0.8,es;q=0.7",
+      },
+    });
+
+    const html = await response.text();
+
+    return Response.json({
+      ok: true,
+      html,
+    });
+  } catch (error) {
+    return Response.json({
+      ok: false,
+      error: String(error),
+    });
+  }
+});
