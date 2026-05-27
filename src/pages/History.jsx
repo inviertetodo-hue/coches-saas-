@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { supabase } from "../lib/supabase";
+
+import {
+  analyzeMarketIntelligence,
+} from "../services/profitAnalyzer";
 
 export default function History() {
   const [analyses, setAnalyses] =
@@ -44,100 +53,52 @@ export default function History() {
     }
   }
 
-  function exportCSV() {
-    const rows = [
-      [
-        "Titulo",
-        "Marca",
-        "ROI",
-        "Beneficio",
-        "Score",
-      ],
-
-      ...filteredAnalyses.map(
-        (item) => [
-          item.title || "",
-          item.brand || "",
-          item.roi || "",
-          item.profit || "",
-          item.score || "",
-        ]
-      ),
-    ];
-
-    const csv = rows
-      .map((row) => row.join(";"))
-      .join("\n");
-
-    const blob = new Blob([csv], {
-      type: "text/csv",
-    });
-
-    const url =
-      URL.createObjectURL(blob);
-
-    const a =
-      document.createElement("a");
-
-    a.href = url;
-
-    a.download =
-      "coches-saas-history.csv";
-
-    a.click();
-  }
+  const market =
+    analyzeMarketIntelligence(
+      analyses
+    );
 
   const filteredAnalyses =
     useMemo(() => {
       let result = [...analyses];
 
-      result = result.filter(
-        (item) => {
-          if (filter === "TODOS")
-            return true;
-
-          if (
-            filter === "CHOLLO IA"
-          )
-            return (
-              item.score >= 85
-            );
-
-          if (
-            filter === "ANALIZAR"
-          )
-            return (
-              item.score >= 60 &&
-              item.score < 85
-            );
-
-          if (
-            filter === "DESCARTAR"
-          )
-            return (
-              item.score < 60
-            );
-
-          return true;
-        }
-      );
-
       if (search.trim()) {
         result = result.filter(
           (item) => {
             const text = `
-            ${item.title || ""}
-            ${item.brand || ""}
-            ${item.model || ""}
-            ${item.drivetrain || ""}
-            ${item.fuel_type || ""}
-            ${item.performance_package || ""}
-          `.toLowerCase();
+              ${item.title || ""}
+              ${item.brand || ""}
+              ${item.model || ""}
+              ${item.drivetrain || ""}
+              ${item.fuel_type || ""}
+            `.toLowerCase();
 
             return text.includes(
               search.toLowerCase()
             );
           }
+        );
+      }
+
+      if (filter === "CHOLLO IA") {
+        result = result.filter(
+          (item) =>
+            item.score >= 85
+        );
+      }
+
+      if (filter === "ANALIZAR") {
+        result = result.filter(
+          (item) =>
+            item.score >= 60 &&
+            item.score < 85
+        );
+      }
+
+      if (filter === "DESCARTAR") {
+        result = result.filter(
+          (item) =>
+            item.score < 60
         );
       }
 
@@ -180,36 +141,6 @@ export default function History() {
     return "🔴 DESCARTAR";
   }
 
-  function getCardStyle(score) {
-    if (score >= 85) {
-      return {
-        border:
-          "1px solid rgba(34,197,94,0.3)",
-
-        boxShadow:
-          "0 0 50px rgba(34,197,94,0.15)",
-      };
-    }
-
-    if (score >= 60) {
-      return {
-        border:
-          "1px solid rgba(250,204,21,0.3)",
-
-        boxShadow:
-          "0 0 50px rgba(250,204,21,0.12)",
-      };
-    }
-
-    return {
-      border:
-        "1px solid rgba(239,68,68,0.3)",
-
-      boxShadow:
-        "0 0 50px rgba(239,68,68,0.12)",
-    };
-  }
-
   function Badge({
     children,
   }) {
@@ -240,34 +171,107 @@ export default function History() {
 
   return (
     <div style={pageStyle}>
-      <div
-        style={backgroundGlowOne}
-      />
-
-      <div
-        style={backgroundGlowTwo}
-      />
-
-      <div
-        style={containerStyle}
-      >
+      <div style={containerStyle}>
         <div style={headerStyle}>
           <p style={badgeStyle}>
-            Coches SaaS · Premium
+            Coches SaaS · Market
             Intelligence
           </p>
 
           <h1 style={titleStyle}>
-            Semantic History
-            Dashboard
+            AI Market Dashboard
           </h1>
 
           <p style={subtitleStyle}>
-            Historial IA enriquecido
-            con semantic
-            intelligence y ranking
-            premium.
+            Inteligencia global de
+            mercado basada en tu
+            dataset IA.
           </p>
+        </div>
+
+        <div
+          style={marketGridStyle}
+        >
+          <div
+            style={marketCardStyle}
+          >
+            <p style={marketLabel}>
+              ROI Medio
+            </p>
+
+            <h2 style={marketValue}>
+              {market.averageROI || 0}
+              %
+            </h2>
+          </div>
+
+          <div
+            style={marketCardStyle}
+          >
+            <p style={marketLabel}>
+              Score Medio
+            </p>
+
+            <h2 style={marketValue}>
+              {
+                market.averageScore
+              }
+            </h2>
+          </div>
+
+          <div
+            style={marketCardStyle}
+          >
+            <p style={marketLabel}>
+              Marca Dominante
+            </p>
+
+            <h2 style={marketValue}>
+              {market.bestBrand ||
+                "-"}
+            </h2>
+          </div>
+
+          <div
+            style={marketCardStyle}
+          >
+            <p style={marketLabel}>
+              Configuración Top
+            </p>
+
+            <h2
+              style={
+                marketConfigStyle
+              }
+            >
+              {market.bestConfiguration ||
+                "-"}
+            </h2>
+          </div>
+        </div>
+
+        <div
+          style={insightsContainerStyle}
+        >
+          <p style={sectionTitle}>
+            🧠 Market Insights
+          </p>
+
+          {market.marketInsights?.map(
+            (
+              insight,
+              index
+            ) => (
+              <div
+                key={index}
+                style={
+                  insightCardStyle
+                }
+              >
+                {insight}
+              </div>
+            )
+          )}
         </div>
 
         <div
@@ -276,7 +280,7 @@ export default function History() {
           }
         >
           <input
-            placeholder="Buscar BMW, xDrive, PHEV..."
+            placeholder="Buscar BMW, xDrive..."
             value={search}
             onChange={(e) =>
               setSearch(
@@ -351,15 +355,6 @@ export default function History() {
           >
             🔴 Descartar
           </button>
-
-          <button
-            onClick={exportCSV}
-            style={
-              exportButtonStyle
-            }
-          >
-            📤 Exportar CSV
-          </button>
         </div>
 
         <div style={gridStyle}>
@@ -367,13 +362,7 @@ export default function History() {
             (item) => (
               <div
                 key={item.id}
-                style={{
-                  ...cardStyle,
-
-                  ...getCardStyle(
-                    item.score
-                  ),
-                }}
+                style={cardStyle}
               >
                 <div
                   style={
@@ -503,17 +492,6 @@ export default function History() {
                   </div>
                 </div>
 
-                {item.url && (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={linkStyle}
-                  >
-                    Ver anuncio →
-                  </a>
-                )}
-
                 <button
                   onClick={() =>
                     deleteAnalysis(
@@ -543,37 +521,11 @@ const pageStyle = {
   padding: "48px",
   fontFamily:
     "Arial, sans-serif",
-  position: "relative",
-  overflow: "hidden",
-};
-
-const backgroundGlowOne = {
-  position: "absolute",
-  width: "400px",
-  height: "400px",
-  background: "#2563eb",
-  filter: "blur(140px)",
-  opacity: 0.18,
-  top: "-100px",
-  left: "-100px",
-};
-
-const backgroundGlowTwo = {
-  position: "absolute",
-  width: "300px",
-  height: "300px",
-  background: "#16a34a",
-  filter: "blur(120px)",
-  opacity: 0.12,
-  bottom: "-80px",
-  right: "-60px",
 };
 
 const containerStyle = {
   maxWidth: "1300px",
   margin: "0 auto",
-  position: "relative",
-  zIndex: 10,
 };
 
 const headerStyle = {
@@ -601,16 +553,63 @@ const subtitleStyle = {
   marginTop: "14px",
 };
 
+const marketGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(220px,1fr))",
+  gap: "18px",
+  marginBottom: "34px",
+};
+
+const marketCardStyle = {
+  background:
+    "rgba(15,23,42,0.82)",
+  borderRadius: "22px",
+  padding: "22px",
+  border:
+    "1px solid rgba(148,163,184,0.12)",
+};
+
+const marketLabel = {
+  color: "#94a3b8",
+};
+
+const marketValue = {
+  fontSize: "32px",
+  fontWeight: "900",
+};
+
+const marketConfigStyle = {
+  fontSize: "18px",
+  lineHeight: 1.4,
+};
+
+const insightsContainerStyle = {
+  marginBottom: "34px",
+};
+
+const sectionTitle = {
+  fontSize: "16px",
+  fontWeight: "900",
+  marginBottom: "14px",
+};
+
+const insightCardStyle = {
+  background:
+    "rgba(255,255,255,0.05)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+};
+
 const controlsContainerStyle = {
   display: "flex",
   gap: "16px",
   marginBottom: "24px",
-  flexWrap: "wrap",
 };
 
 const searchInputStyle = {
   flex: 1,
-  minWidth: "260px",
   padding: "16px",
   borderRadius: "16px",
   border:
@@ -623,19 +622,16 @@ const searchInputStyle = {
 const selectStyle = {
   padding: "16px",
   borderRadius: "16px",
-  border:
-    "1px solid rgba(148,163,184,0.18)",
   background:
     "rgba(15,23,42,0.75)",
   color: "white",
-  fontWeight: "700",
 };
 
 const filterBarStyle = {
   display: "flex",
-  flexWrap: "wrap",
   gap: "14px",
   marginBottom: "34px",
+  flexWrap: "wrap",
 };
 
 const filterButtonStyle = {
@@ -646,17 +642,6 @@ const filterButtonStyle = {
   background:
     "rgba(15,23,42,0.75)",
   color: "white",
-  fontWeight: "700",
-};
-
-const exportButtonStyle = {
-  padding: "14px 18px",
-  borderRadius: "14px",
-  border: "none",
-  background:
-    "linear-gradient(135deg,#2563eb,#16a34a)",
-  color: "white",
-  fontWeight: "900",
 };
 
 const gridStyle = {
@@ -676,7 +661,6 @@ const cardStyle = {
 const topRowStyle = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
   marginBottom: "24px",
 };
 
@@ -728,23 +712,11 @@ const infoCardStyle = {
 
 const labelStyle = {
   color: "#94a3b8",
-  fontSize: "14px",
-  margin: 0,
 };
 
 const valueStyle = {
   fontSize: "24px",
   fontWeight: "900",
-  marginTop: "8px",
-  marginBottom: 0,
-};
-
-const linkStyle = {
-  display: "inline-block",
-  marginTop: "22px",
-  color: "#93c5fd",
-  textDecoration: "none",
-  fontWeight: "700",
 };
 
 const deleteButtonStyle = {
