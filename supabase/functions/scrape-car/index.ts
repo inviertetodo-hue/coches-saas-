@@ -1,5 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -7,12 +5,50 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-serve(async (req) => {
+function cleanText(value: string) {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractTitle(html: string) {
+  const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
+  if (!titleMatch) return "";
+
+  return cleanText(titleMatch[1])
+    .replace(" | mobile.de", "")
+    .replace(" | AutoScout24", "")
+    .trim();
+}
+
+function extractPrice(html: string) {
+  const priceMatch = html.match(/(\d{1,3}(?:[.\s]\d{3})*)\s?€/);
+
+  if (!priceMatch) return "";
+
+  return priceMatch[1].replace(/[.\s]/g, "");
+}
+
+function extractKm(html: string) {
+  const kmMatch = html.match(/(\d{1,3}(?:[.\s]\d{3})*)\s?km/i);
+
+  if (!kmMatch) return "";
+
+  return kmMatch[1].replace(/[.\s]/g, "");
+}
+
+function extractYear(html: string) {
+  const yearMatch = html.match(/\b(20[0-2][0-9]|19[8-9][0-9])\b/);
+
+  if (!yearMatch) return "";
+
+  return yearMatch[1];
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -22,8 +58,9 @@ serve(async (req) => {
     if (!url) {
       return new Response(
         JSON.stringify({
-          ok: false,
-          error: "URL NO ENVIADA",
+          success: false,
+          error: "URL_REQUIRED",
+          message: "Falta la URL del anuncio",
         }),
         {
           status: 400,
@@ -38,22 +75,36 @@ serve(async (req) => {
     const response = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
         Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "de-DE,de;q=0.9,es-ES;q=0.8,en;q=0.7",
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8,de;q=0.7",
       },
     });
 
     const html = await response.text();
 
+    const title = extractTitle(html);
+    const price = extractPrice(html);
+    const km = extractKm(html);
+    const year = extractYear(html);
+
     return new Response(
       JSON.stringify({
-        ok: true,
-        status: response.status,
-        url,
-        htmlLength: html.length,
-        preview: html.substring(0, 1500),
+        success: true,
+        source: "scrape-car-light-v1",
+        data: {
+          title,
+          price,
+          km,
+          year,
+          country: "Alemania",
+          url,
+        },
+        warning:
+          !price || !km || !year
+            ? "Extracción parcial. Revisa los campos antes de analizar."
+            : null,
       }),
       {
         status: 200,
@@ -66,8 +117,9 @@ serve(async (req) => {
   } catch (error) {
     return new Response(
       JSON.stringify({
-        ok: false,
-        error: String(error?.message || error),
+        success: false,
+        error: "SCRAPE_ERROR",
+        message: String(error),
       }),
       {
         status: 500,
