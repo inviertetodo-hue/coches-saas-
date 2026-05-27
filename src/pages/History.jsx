@@ -5,6 +5,7 @@ import { analyzeMarketTrends } from "../services/marketTrends";
 import { analyzeTemporalIntelligence } from "../services/temporalIntelligence";
 import { analyzeOpportunityAlerts } from "../services/opportunityAlerts";
 import { analyzePortfolioStrategy } from "../services/portfolioStrategy";
+import { analyzeRiskManagement } from "../services/riskManagement";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
@@ -43,6 +44,7 @@ export default function History() {
   const temporal = analyzeTemporalIntelligence(analyses);
   const opportunityAlerts = analyzeOpportunityAlerts(analyses);
   const portfolio = analyzePortfolioStrategy(analyses);
+  const risk = analyzeRiskManagement(analyses);
 
   const filteredAnalyses = useMemo(() => {
     let result = [...analyses];
@@ -100,34 +102,34 @@ export default function History() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · Portfolio Strategy</p>
+          <p style={badgeStyle}>Coches SaaS · Risk Management</p>
 
           <h1 style={titleStyle}>AI Opportunity Dashboard</h1>
 
           <p style={subtitleStyle}>
-            Estrategia de cartera, alertas IA, tendencias e inteligencia global del dataset.
+            Estrategia, riesgo, alertas IA, tendencias e inteligencia global del dataset.
           </p>
         </div>
 
         <div style={marketGridStyle}>
           <MetricCard label="ROI Medio" value={`${market.averageROI || 0}%`} />
           <MetricCard label="Score Medio" value={market.averageScore || 0} />
-          <MetricCard label="Trend Score" value={`${trends.trendScore || 0}/100`} />
-          <MetricCard label="Alert Score" value={`${opportunityAlerts.alertScore || 0}/100`} />
+          <MetricCard label="Risk Score" value={`${risk.riskScore || 0}/100`} />
+          <MetricCard label="Risk Level" value={risk.riskLevel || "-"} />
         </div>
 
         <div style={marketGridStyle}>
           <MetricCard label="Strategy Score" value={`${portfolio.strategyScore || 0}/100`} />
           <MetricCard label="Estrategia" value={portfolio.strategy || "-"} />
-          <MetricCard label="Freshness Score" value={`${temporal.freshnessScore || 0}/100`} />
-          <MetricCard label="Total Análisis" value={trends.total || 0} />
+          <MetricCard label="Alert Score" value={`${opportunityAlerts.alertScore || 0}/100`} />
+          <MetricCard label="Trend Score" value={`${trends.trendScore || 0}/100`} />
         </div>
 
         <div style={marketGridStyle}>
+          <MetricCard label="Freshness Score" value={`${temporal.freshnessScore || 0}/100`} />
+          <MetricCard label="Total Análisis" value={trends.total || 0} />
           <MetricCard label="Marca Dominante" value={market.bestBrand || "-"} />
-          <MetricCard label="Fuel Top" value={market.bestFuelType || "-"} />
-          <MetricCard label="Drivetrain Top" value={market.bestDrivetrain || "-"} />
-          <MetricCard label="Performance Top" value={market.bestPerformance || "-"} />
+          <MetricCard label="Configuración Top" value={market.bestConfiguration || "-"} />
         </div>
 
         <div style={segmentsGridStyle}>
@@ -155,6 +157,20 @@ export default function History() {
             ))}
           </div>
         </div>
+
+        <AlertSection
+          title="🛡️ Risk Alerts"
+          items={risk.riskAlerts}
+          empty="Sin alertas de riesgo importantes."
+          styleType="risk"
+        />
+
+        <InsightSection
+          title="🧯 Risk Insights"
+          items={risk.riskInsights}
+          empty="Sin insights de riesgo todavía."
+          cardStyle={riskCardStyle}
+        />
 
         <AlertSection
           title="🚨 Critical Alerts"
@@ -338,6 +354,7 @@ function AlertSection({ title, items, empty, styleType }) {
     critical: criticalAlertCardStyle,
     opportunity: opportunityAlertCardStyle,
     warning: warningAlertCardStyle,
+    risk: riskAlertCardStyle,
   };
 
   return (
@@ -433,6 +450,15 @@ const insightCardStyle = {
   marginBottom: "12px",
 };
 
+const riskCardStyle = {
+  background: "rgba(239,68,68,0.10)",
+  border: "1px solid rgba(239,68,68,0.22)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "800",
+};
+
 const portfolioCardStyle = {
   background: "rgba(168,85,247,0.12)",
   border: "1px solid rgba(168,85,247,0.25)",
@@ -483,6 +509,15 @@ const warningAlertCardStyle = {
   borderRadius: "16px",
   marginBottom: "12px",
   fontWeight: "800",
+};
+
+const riskAlertCardStyle = {
+  background: "rgba(239,68,68,0.16)",
+  border: "1px solid rgba(239,68,68,0.32)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "900",
 };
 
 const segmentsGridStyle = {
