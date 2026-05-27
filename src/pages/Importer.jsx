@@ -62,14 +62,53 @@ export default function Importer() {
     setSaving(false);
   }
 
+  function getRecommendationStyles(recommendation) {
+    if (recommendation?.includes("CHOLLO")) {
+      return {
+        background: "rgba(34, 197, 94, 0.18)",
+        color: "#86efac",
+        border: "1px solid rgba(34, 197, 94, 0.4)",
+        glow: "0 0 40px rgba(34,197,94,0.25)",
+      };
+    }
+
+    if (recommendation?.includes("ANALIZAR")) {
+      return {
+        background: "rgba(250, 204, 21, 0.15)",
+        color: "#fde68a",
+        border: "1px solid rgba(250, 204, 21, 0.35)",
+        glow: "0 0 40px rgba(250,204,21,0.18)",
+      };
+    }
+
+    return {
+      background: "rgba(239, 68, 68, 0.15)",
+      color: "#fca5a5",
+      border: "1px solid rgba(239, 68, 68, 0.35)",
+      glow: "0 0 40px rgba(239,68,68,0.18)",
+    };
+  }
+
+  const recommendationStyles = analysis
+    ? getRecommendationStyles(analysis.recommendation)
+    : null;
+
   return (
     <div style={pageStyle}>
+      <div style={backgroundGlowOne}></div>
+      <div style={backgroundGlowTwo}></div>
+
       <div style={containerStyle}>
         <div style={headerStyle}>
           <p style={badgeStyle}>Coches SaaS · Importador Inteligente</p>
-          <h1 style={titleStyle}>Analiza oportunidades de importación con IA</h1>
+
+          <h1 style={titleStyle}>
+            Analiza oportunidades de importación con IA
+          </h1>
+
           <p style={subtitleStyle}>
-            Introduce los datos del vehículo y calcula score, ROI y beneficio estimado.
+            Score inteligente, ROI, beneficio estimado y oportunidades reales
+            de importación.
           </p>
         </div>
 
@@ -124,35 +163,62 @@ export default function Importer() {
             </button>
           </div>
 
-          <div style={cardStyle}>
+          <div
+            style={{
+              ...cardStyle,
+              boxShadow: recommendationStyles
+                ? recommendationStyles.glow
+                : cardStyle.boxShadow,
+            }}
+          >
             <h2 style={sectionTitleStyle}>Resultado IA</h2>
 
             {!analysis && (
               <div style={emptyStateStyle}>
-                <p style={emptyIconStyle}>🚗</p>
-                <p>Aún no hay análisis.</p>
+                <p style={emptyIconStyle}>🚘</p>
+
+                <p style={emptyTitleStyle}>
+                  Esperando análisis inteligente
+                </p>
+
                 <p style={mutedTextStyle}>
-                  Rellena el formulario y pulsa “Analizar vehículo”.
+                  Introduce un vehículo y deja que la IA calcule el potencial
+                  de importación.
                 </p>
               </div>
             )}
 
             {analysis && (
               <div>
-                <div style={recommendationStyle}>
+                <div
+                  style={{
+                    ...recommendationStyle,
+                    background: recommendationStyles.background,
+                    color: recommendationStyles.color,
+                    border: recommendationStyles.border,
+                  }}
+                >
                   {analysis.recommendation}
                 </div>
 
-                <h2 style={carTitleStyle}>{car.title || "Vehículo analizado"}</h2>
+                <h2 style={carTitleStyle}>
+                  {car.title || "Vehículo analizado"}
+                </h2>
+
+                <div style={scoreContainerStyle}>
+                  <div style={scoreCircleStyle}>
+                    <span style={scoreNumberStyle}>
+                      {analysis.score}
+                    </span>
+
+                    <span style={scoreTextStyle}>SCORE IA</span>
+                  </div>
+                </div>
 
                 <div style={kpiGridStyle}>
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>Score IA</p>
-                    <p style={kpiValueStyle}>{analysis.score}/100</p>
-                  </div>
-
-                  <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>ROI estimado</p>
+
                     <p style={kpiValueStyle}>
                       {Math.round(
                         (analysis.estimatedProfit / Number(car.price)) * 100
@@ -163,6 +229,7 @@ export default function Importer() {
 
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>Beneficio</p>
+
                     <p style={kpiValueStyle}>
                       {Math.round(analysis.estimatedProfit)} €
                     </p>
@@ -170,9 +237,16 @@ export default function Importer() {
 
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>Venta España</p>
+
                     <p style={kpiValueStyle}>
                       {Math.round(analysis.estimatedSalePrice)} €
                     </p>
+                  </div>
+
+                  <div style={kpiCardStyle}>
+                    <p style={kpiLabelStyle}>Mercado</p>
+
+                    <p style={kpiValueStyle}>ES</p>
                   </div>
                 </div>
 
@@ -197,19 +271,45 @@ export default function Importer() {
 const pageStyle = {
   minHeight: "100vh",
   background:
-    "radial-gradient(circle at top left, #1e3a8a 0, #020617 35%, #020617 100%)",
+    "radial-gradient(circle at top left, #1e3a8a 0, #020617 40%, #020617 100%)",
   color: "white",
   padding: "48px",
   fontFamily: "Arial, sans-serif",
+  position: "relative",
+  overflow: "hidden",
+};
+
+const backgroundGlowOne = {
+  position: "absolute",
+  width: "400px",
+  height: "400px",
+  background: "#2563eb",
+  filter: "blur(140px)",
+  opacity: 0.18,
+  top: "-100px",
+  left: "-100px",
+};
+
+const backgroundGlowTwo = {
+  position: "absolute",
+  width: "300px",
+  height: "300px",
+  background: "#16a34a",
+  filter: "blur(120px)",
+  opacity: 0.12,
+  bottom: "-80px",
+  right: "-60px",
 };
 
 const containerStyle = {
-  maxWidth: "1200px",
+  maxWidth: "1250px",
   margin: "0 auto",
+  position: "relative",
+  zIndex: 10,
 };
 
 const headerStyle = {
-  marginBottom: "36px",
+  marginBottom: "42px",
 };
 
 const badgeStyle = {
@@ -224,16 +324,16 @@ const badgeStyle = {
 };
 
 const titleStyle = {
-  fontSize: "44px",
-  lineHeight: "1.1",
+  fontSize: "52px",
+  lineHeight: "1.05",
   margin: 0,
-  maxWidth: "760px",
+  maxWidth: "800px",
 };
 
 const subtitleStyle = {
   color: "#cbd5e1",
-  fontSize: "18px",
-  maxWidth: "680px",
+  fontSize: "19px",
+  maxWidth: "700px",
   marginTop: "16px",
 };
 
@@ -249,93 +349,135 @@ const cardStyle = {
   border: "1px solid rgba(148, 163, 184, 0.18)",
   boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
   padding: "30px",
-  borderRadius: "24px",
-  backdropFilter: "blur(14px)",
+  borderRadius: "28px",
+  backdropFilter: "blur(18px)",
+  transition: "0.3s",
 };
 
 const sectionTitleStyle = {
-  fontSize: "22px",
+  fontSize: "24px",
   marginTop: 0,
-  marginBottom: "20px",
+  marginBottom: "22px",
 };
 
 const inputStyle = {
   display: "block",
   width: "100%",
   boxSizing: "border-box",
-  padding: "15px 16px",
+  padding: "16px",
   marginTop: "14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(148, 163, 184, 0.25)",
-  background: "rgba(15, 23, 42, 0.9)",
+  borderRadius: "16px",
+  border: "1px solid rgba(148, 163, 184, 0.22)",
+  background: "rgba(2, 6, 23, 0.85)",
   color: "white",
   fontSize: "16px",
   outline: "none",
 };
 
 const buttonStyle = {
-  marginTop: "22px",
+  marginTop: "24px",
   width: "100%",
-  padding: "15px 22px",
-  borderRadius: "14px",
+  padding: "16px 22px",
+  borderRadius: "16px",
   border: "none",
   cursor: "pointer",
   fontSize: "16px",
-  fontWeight: "800",
+  fontWeight: "900",
   color: "white",
   background: "linear-gradient(135deg, #2563eb, #16a34a)",
   boxShadow: "0 18px 40px rgba(37, 99, 235, 0.35)",
 };
 
 const emptyStateStyle = {
-  minHeight: "360px",
-  border: "1px dashed rgba(148, 163, 184, 0.3)",
-  borderRadius: "20px",
+  minHeight: "480px",
+  border: "1px dashed rgba(148, 163, 184, 0.22)",
+  borderRadius: "22px",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
   color: "#cbd5e1",
   textAlign: "center",
+  padding: "30px",
 };
 
 const emptyIconStyle = {
-  fontSize: "48px",
+  fontSize: "56px",
   margin: 0,
+};
+
+const emptyTitleStyle = {
+  fontSize: "24px",
+  fontWeight: "800",
+  marginTop: "14px",
 };
 
 const mutedTextStyle = {
   color: "#94a3b8",
-  marginTop: "4px",
+  marginTop: "6px",
+  maxWidth: "380px",
+  lineHeight: "1.6",
 };
 
 const recommendationStyle = {
   display: "inline-block",
-  padding: "10px 14px",
+  padding: "12px 16px",
   borderRadius: "999px",
-  background: "rgba(34, 197, 94, 0.16)",
-  color: "#86efac",
   fontWeight: "900",
-  marginBottom: "18px",
+  marginBottom: "22px",
 };
 
 const carTitleStyle = {
-  fontSize: "26px",
+  fontSize: "30px",
   marginTop: 0,
-  marginBottom: "22px",
+  marginBottom: "28px",
+};
+
+const scoreContainerStyle = {
+  display: "flex",
+  justifyContent: "center",
+  marginBottom: "30px",
+};
+
+const scoreCircleStyle = {
+  width: "180px",
+  height: "180px",
+  borderRadius: "999px",
+  background:
+    "linear-gradient(135deg, rgba(37,99,235,0.35), rgba(34,197,94,0.25))",
+  border: "1px solid rgba(255,255,255,0.08)",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 20px 60px rgba(37,99,235,0.25)",
+};
+
+const scoreNumberStyle = {
+  fontSize: "56px",
+  fontWeight: "900",
+  lineHeight: 1,
+};
+
+const scoreTextStyle = {
+  marginTop: "10px",
+  color: "#cbd5e1",
+  fontSize: "13px",
+  fontWeight: "700",
+  letterSpacing: "2px",
 };
 
 const kpiGridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "14px",
+  gap: "16px",
 };
 
 const kpiCardStyle = {
-  background: "rgba(2, 6, 23, 0.7)",
-  border: "1px solid rgba(148, 163, 184, 0.14)",
-  borderRadius: "18px",
-  padding: "18px",
+  background: "rgba(2, 6, 23, 0.75)",
+  border: "1px solid rgba(148, 163, 184, 0.12)",
+  borderRadius: "20px",
+  padding: "20px",
 };
 
 const kpiLabelStyle = {
@@ -345,13 +487,13 @@ const kpiLabelStyle = {
 };
 
 const kpiValueStyle = {
-  fontSize: "26px",
+  fontSize: "30px",
   fontWeight: "900",
-  margin: "8px 0 0",
+  margin: "10px 0 0",
 };
 
 const messageStyle = {
-  marginTop: "18px",
+  marginTop: "20px",
   fontWeight: "900",
   color: "#93c5fd",
 };
