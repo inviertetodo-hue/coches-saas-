@@ -17,12 +17,16 @@ export default function Importer() {
 
   const [saving, setSaving] = useState(false);
 
+  const [saved, setSaved] = useState(false);
+
   const [message, setMessage] = useState("");
 
   const [loadingUrl, setLoadingUrl] =
     useState(false);
 
   function updateField(field, value) {
+    setSaved(false);
+
     setCar({
       ...car,
       [field]: value,
@@ -34,6 +38,8 @@ export default function Importer() {
       setMessage("PEGA UNA URL");
       return;
     }
+
+    setSaved(false);
 
     setLoadingUrl(true);
 
@@ -156,6 +162,8 @@ export default function Importer() {
   }
 
   function analyzeManualCar() {
+    setSaved(false);
+
     if (
       !car.title ||
       !car.price ||
@@ -204,7 +212,7 @@ export default function Importer() {
   }
 
   async function saveAnalysis() {
-    if (!analysis) return;
+    if (!analysis || saved) return;
 
     setSaving(true);
 
@@ -233,6 +241,8 @@ export default function Importer() {
 
       setMessage("ERROR AL GUARDAR");
     } else {
+      setSaved(true);
+
       setMessage(
         "ANÁLISIS GUARDADO EN HISTORIAL"
       );
@@ -241,474 +251,212 @@ export default function Importer() {
     setSaving(false);
   }
 
-  function getRecommendationStyles(
-    recommendation
-  ) {
-    if (
-      recommendation?.includes("CHOLLO")
-    ) {
-      return {
-        background:
-          "rgba(34, 197, 94, 0.18)",
-
-        color: "#86efac",
-
-        border:
-          "1px solid rgba(34, 197, 94, 0.4)",
-
-        glow:
-          "0 0 40px rgba(34,197,94,0.25)",
-      };
-    }
-
-    if (
-      recommendation?.includes("ANALIZAR")
-    ) {
-      return {
-        background:
-          "rgba(250, 204, 21, 0.15)",
-
-        color: "#fde68a",
-
-        border:
-          "1px solid rgba(250, 204, 21, 0.35)",
-
-        glow:
-          "0 0 40px rgba(250,204,21,0.18)",
-      };
-    }
-
-    return {
-      background:
-        "rgba(239, 68, 68, 0.15)",
-
-      color: "#fca5a5",
-
-      border:
-        "1px solid rgba(239, 68, 68, 0.35)",
-
-      glow:
-        "0 0 40px rgba(239,68,68,0.18)",
-    };
-  }
-
-  function getAlertStyle(type) {
-    if (type === "success") {
-      return {
-        background:
-          "rgba(34,197,94,0.12)",
-
-        border:
-          "1px solid rgba(34,197,94,0.25)",
-      };
-    }
-
-    if (type === "warning") {
-      return {
-        background:
-          "rgba(250,204,21,0.12)",
-
-        border:
-          "1px solid rgba(250,204,21,0.25)",
-      };
-    }
-
-    return {
-      background:
-        "rgba(239,68,68,0.12)",
-
-      border:
-        "1px solid rgba(239,68,68,0.25)",
-    };
-  }
-
-  const recommendationStyles =
-    analysis
-      ? getRecommendationStyles(
-          analysis.recommendation
-        )
-      : null;
-
   return (
-    <div style={pageStyle}>
-      <div style={backgroundGlowOne}></div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(to bottom, #020617, #0f172a)",
+        color: "white",
+        padding: "40px",
+        fontFamily: "Arial",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "42px",
+            marginBottom: "10px",
+          }}
+        >
+          Analiza oportunidades con IA
+        </h1>
 
-      <div style={backgroundGlowTwo}></div>
+        <p
+          style={{
+            color: "#94a3b8",
+            marginBottom: "30px",
+          }}
+        >
+          Score inteligente, ROI,
+          beneficio estimado y alertas
+          IA automáticas.
+        </p>
 
-      <div style={containerStyle}>
-        <div style={headerStyle}>
-          <p style={badgeStyle}>
-            Coches SaaS · Importador Inteligente
-          </p>
+        <div
+          style={{
+            background:
+              "rgba(15,23,42,0.85)",
+            borderRadius: "24px",
+            padding: "30px",
+          }}
+        >
+          <input
+            placeholder="URL"
+            value={car.url}
+            onChange={(e) =>
+              updateField(
+                "url",
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
-          <h1 style={titleStyle}>
-            Analiza oportunidades con IA
-          </h1>
-
-          <p style={subtitleStyle}>
-            Score inteligente, ROI,
-            beneficio estimado y alertas
-            IA automáticas.
-          </p>
-        </div>
-
-        <div style={gridStyle}>
-          <div style={cardStyle}>
-            <h2 style={sectionTitleStyle}>
-              Datos del vehículo
-            </h2>
-
-            <input
-              placeholder="URL del anuncio"
-              value={car.url}
-              onChange={(e) =>
-                updateField(
-                  "url",
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            />
-
-            <button
-              onClick={parseUrl}
-              style={secondaryButtonStyle}
-            >
-              {loadingUrl
-                ? "Analizando URL..."
-                : "Analizar URL"}
-            </button>
-
-            <input
-              placeholder="BMW 320d Touring"
-              value={car.title}
-              onChange={(e) =>
-                updateField(
-                  "title",
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            />
-
-            <input
-              placeholder="Precio"
-              value={car.price}
-              onChange={(e) =>
-                updateField(
-                  "price",
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            />
-
-            <input
-              placeholder="Kilómetros"
-              value={car.km}
-              onChange={(e) =>
-                updateField(
-                  "km",
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            />
-
-            <input
-              placeholder="Año"
-              value={car.year}
-              onChange={(e) =>
-                updateField(
-                  "year",
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            />
-
-            <button
-              onClick={analyzeManualCar}
-              style={buttonStyle}
-            >
-              Analizar vehículo
-            </button>
-
-            {message && (
-              <p style={messageStyle}>
-                {message}
-              </p>
-            )}
-          </div>
-
-          <div
-            style={{
-              ...cardStyle,
-
-              boxShadow:
-                recommendationStyles
-                  ? recommendationStyles.glow
-                  : cardStyle.boxShadow,
-            }}
+          <button
+            onClick={parseUrl}
+            style={secondaryButtonStyle}
           >
-            {!analysis && (
-              <div style={emptyStateStyle}>
-                <p style={emptyIconStyle}>
-                  🚘
-                </p>
+            {loadingUrl
+              ? "Analizando..."
+              : "Analizar URL"}
+          </button>
 
-                <p style={emptyTitleStyle}>
-                  Esperando análisis IA
-                </p>
+          <input
+            placeholder="Título"
+            value={car.title}
+            onChange={(e) =>
+              updateField(
+                "title",
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
-                <p style={mutedTextStyle}>
-                  Introduce un coche para
-                  generar insights y alertas.
-                </p>
-              </div>
-            )}
+          <input
+            placeholder="Precio"
+            value={car.price}
+            onChange={(e) =>
+              updateField(
+                "price",
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
-            {analysis && (
-              <div>
-                <div
-                  style={{
-                    ...recommendationStyle,
+          <input
+            placeholder="Kilómetros"
+            value={car.km}
+            onChange={(e) =>
+              updateField(
+                "km",
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
-                    background:
-                      recommendationStyles.background,
+          <input
+            placeholder="Año"
+            value={car.year}
+            onChange={(e) =>
+              updateField(
+                "year",
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
-                    color:
-                      recommendationStyles.color,
+          <button
+            onClick={analyzeManualCar}
+            style={buttonStyle}
+          >
+            Analizar vehículo
+          </button>
 
-                    border:
-                      recommendationStyles.border,
-                  }}
-                >
-                  {analysis.recommendation}
-                </div>
+          {analysis && (
+            <div
+              style={{
+                marginTop: "30px",
+              }}
+            >
+              <h2>
+                {analysis.recommendation}
+              </h2>
 
-                <h2 style={carTitleStyle}>
-                  {car.title}
-                </h2>
+              <p>
+                Score IA:{" "}
+                {analysis.score}/100
+              </p>
 
-                <div
-                  style={scoreContainerStyle}
-                >
-                  <div
-                    style={scoreCircleStyle}
-                  >
-                    <span
-                      style={
-                        scoreNumberStyle
-                      }
-                    >
-                      {analysis.score}
-                    </span>
+              <p>
+                ROI: {analysis.roi}%
+              </p>
 
-                    <span
-                      style={scoreTextStyle}
-                    >
-                      SCORE IA
-                    </span>
-                  </div>
-                </div>
+              <p>
+                Beneficio:{" "}
+                {Math.round(
+                  analysis.estimatedProfit
+                )}{" "}
+                €
+              </p>
 
-                <div style={kpiGridStyle}>
-                  <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>
-                      ROI
-                    </p>
+              <button
+                onClick={saveAnalysis}
+                disabled={saving || saved}
+                style={{
+                  ...buttonStyle,
 
-                    <p style={kpiValueStyle}>
-                      {analysis.roi}%
-                    </p>
-                  </div>
+                  opacity:
+                    saving || saved
+                      ? 0.6
+                      : 1,
 
-                  <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>
-                      Beneficio
-                    </p>
+                  cursor:
+                    saving || saved
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                {saving
+                  ? "Guardando..."
+                  : saved
+                  ? "✅ Guardado"
+                  : "Guardar análisis"}
+              </button>
+            </div>
+          )}
 
-                    <p style={kpiValueStyle}>
-                      {Math.round(
-                        analysis.estimatedProfit
-                      )}{" "}
-                      €
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  style={
-                    insightsContainerStyle
-                  }
-                >
-                  <p style={insightsTitleStyle}>
-                    IA Explainability
-                  </p>
-
-                  {analysis.insights?.map(
-                    (
-                      insight,
-                      index
-                    ) => (
-                      <div
-                        key={index}
-                        style={
-                          insightCardStyle
-                        }
-                      >
-                        {insight.text}
-                      </div>
-                    )
-                  )}
-                </div>
-
-                <div
-                  style={
-                    alertsContainerStyle
-                  }
-                >
-                  <p style={alertsTitleStyle}>
-                    🚨 Smart Alerts Engine
-                  </p>
-
-                  {analysis.alerts?.map(
-                    (alert, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          ...alertCardStyle,
-
-                          ...getAlertStyle(
-                            alert.type
-                          ),
-                        }}
-                      >
-                        {alert.text}
-                      </div>
-                    )
-                  )}
-                </div>
-
-                <button
-                  onClick={saveAnalysis}
-                  disabled={saving}
-                  style={buttonStyle}
-                >
-                  {saving
-                    ? "Guardando..."
-                    : "Guardar análisis"}
-                </button>
-              </div>
-            )}
-          </div>
+          {message && (
+            <p
+              style={{
+                marginTop: "20px",
+                color: "#93c5fd",
+              }}
+            >
+              {message}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-const pageStyle = {
-  minHeight: "100vh",
-  background:
-    "radial-gradient(circle at top left, #1e3a8a 0, #020617 40%, #020617 100%)",
-  color: "white",
-  padding: "48px",
-  fontFamily: "Arial, sans-serif",
-};
-
-const backgroundGlowOne = {
-  position: "absolute",
-  width: "400px",
-  height: "400px",
-  background: "#2563eb",
-  filter: "blur(140px)",
-  opacity: 0.18,
-};
-
-const backgroundGlowTwo = {
-  position: "absolute",
-  width: "300px",
-  height: "300px",
-  background: "#16a34a",
-  filter: "blur(120px)",
-  opacity: 0.12,
-  right: 0,
-  bottom: 0,
-};
-
-const containerStyle = {
-  maxWidth: "1250px",
-  margin: "0 auto",
-  position: "relative",
-  zIndex: 10,
-};
-
-const headerStyle = {
-  marginBottom: "40px",
-};
-
-const badgeStyle = {
-  display: "inline-block",
-  background:
-    "rgba(59,130,246,0.18)",
-  color: "#93c5fd",
-  padding: "8px 14px",
-  borderRadius: "999px",
-  fontWeight: "700",
-  marginBottom: "18px",
-};
-
-const titleStyle = {
-  fontSize: "52px",
-  margin: 0,
-};
-
-const subtitleStyle = {
-  color: "#cbd5e1",
-  fontSize: "18px",
-  marginTop: "14px",
-};
-
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "28px",
-};
-
-const cardStyle = {
-  background:
-    "rgba(15,23,42,0.82)",
-  borderRadius: "28px",
-  padding: "30px",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
-  boxShadow:
-    "0 24px 80px rgba(0,0,0,0.35)",
-};
-
-const sectionTitleStyle = {
-  fontSize: "24px",
-  marginTop: 0,
-};
-
 const inputStyle = {
   width: "100%",
   boxSizing: "border-box",
   padding: "16px",
   marginTop: "14px",
-  borderRadius: "16px",
+  borderRadius: "14px",
   border:
     "1px solid rgba(148,163,184,0.18)",
   background:
-    "rgba(2,6,23,0.8)",
+    "rgba(2,6,23,0.75)",
   color: "white",
 };
 
 const buttonStyle = {
-  marginTop: "22px",
   width: "100%",
+  marginTop: "20px",
   padding: "16px",
   borderRadius: "16px",
   border: "none",
@@ -716,12 +464,11 @@ const buttonStyle = {
     "linear-gradient(135deg,#2563eb,#16a34a)",
   color: "white",
   fontWeight: "900",
-  cursor: "pointer",
 };
 
 const secondaryButtonStyle = {
-  marginTop: "18px",
   width: "100%",
+  marginTop: "18px",
   padding: "16px",
   borderRadius: "16px",
   border:
@@ -730,134 +477,4 @@ const secondaryButtonStyle = {
     "rgba(37,99,235,0.12)",
   color: "#93c5fd",
   fontWeight: "900",
-  cursor: "pointer",
-};
-
-const messageStyle = {
-  marginTop: "18px",
-  color: "#93c5fd",
-  fontWeight: "700",
-};
-
-const emptyStateStyle = {
-  minHeight: "500px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  textAlign: "center",
-};
-
-const emptyIconStyle = {
-  fontSize: "56px",
-};
-
-const emptyTitleStyle = {
-  fontSize: "26px",
-  fontWeight: "900",
-};
-
-const mutedTextStyle = {
-  color: "#94a3b8",
-  maxWidth: "320px",
-};
-
-const recommendationStyle = {
-  display: "inline-block",
-  padding: "12px 16px",
-  borderRadius: "999px",
-  fontWeight: "900",
-  marginBottom: "22px",
-};
-
-const carTitleStyle = {
-  fontSize: "30px",
-};
-
-const scoreContainerStyle = {
-  display: "flex",
-  justifyContent: "center",
-  marginBottom: "30px",
-};
-
-const scoreCircleStyle = {
-  width: "180px",
-  height: "180px",
-  borderRadius: "999px",
-  background:
-    "linear-gradient(135deg, rgba(37,99,235,0.35), rgba(34,197,94,0.25))",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const scoreNumberStyle = {
-  fontSize: "56px",
-  fontWeight: "900",
-};
-
-const scoreTextStyle = {
-  marginTop: "10px",
-  color: "#cbd5e1",
-  fontSize: "13px",
-  fontWeight: "700",
-};
-
-const kpiGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "16px",
-};
-
-const kpiCardStyle = {
-  background:
-    "rgba(2,6,23,0.75)",
-  borderRadius: "20px",
-  padding: "20px",
-};
-
-const kpiLabelStyle = {
-  color: "#94a3b8",
-};
-
-const kpiValueStyle = {
-  fontSize: "30px",
-  fontWeight: "900",
-};
-
-const insightsContainerStyle = {
-  marginTop: "28px",
-};
-
-const insightsTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "900",
-  marginBottom: "16px",
-};
-
-const insightCardStyle = {
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-  background:
-    "rgba(255,255,255,0.05)",
-  fontWeight: "700",
-};
-
-const alertsContainerStyle = {
-  marginTop: "28px",
-};
-
-const alertsTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "900",
-  marginBottom: "16px",
-};
-
-const alertCardStyle = {
-  padding: "14px 16px",
-  borderRadius: "16px",
-  marginBottom: "12px",
-  fontWeight: "800",
 };
