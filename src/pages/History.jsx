@@ -4,6 +4,7 @@ import { analyzeMarketIntelligence } from "../services/profitAnalyzer";
 import { analyzeMarketTrends } from "../services/marketTrends";
 import { analyzeTemporalIntelligence } from "../services/temporalIntelligence";
 import { analyzeOpportunityAlerts } from "../services/opportunityAlerts";
+import { analyzePortfolioStrategy } from "../services/portfolioStrategy";
 
 export default function History() {
   const [analyses, setAnalyses] = useState([]);
@@ -41,6 +42,7 @@ export default function History() {
   const trends = analyzeMarketTrends(analyses);
   const temporal = analyzeTemporalIntelligence(analyses);
   const opportunityAlerts = analyzeOpportunityAlerts(analyses);
+  const portfolio = analyzePortfolioStrategy(analyses);
 
   const filteredAnalyses = useMemo(() => {
     let result = [...analyses];
@@ -98,12 +100,12 @@ export default function History() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · Opportunity Alerts</p>
+          <p style={badgeStyle}>Coches SaaS · Portfolio Strategy</p>
 
           <h1 style={titleStyle}>AI Opportunity Dashboard</h1>
 
           <p style={subtitleStyle}>
-            Alertas IA, tendencias, frescura temporal e inteligencia global del dataset.
+            Estrategia de cartera, alertas IA, tendencias e inteligencia global del dataset.
           </p>
         </div>
 
@@ -111,20 +113,14 @@ export default function History() {
           <MetricCard label="ROI Medio" value={`${market.averageROI || 0}%`} />
           <MetricCard label="Score Medio" value={market.averageScore || 0} />
           <MetricCard label="Trend Score" value={`${trends.trendScore || 0}/100`} />
-          <MetricCard
-            label="Alert Score"
-            value={`${opportunityAlerts.alertScore || 0}/100`}
-          />
+          <MetricCard label="Alert Score" value={`${opportunityAlerts.alertScore || 0}/100`} />
         </div>
 
         <div style={marketGridStyle}>
-          <MetricCard
-            label="Freshness Score"
-            value={`${temporal.freshnessScore || 0}/100`}
-          />
+          <MetricCard label="Strategy Score" value={`${portfolio.strategyScore || 0}/100`} />
+          <MetricCard label="Estrategia" value={portfolio.strategy || "-"} />
+          <MetricCard label="Freshness Score" value={`${temporal.freshnessScore || 0}/100`} />
           <MetricCard label="Total Análisis" value={trends.total || 0} />
-          <MetricCard label="Recientes" value={temporal.recentOpportunities || 0} />
-          <MetricCard label="Antiguas" value={temporal.oldOpportunities || 0} />
         </div>
 
         <div style={marketGridStyle}>
@@ -132,6 +128,32 @@ export default function History() {
           <MetricCard label="Fuel Top" value={market.bestFuelType || "-"} />
           <MetricCard label="Drivetrain Top" value={market.bestDrivetrain || "-"} />
           <MetricCard label="Performance Top" value={market.bestPerformance || "-"} />
+        </div>
+
+        <div style={segmentsGridStyle}>
+          <div style={segmentBoxStyle}>
+            <p style={sectionTitle}>🎯 Focus Areas</p>
+
+            {portfolio.focusAreas.length === 0 && (
+              <p style={mutedTextStyle}>Sin áreas estratégicas todavía.</p>
+            )}
+
+            {portfolio.focusAreas.map((area, index) => (
+              <Badge key={index}>{area}</Badge>
+            ))}
+          </div>
+
+          <div style={segmentBoxStyle}>
+            <p style={sectionTitle}>🔥 Hot Segments</p>
+
+            {trends.hotSegments.length === 0 && (
+              <p style={mutedTextStyle}>Sin segmentos calientes todavía.</p>
+            )}
+
+            {trends.hotSegments.map((segment, index) => (
+              <Badge key={index}>{segment}</Badge>
+            ))}
+          </div>
         </div>
 
         <AlertSection
@@ -153,6 +175,13 @@ export default function History() {
           items={opportunityAlerts.warningAlerts}
           empty="Sin avisos importantes."
           styleType="warning"
+        />
+
+        <InsightSection
+          title="📈 Portfolio Strategy"
+          items={portfolio.strategyInsights}
+          empty="Sin estrategia suficiente todavía."
+          cardStyle={portfolioCardStyle}
         />
 
         <InsightSection
@@ -178,18 +207,6 @@ export default function History() {
 
         <div style={segmentsGridStyle}>
           <div style={segmentBoxStyle}>
-            <p style={sectionTitle}>🔥 Hot Segments</p>
-
-            {trends.hotSegments.length === 0 && (
-              <p style={mutedTextStyle}>Sin segmentos calientes todavía.</p>
-            )}
-
-            {trends.hotSegments.map((segment, index) => (
-              <Badge key={index}>{segment}</Badge>
-            ))}
-          </div>
-
-          <div style={segmentBoxStyle}>
             <p style={sectionTitle}>⚠️ Weak Segments</p>
 
             {trends.weakSegments.length === 0 && (
@@ -199,6 +216,13 @@ export default function History() {
             {trends.weakSegments.map((segment, index) => (
               <Badge key={index}>{segment}</Badge>
             ))}
+          </div>
+
+          <div style={segmentBoxStyle}>
+            <p style={sectionTitle}>🕒 Temporal Summary</p>
+
+            <Badge>Recientes: {temporal.recentOpportunities || 0}</Badge>
+            <Badge>Antiguas: {temporal.oldOpportunities || 0}</Badge>
           </div>
         </div>
 
@@ -407,6 +431,15 @@ const insightCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
+};
+
+const portfolioCardStyle = {
+  background: "rgba(168,85,247,0.12)",
+  border: "1px solid rgba(168,85,247,0.25)",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "800",
 };
 
 const trendCardStyle = {
