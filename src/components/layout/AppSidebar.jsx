@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import { NAVIGATION_ITEMS } from "../../config/navigation";
+
 export default function AppSidebar() {
   return (
     <aside>
@@ -8,11 +10,11 @@ export default function AppSidebar() {
       <p style={subtitleStyle}>AI Automotive Opportunity Platform</p>
 
       <nav style={navStyle}>
-        <Link to="/scanner">🔎 Scanner IA</Link>
-
-        <Link to="/importer">🔗 Importador IA</Link>
-
-        <Link to="/history">📊 Inteligencia Mercado</Link>
+        {NAVIGATION_ITEMS.map((item) => (
+          <Link key={item.id} to={item.path}>
+            {item.label}
+          </Link>
+        ))}
       </nav>
 
       <div style={objectiveBoxStyle}>
