@@ -30,7 +30,7 @@ export const APP_ROUTES = [
   },
   {
     id: "not-found",
-    path: "*",
+    path: ROUTE_PATHS.notFound,
     element: NotFound,
   },
 ];

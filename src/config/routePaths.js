@@ -3,4 +3,5 @@ export const ROUTE_PATHS = {
   scanner: "/scanner",
   importer: "/importer",
   history: "/history",
+  notFound: "*",
 };
