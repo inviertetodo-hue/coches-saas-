@@ -1,80 +1,120 @@
-export function MetricCard({ label, value }) {
+import { memo, useMemo } from "react";
+
+export const MetricCard = memo(function MetricCard({
+  label,
+  value,
+}) {
   return (
     <div style={marketCardStyle}>
       <p style={marketLabel}>{label}</p>
+
       <h2 style={marketValue}>{value}</h2>
     </div>
   );
-}
+});
 
-export function InsightSection({
+export const InsightSection = memo(function InsightSection({
   title,
-  items,
+  items = [],
   empty,
   cardStyle,
 }) {
+  const safeItems = useMemo(() => {
+    return Array.isArray(items)
+      ? items
+      : [];
+  }, [items]);
+
   return (
     <div style={insightsContainerStyle}>
       <p style={sectionTitle}>{title}</p>
 
-      {items?.length === 0 && (
+      {safeItems.length === 0 && (
         <p style={mutedTextStyle}>{empty}</p>
       )}
 
-      {items?.map((item, index) => (
-        <div key={index} style={cardStyle}>
+      {safeItems.map((item, index) => (
+        <div
+          key={`${title}-${index}`}
+          style={cardStyle}
+        >
           {item}
         </div>
       ))}
     </div>
   );
-}
+});
 
-export function AlertSection({
+export const AlertSection = memo(function AlertSection({
   title,
-  items,
+  items = [],
   empty,
   styleType,
 }) {
+  const safeItems = useMemo(() => {
+    return Array.isArray(items)
+      ? items
+      : [];
+  }, [items]);
+
   const styleMap = {
     warning: warningAlertCardStyle,
     risk: riskAlertCardStyle,
   };
 
+  const selectedStyle =
+    styleMap[styleType] ||
+    warningAlertCardStyle;
+
   return (
     <div style={insightsContainerStyle}>
       <p style={sectionTitle}>{title}</p>
 
-      {items?.length === 0 && (
+      {safeItems.length === 0 && (
         <p style={mutedTextStyle}>{empty}</p>
       )}
 
-      {items?.map((item, index) => (
-        <div key={index} style={styleMap[styleType]}>
+      {safeItems.map((item, index) => (
+        <div
+          key={`${styleType}-${index}`}
+          style={selectedStyle}
+        >
           {item}
         </div>
       ))}
     </div>
   );
-}
+});
 
-export function Badge({ children }) {
-  return <div style={badgeChipStyle}>{children}</div>;
-}
+export const Badge = memo(function Badge({
+  children,
+}) {
+  return (
+    <div style={badgeChipStyle}>
+      {children}
+    </div>
+  );
+});
 
 const marketCardStyle = {
   background: "rgba(15,23,42,0.82)",
   borderRadius: "22px",
   padding: "22px",
+  border: "1px solid rgba(148,163,184,0.10)",
+  backdropFilter: "blur(8px)",
 };
 
 const marketLabel = {
   color: "#94a3b8",
+  fontSize: "13px",
+  fontWeight: "800",
+  marginBottom: "10px",
 };
 
 const marketValue = {
   fontSize: "30px",
   fontWeight: "900",
+  margin: 0,
 };
 
 const insightsContainerStyle = {
@@ -89,6 +129,7 @@ const sectionTitle = {
 
 const mutedTextStyle = {
   color: "#94a3b8",
+  lineHeight: "1.6",
 };
 
 const warningAlertCardStyle = {
@@ -97,6 +138,7 @@ const warningAlertCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
+  fontWeight: "700",
 };
 
 const riskAlertCardStyle = {
@@ -105,6 +147,7 @@ const riskAlertCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
+  fontWeight: "700",
 };
 
 const badgeChipStyle = {
@@ -116,4 +159,5 @@ const badgeChipStyle = {
   fontWeight: "700",
   marginRight: "8px",
   marginBottom: "8px",
+  border: "1px solid rgba(148,163,184,0.10)",
 };
