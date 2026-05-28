@@ -1,8 +1,8 @@
 export function analyzeCar(data) {
-  const price = Number(data.price || 0);
-  const estimatedMarketPrice = Number(data.estimatedMarketPrice || 0);
-  const kilometers = Number(data.kilometers || data.km || 0);
-  const year = Number(data.year || 0);
+  const price = safeNumber(data.price);
+  const estimatedMarketPrice = safeNumber(data.estimatedMarketPrice);
+  const kilometers = safeNumber(data.kilometers || data.km);
+  const year = safeNumber(data.year);
 
   const brand = String(data.brand || "").toLowerCase();
   const transmission = String(data.transmission || "").toLowerCase();
@@ -13,7 +13,7 @@ export function analyzeCar(data) {
   const electrified = Boolean(data.electrified);
 
   const currentYear = new Date().getFullYear();
-  const age = currentYear - year;
+  const age = year > 0 ? currentYear - year : 99;
 
   const estimatedProfit = estimatedMarketPrice - price;
   const roi = price > 0 ? Math.round((estimatedProfit / price) * 100) : 0;
@@ -27,9 +27,14 @@ export function analyzeCar(data) {
   const insights = [];
   const alerts = [];
 
+  if (price <= 0 || estimatedMarketPrice <= 0 || year <= 0) {
+    return buildInvalidAnalysis();
+  }
+
   const premiumBrands = [
     "bmw",
     "audi",
+    "mercedes",
     "mercedes-benz",
     "porsche",
     "tesla",
@@ -55,25 +60,39 @@ export function analyzeCar(data) {
     performancePackage.includes("m sport");
 
   if (roi >= 35) {
-    score += 25;
+    score += 22;
     demandScore += 10;
     insights.push({ type: "positive", text: "ROI muy alto detectado" });
-    alerts.push({ type: "success", text: "🔥 Oportunidad extrema por ROI" });
+    alerts.push({ type: "success", text: "🔥 Oportunidad fuerte por ROI" });
   } else if (roi >= 25) {
-    score += 18;
+    score += 16;
     insights.push({ type: "positive", text: "Buen ROI potencial" });
   } else if (roi >= 15) {
-    score += 10;
+    score += 9;
     insights.push({ type: "neutral", text: "ROI aceptable" });
-  } else if (roi < 5) {
-    score -= 15;
-    liquidityScore -= 10;
+  } else if (roi >= 5) {
+    score -= 5;
+    insights.push({ type: "neutral", text: "ROI justo" });
+  } else {
+    score -= 22;
+    liquidityScore -= 12;
     insights.push({ type: "negative", text: "ROI demasiado bajo" });
-    alerts.push({ type: "danger", text: "⚠️ ROI peligrosamente bajo" });
+    alerts.push({ type: "danger", text: "⚠️ ROI bajo o negativo" });
+  }
+
+  if (estimatedProfit <= 0) {
+    score -= 25;
+    liquidityScore -= 15;
+    resaleScore -= 10;
+    alerts.push({ type: "danger", text: "❌ Beneficio estimado negativo" });
+  } else if (estimatedProfit >= 10000) {
+    score += 5;
+    liquidityScore += 8;
+    alerts.push({ type: "success", text: "💰 Beneficio alto detectado" });
   }
 
   if (kilometers <= 50000) {
-    score += 15;
+    score += 14;
     resaleScore += 15;
     liquidityScore += 10;
     insights.push({ type: "positive", text: "Kilometraje bajo" });
@@ -82,7 +101,7 @@ export function analyzeCar(data) {
     resaleScore += 6;
     insights.push({ type: "positive", text: "Kilometraje razonable" });
   } else if (kilometers >= 180000) {
-    score -= 15;
+    score -= 18;
     resaleScore -= 18;
     liquidityScore -= 15;
     insights.push({ type: "negative", text: "Muchos kilómetros" });
@@ -90,7 +109,7 @@ export function analyzeCar(data) {
   }
 
   if (year >= currentYear - 3) {
-    score += 15;
+    score += 14;
     resaleScore += 15;
     futurePotential += 10;
     insights.push({ type: "positive", text: "Vehículo moderno" });
@@ -99,19 +118,18 @@ export function analyzeCar(data) {
     resaleScore += 6;
     insights.push({ type: "positive", text: "Año competitivo" });
   } else if (age >= 15) {
-    score -= 15;
+    score -= 18;
     resaleScore -= 15;
     futurePotential -= 10;
     insights.push({ type: "negative", text: "Vehículo antiguo" });
-    alerts.push({ type: "warning", text: "⏳ Vehículo demasiado antiguo" });
+    alerts.push({ type: "warning", text: "⏳ Vehículo antiguo" });
   }
 
   if (isPremium) {
-    score += 10;
+    score += 8;
     demandScore += 10;
     resaleScore += 8;
     insights.push({ type: "positive", text: "Marca premium detectada" });
-    alerts.push({ type: "success", text: "💎 Vehículo premium detectado" });
   }
 
   if (transmission.includes("autom")) {
@@ -121,40 +139,31 @@ export function analyzeCar(data) {
   }
 
   if (hasPremiumAWD) {
-    score += 10;
+    score += 8;
     demandScore += 10;
     resaleScore += 8;
     insights.push({ type: "positive", text: "Sistema AWD premium detectado" });
-    alerts.push({ type: "success", text: "🛞 Tracción premium detectada" });
   }
 
   if (hasPerformancePack) {
-    score += 12;
+    score += 9;
     demandScore += 8;
     resaleScore += 5;
     insights.push({ type: "positive", text: "Pack performance detectado" });
-    alerts.push({ type: "success", text: "🏁 Vehículo performance detectado" });
   }
 
-  if (electrified) {
-    score += 8;
-    futurePotential += 15;
+  if (electrified || fuelType.includes("phev") || fuelType.includes("ev")) {
+    score += 7;
+    futurePotential += 14;
     demandScore += 8;
-    insights.push({ type: "positive", text: "Vehículo electrificado" });
-    alerts.push({ type: "success", text: "⚡ Tecnología electrificada detectada" });
-  }
-
-  if (fuelType.includes("phev") || fuelType.includes("ev")) {
-    score += 6;
-    futurePotential += 10;
-    insights.push({ type: "positive", text: "Motorización moderna detectada" });
+    insights.push({ type: "positive", text: "Motorización electrificada" });
   }
 
   if (bodyType.includes("suv")) {
     score += 4;
     demandScore += 10;
     liquidityScore += 8;
-    insights.push({ type: "positive", text: "SUV con alta demanda" });
+    insights.push({ type: "positive", text: "SUV con demanda fuerte" });
   }
 
   if (bodyType.includes("wagon")) {
@@ -167,80 +176,58 @@ export function analyzeCar(data) {
   }
 
   if (isPremium && hasPremiumAWD && bodyType.includes("suv")) {
-    score += 10;
+    score += 8;
     demandScore += 15;
     liquidityScore += 12;
-    insights.push({
-      type: "positive",
-      text: "SUV premium AWD con alta demanda",
-    });
     alerts.push({
       type: "success",
-      text: "📈 Configuración premium muy demandada",
+      text: "📈 Configuración premium demandada",
     });
   }
 
   if (hasPerformancePack && kilometers >= 150000) {
-    score -= 12;
+    score -= 14;
     resaleScore -= 14;
     liquidityScore -= 10;
-    insights.push({
-      type: "negative",
-      text: "Vehículo performance con kilometraje elevado",
-    });
     alerts.push({ type: "warning", text: "⚠️ Riesgo mecánico elevado" });
   }
 
   if (brand.includes("tesla") && age >= 8) {
-    score -= 8;
+    score -= 10;
     resaleScore -= 14;
     futurePotential -= 12;
-    insights.push({
-      type: "negative",
-      text: "Tesla antiguo con posible degradación",
-    });
     alerts.push({ type: "warning", text: "🔋 Posible desgaste de batería" });
   }
 
-  if (fuelType.includes("phev") && age <= 5) {
-    score += 8;
-    demandScore += 12;
-    futurePotential += 15;
-    insights.push({
-      type: "positive",
-      text: "PHEV moderno con alta demanda urbana",
-    });
-    alerts.push({ type: "success", text: "🏙️ Configuración urbana premium" });
-  }
-
-  if (bodyType.includes("wagon") && isPremium && fuelType.includes("diesel")) {
-    score += 7;
-    liquidityScore += 10;
-    resaleScore += 8;
-    insights.push({
-      type: "positive",
-      text: "Wagon premium diesel valorado en exportación europea",
-    });
-    alerts.push({ type: "success", text: "🌍 Alta demanda de exportación" });
-  }
-
   if (price <= 5000) {
-    score -= 10;
+    score -= 12;
     resaleScore -= 10;
-    insights.push({ type: "negative", text: "Precio sospechosamente bajo" });
     alerts.push({ type: "warning", text: "🕵️ Precio anormalmente bajo" });
   }
 
   if (price >= 15000 && price <= 40000) {
     score += 5;
     liquidityScore += 6;
-    insights.push({ type: "positive", text: "Rango de precio saludable" });
   }
 
-  if (estimatedProfit >= 10000) {
-    score += 5;
-    liquidityScore += 8;
-    alerts.push({ type: "success", text: "💰 Beneficio excepcional detectado" });
+  if (roi <= 0 && score > 55) {
+    score = 55;
+    alerts.push({
+      type: "danger",
+      text: "🛡️ Score limitado por ROI negativo",
+    });
+  }
+
+  if (estimatedProfit <= 0 && score > 50) {
+    score = 50;
+  }
+
+  if (kilometers >= 220000 && score > 65) {
+    score = 65;
+    alerts.push({
+      type: "warning",
+      text: "🛡️ Score limitado por kilometraje extremo",
+    });
   }
 
   demandScore = clampScore(demandScore);
@@ -249,28 +236,12 @@ export function analyzeCar(data) {
   futurePotential = clampScore(futurePotential);
   score = clampScore(score);
 
-  if (demandScore >= 80) {
-    alerts.push({ type: "success", text: "📊 Demanda futura alta" });
-  }
-
-  if (resaleScore <= 45) {
-    alerts.push({ type: "warning", text: "📉 Reventa potencial débil" });
-  }
-
-  if (liquidityScore >= 80) {
-    alerts.push({ type: "success", text: "💨 Alta probabilidad de salida rápida" });
-  }
-
-  if (futurePotential >= 80) {
-    alerts.push({ type: "success", text: "🚀 Alto potencial futuro" });
-  }
-
   let recommendation = "🟡 ANALIZAR";
 
-  if (score >= 85) {
+  if (score >= 85 && roi >= 15 && estimatedProfit > 0) {
     recommendation = "🔥 CHOLLO IA";
-    alerts.push({ type: "success", text: "🏆 Score IA extremadamente alto" });
-  } else if (score <= 45) {
+    alerts.push({ type: "success", text: "🏆 Score IA muy alto" });
+  } else if (score <= 45 || roi <= 0 || estimatedProfit <= 0) {
     recommendation = "❌ DESCARTAR";
     alerts.push({ type: "danger", text: "❌ Riesgo elevado detectado" });
   }
@@ -278,7 +249,7 @@ export function analyzeCar(data) {
   return {
     score,
     recommendation,
-    estimatedProfit,
+    estimatedProfit: Math.round(estimatedProfit),
     roi,
     demandScore,
     resaleScore,
@@ -415,6 +386,36 @@ export function analyzeMarketIntelligence(analyses = []) {
       .join(" · "),
     marketInsights,
   };
+}
+
+function buildInvalidAnalysis() {
+  return {
+    score: 0,
+    recommendation: "❌ DESCARTAR",
+    estimatedProfit: 0,
+    roi: 0,
+    demandScore: 0,
+    resaleScore: 0,
+    liquidityScore: 0,
+    futurePotential: 0,
+    insights: [
+      {
+        type: "negative",
+        text: "Datos insuficientes o inválidos para analizar",
+      },
+    ],
+    alerts: [
+      {
+        type: "danger",
+        text: "❌ No se puede confiar en este análisis",
+      },
+    ],
+  };
+}
+
+function safeNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
 }
 
 function getTopValue(items, key) {
