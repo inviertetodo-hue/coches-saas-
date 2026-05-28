@@ -15,10 +15,7 @@ export default function Scanner() {
   const scan = useMemo(() => buildMarketScan(form), [form]);
 
   const marketFeed = useMemo(() => {
-    if (!searchTriggered) {
-      return null;
-    }
-
+    if (!searchTriggered) return null;
     return generateMockMarketFeed(scan);
   }, [scan, searchTriggered]);
 
@@ -39,17 +36,14 @@ export default function Scanner() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>
-            AI Automotive Opportunity Scanner
-          </p>
+          <p style={badgeStyle}>AI Automotive Opportunity Scanner</p>
 
-          <h1 style={titleStyle}>
-            Encuentra chollos reales en Europa
-          </h1>
+          <h1 style={titleStyle}>Encuentra chollos reales en Europa</h1>
 
           <p style={subtitleStyle}>
             Escribe el vehículo que quieres comprar y pulsa buscar. El sistema
-            prioriza oportunidades por margen neto, ROI, liquidez y riesgo.
+            prioriza oportunidades por margen neto, precio bajo mercado,
+            liquidez, riesgo y probabilidad de venta rápida.
           </p>
         </div>
 
@@ -112,15 +106,9 @@ export default function Scanner() {
             <h2 style={summaryStyle}>{scan.summary}</h2>
 
             <div style={semanticGridStyle}>
-              <SemanticBadge
-                active={scan.semantic?.isPremium}
-                label="Premium"
-              />
-
+              <SemanticBadge active={scan.semantic?.isPremium} label="Premium" />
               <SemanticBadge active={scan.semantic?.isPhev} label="PHEV" />
-
               <SemanticBadge active={scan.semantic?.isSuv} label="SUV" />
-
               <SemanticBadge
                 active={scan.semantic?.isPerformance}
                 label="Performance"
@@ -148,7 +136,7 @@ export default function Scanner() {
 
                 <div style={bestDealGridStyle}>
                   <MetricCard
-                    label="Score"
+                    label="Compra recomendada"
                     value={`${marketFeed.best.opportunityScore}/100`}
                   />
 
@@ -160,15 +148,13 @@ export default function Scanner() {
                   />
 
                   <MetricCard
-                    label="ROI Neto"
-                    value={`${marketFeed.best.netRoi}%`}
+                    label="Venta rápida"
+                    value={marketFeed.best.memory?.resaleSpeed?.label || "Media"}
                   />
 
                   <MetricCard
-                    label="Precio"
-                    value={`${marketFeed.best.price.toLocaleString(
-                      "es-ES"
-                    )} €`}
+                    label="Riesgo"
+                    value={marketFeed.best.memory?.riskLevel || "Medio"}
                   />
                 </div>
               </div>
@@ -200,11 +186,11 @@ export default function Scanner() {
 
                     <div style={feedMetricsStyle}>
                       <FeedMetric
-                        label="Opportunity"
+                        label="Compra"
                         value={`${item.opportunityScore}/100`}
                       />
 
-                      <FeedMetric label="ROI" value={`${item.netRoi}%`} />
+                      <FeedMetric label="ROI neto" value={`${item.netRoi}%`} />
 
                       <FeedMetric
                         label="Margen"
@@ -213,6 +199,70 @@ export default function Scanner() {
                     </div>
 
                     <div style={decisionStyle}>{item.decision}</div>
+
+                    <div style={marketBoxStyle}>
+                      <h4 style={miniTitleStyle}>📊 Comparables de mercado</h4>
+
+                      <div style={marketGridStyle}>
+                        <SmallMetric
+                          label="Precio actual"
+                          value={`${item.price.toLocaleString("es-ES")} €`}
+                        />
+
+                        <SmallMetric
+                          label="Precio justo IA"
+                          value={`${item.comparable.fairPrice.toLocaleString(
+                            "es-ES"
+                          )} €`}
+                        />
+
+                        <SmallMetric
+                          label="Desviación"
+                          value={`${item.comparable.deviationPercent}%`}
+                        />
+
+                        <SmallMetric
+                          label="Confianza"
+                          value={`${item.comparable.confidence}/100`}
+                        />
+                      </div>
+
+                      <p style={marketInsightStyle}>
+                        {item.comparable.insight}
+                      </p>
+                    </div>
+
+                    <div style={memoryBoxStyle}>
+                      <h4 style={miniTitleStyle}>🧠 Memoria de mercado</h4>
+
+                      <div style={marketGridStyle}>
+                        <SmallMetric
+                          label="Venta estimada"
+                          value={`${item.memory.resaleSpeed.days} días`}
+                        />
+
+                        <SmallMetric
+                          label="Demanda"
+                          value={item.memory.demandLevel}
+                        />
+
+                        <SmallMetric
+                          label="Riesgo"
+                          value={item.memory.riskLevel}
+                        />
+
+                        <SmallMetric
+                          label="Precio máx."
+                          value={`${item.memory.recommendedMaxBid.toLocaleString(
+                            "es-ES"
+                          )} €`}
+                        />
+                      </div>
+
+                      <p style={marketInsightStyle}>
+                        {item.memory.strategy.reason}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -263,6 +313,15 @@ function FeedMetric({ label, value }) {
     <div style={feedMetricStyle}>
       <p style={feedMetricLabelStyle}>{label}</p>
       <h4 style={feedMetricValueStyle}>{value}</h4>
+    </div>
+  );
+}
+
+function SmallMetric({ label, value }) {
+  return (
+    <div style={smallMetricStyle}>
+      <p style={smallMetricLabelStyle}>{label}</p>
+      <strong style={smallMetricValueStyle}>{value}</strong>
     </div>
   );
 }
@@ -441,7 +500,7 @@ const sectionTitleStyle = {
 
 const feedGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))",
+  gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))",
   gap: "18px",
 };
 
@@ -500,6 +559,59 @@ const decisionStyle = {
   color: "#86efac",
   fontWeight: "900",
   textAlign: "center",
+};
+
+const marketBoxStyle = {
+  marginTop: "20px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(59,130,246,0.10)",
+  border: "1px solid rgba(59,130,246,0.20)",
+};
+
+const memoryBoxStyle = {
+  marginTop: "16px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(34,197,94,0.09)",
+  border: "1px solid rgba(34,197,94,0.18)",
+};
+
+const miniTitleStyle = {
+  marginTop: 0,
+  marginBottom: "14px",
+  fontSize: "15px",
+};
+
+const marketGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "10px",
+};
+
+const smallMetricStyle = {
+  background: "rgba(2,6,23,0.45)",
+  borderRadius: "14px",
+  padding: "12px",
+};
+
+const smallMetricLabelStyle = {
+  color: "#cbd5e1",
+  fontSize: "12px",
+  margin: 0,
+};
+
+const smallMetricValueStyle = {
+  display: "block",
+  marginTop: "8px",
+  fontSize: "16px",
+};
+
+const marketInsightStyle = {
+  marginBottom: 0,
+  color: "#e5e7eb",
+  lineHeight: "1.55",
+  fontSize: "14px",
 };
 
 const insightGridStyle = {
