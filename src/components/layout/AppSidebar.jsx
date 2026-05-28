@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 
+import { APP_BRAND } from "../../config/appBrand";
 import { NAVIGATION_ITEMS } from "../../config/navigation";
 
 export default function AppSidebar() {
   return (
     <aside>
-      <h1>🚘 Coches SaaS</h1>
+      <h1>{APP_BRAND.title}</h1>
 
-      <p style={subtitleStyle}>AI Automotive Opportunity Platform</p>
+      <p style={subtitleStyle}>{APP_BRAND.subtitle}</p>
 
       <nav style={navStyle}>
         {NAVIGATION_ITEMS.map((item) => (
@@ -18,12 +19,9 @@ export default function AppSidebar() {
       </nav>
 
       <div style={objectiveBoxStyle}>
-        <p style={objectiveLabelStyle}>Objetivo</p>
+        <p style={objectiveLabelStyle}>{APP_BRAND.objectiveLabel}</p>
 
-        <p style={objectiveTextStyle}>
-          Detectar los mejores coches disponibles en Europa para comprar mejor
-          que el mercado.
-        </p>
+        <p style={objectiveTextStyle}>{APP_BRAND.objectiveText}</p>
       </div>
     </aside>
   );
