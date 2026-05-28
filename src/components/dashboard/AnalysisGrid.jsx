@@ -71,7 +71,7 @@ export default function AnalysisGrid({
       <div style={gridStyle}>
         {visibleAnalyses.map((item) => (
           <CarAnalysisCard
-            key={item.id || item.title}
+            key={getAnalysisKey(item)}
             item={item}
             onDelete={onDelete}
           />
@@ -93,6 +93,14 @@ export default function AnalysisGrid({
         </button>
       )}
     </div>
+  );
+}
+
+function getAnalysisKey(item = {}) {
+  return (
+    item.id ||
+    item.url ||
+    `${item.title || "vehicle"}-${item.price || item.score || "unknown"}`
   );
 }
 
