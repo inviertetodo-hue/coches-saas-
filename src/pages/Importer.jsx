@@ -22,6 +22,8 @@ export default function Importer() {
 
   function updateField(field, value) {
     setSaved(false);
+    setAnalysis(null);
+    setMessage("");
 
     setCar({
       ...car,
@@ -29,16 +31,77 @@ export default function Importer() {
     });
   }
 
+  function validateCarInput() {
+    const price = Number(car.price);
+    const km = Number(car.km);
+    const year = Number(car.year);
+    const currentYear = new Date().getFullYear();
+
+    if (!car.title.trim()) {
+      return "Falta el título del vehículo.";
+    }
+
+    if (!car.price || !Number.isFinite(price) || price <= 0) {
+      return "El precio debe ser un número válido mayor que 0.";
+    }
+
+    if (!car.km || !Number.isFinite(km) || km < 0) {
+      return "Los kilómetros deben ser un número válido.";
+    }
+
+    if (
+      !car.year ||
+      !Number.isFinite(year) ||
+      year < 1990 ||
+      year > currentYear + 1
+    ) {
+      return "El año del vehículo no es válido.";
+    }
+
+    if (price < 1000) {
+      return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
+    }
+
+    if (price > 300000) {
+      return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
+    }
+
+    if (km > 500000) {
+      return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
+    }
+
+    return "";
+  }
+
+  function validateAnalysisBeforeSave() {
+    if (!analysis) {
+      return "No hay análisis para guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.score))) {
+      return "El score IA no es válido. No se puede guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.roi))) {
+      return "El ROI no es válido. No se puede guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.estimatedProfit))) {
+      return "El beneficio estimado no es válido. No se puede guardar.";
+    }
+
+    return "";
+  }
+
   function analyzeManualCar() {
     setSaved(false);
 
-    if (
-      !car.title ||
-      !car.price ||
-      !car.km ||
-      !car.year
-    ) {
-      setMessage("COMPLETA TODOS LOS CAMPOS");
+    const validationError = validateCarInput();
+
+    if (validationError) {
+      setAnalysis(null);
+      setSemanticData(null);
+      setMessage(validationError);
       return;
     }
 
@@ -46,72 +109,81 @@ export default function Importer() {
 
     setSemanticData(parsed);
 
-    const estimatedMarketPrice = Math.round(
-      Number(car.price) * 1.28
-    );
+    const price = Number(car.price);
+    const km = Number(car.km);
+    const year = Number(car.year);
+
+    const estimatedMarketPrice = Math.round(price * 1.28);
 
     const result = analyzeCar({
       ...car,
       ...parsed,
-      price: Number(car.price),
-      km: Number(car.km),
-      year: Number(car.year),
+      price,
+      km,
+      year,
       estimatedMarketPrice,
     });
 
-    setAnalysis(result);
+    if (
+      !result ||
+      !Number.isFinite(Number(result.score)) ||
+      !Number.isFinite(Number(result.roi)) ||
+      !Number.isFinite(Number(result.estimatedProfit))
+    ) {
+      setAnalysis(null);
+      setMessage(
+        "El análisis ha generado datos inválidos. Revisa los datos del coche."
+      );
+      return;
+    }
 
+    setAnalysis(result);
     setMessage("");
   }
 
   async function saveAnalysis() {
-    if (!analysis || saved) return;
+    if (saved || saving) return;
+
+    const validationError = validateAnalysisBeforeSave();
+
+    if (validationError) {
+      setMessage(validationError);
+      return;
+    }
 
     setSaving(true);
+    setMessage("");
 
-    const { error } = await supabase
-      .from("import_analyses")
-      .insert({
-        title: car.title,
+    const { error } = await supabase.from("import_analyses").insert({
+      title: car.title.trim(),
 
-        brand:
-          semanticData?.brand || null,
+      brand: semanticData?.brand || null,
 
-        model:
-          semanticData?.model || null,
+      model: semanticData?.model || null,
 
-        fuel_type:
-          semanticData?.fuelType || null,
+      fuel_type: semanticData?.fuelType || null,
 
-        drivetrain:
-          semanticData?.drivetrain || null,
+      drivetrain: semanticData?.drivetrain || null,
 
-        performance_package:
-          semanticData?.performancePackage || null,
+      performance_package: semanticData?.performancePackage || null,
 
-        country: car.country,
+      country: car.country,
 
-        profit: Math.round(
-          analysis.estimatedProfit
-        ),
+      profit: Math.round(analysis.estimatedProfit),
 
-        roi: analysis.roi,
+      roi: Number(analysis.roi),
 
-        score: analysis.score,
+      score: Number(analysis.score),
 
-        url: car.url,
-      });
+      url: car.url.trim() || null,
+    });
 
     if (error) {
-      console.log(error);
-
-      setMessage("ERROR AL GUARDAR");
+      console.error("Error saving analysis:", error);
+      setMessage("Error al guardar el análisis. Inténtalo de nuevo.");
     } else {
       setSaved(true);
-
-      setMessage(
-        "ANÁLISIS GUARDADO EN HISTORIAL"
-      );
+      setMessage("Análisis guardado en historial.");
     }
 
     setSaving(false);
@@ -120,47 +192,32 @@ export default function Importer() {
   function getAlertStyle(type) {
     if (type === "success") {
       return {
-        background:
-          "rgba(34,197,94,0.12)",
-
-        border:
-          "1px solid rgba(34,197,94,0.25)",
+        background: "rgba(34,197,94,0.12)",
+        border: "1px solid rgba(34,197,94,0.25)",
       };
     }
 
     if (type === "warning") {
       return {
-        background:
-          "rgba(250,204,21,0.12)",
-
-        border:
-          "1px solid rgba(250,204,21,0.25)",
+        background: "rgba(250,204,21,0.12)",
+        border: "1px solid rgba(250,204,21,0.25)",
       };
     }
 
     return {
-      background:
-        "rgba(239,68,68,0.12)",
-
-      border:
-        "1px solid rgba(239,68,68,0.25)",
+      background: "rgba(239,68,68,0.12)",
+      border: "1px solid rgba(239,68,68,0.25)",
     };
   }
 
-  function PredictiveCard({
-    label,
-    value,
-    emoji,
-  }) {
+  function PredictiveCard({ label, value, emoji }) {
     return (
       <div style={predictiveCardStyle}>
         <p style={predictiveLabelStyle}>
           {emoji} {label}
         </p>
 
-        <h2 style={predictiveValueStyle}>
-          {value}/100
-        </h2>
+        <h2 style={predictiveValueStyle}>{value}/100</h2>
       </div>
     );
   }
@@ -169,17 +226,12 @@ export default function Importer() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>
-            Coches SaaS · IA Premium
-          </p>
+          <p style={badgeStyle}>Coches SaaS · IA Premium</p>
 
-          <h1 style={titleStyle}>
-            Analiza oportunidades
-          </h1>
+          <h1 style={titleStyle}>Analiza oportunidades</h1>
 
           <p style={subtitleStyle}>
-            Score IA, semantic intelligence,
-            predictive AI y smart alerts.
+            Score IA, semantic intelligence, predictive AI y smart alerts.
           </p>
         </div>
 
@@ -188,87 +240,51 @@ export default function Importer() {
             <input
               placeholder="URL"
               value={car.url}
-              onChange={(e) =>
-                updateField(
-                  "url",
-                  e.target.value
-                )
-              }
+              onChange={(e) => updateField("url", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="BMW X5 xDrive M Sport PHEV"
               value={car.title}
-              onChange={(e) =>
-                updateField(
-                  "title",
-                  e.target.value
-                )
-              }
+              onChange={(e) => updateField("title", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="Precio"
               value={car.price}
-              onChange={(e) =>
-                updateField(
-                  "price",
-                  e.target.value
-                )
-              }
+              onChange={(e) => updateField("price", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="Kilómetros"
               value={car.km}
-              onChange={(e) =>
-                updateField(
-                  "km",
-                  e.target.value
-                )
-              }
+              onChange={(e) => updateField("km", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="Año"
               value={car.year}
-              onChange={(e) =>
-                updateField(
-                  "year",
-                  e.target.value
-                )
-              }
+              onChange={(e) => updateField("year", e.target.value)}
               style={inputStyle}
             />
 
-            <button
-              onClick={analyzeManualCar}
-              style={buttonStyle}
-            >
+            <button onClick={analyzeManualCar} style={buttonStyle}>
               Analizar vehículo
             </button>
 
-            {message && (
-              <p style={messageStyle}>
-                {message}
-              </p>
-            )}
+            {message && <p style={messageStyle}>{message}</p>}
           </div>
 
           <div style={cardStyle}>
             {!analysis && (
               <div style={emptyStateStyle}>
-                <p style={emptyIconStyle}>
-                  🚘
-                </p>
+                <p style={emptyIconStyle}>🚘</p>
 
-                <p style={emptyTitleStyle}>
-                  Esperando análisis IA
-                </p>
+                <p style={emptyTitleStyle}>Esperando análisis IA</p>
               </div>
             )}
 
@@ -279,136 +295,89 @@ export default function Importer() {
                 </div>
 
                 <div style={scoreCircleStyle}>
-                  <span style={scoreNumberStyle}>
-                    {analysis.score}
-                  </span>
+                  <span style={scoreNumberStyle}>{analysis.score}</span>
 
-                  <span style={scoreTextStyle}>
-                    SCORE IA
-                  </span>
+                  <span style={scoreTextStyle}>SCORE IA</span>
                 </div>
 
                 <div style={kpiGridStyle}>
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>
-                      ROI
-                    </p>
+                    <p style={kpiLabelStyle}>ROI</p>
 
-                    <p style={kpiValueStyle}>
-                      {analysis.roi}%
-                    </p>
+                    <p style={kpiValueStyle}>{analysis.roi}%</p>
                   </div>
 
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>
-                      Beneficio
-                    </p>
+                    <p style={kpiLabelStyle}>Beneficio</p>
 
                     <p style={kpiValueStyle}>
-                      {Math.round(
-                        analysis.estimatedProfit
-                      )} €
+                      {Math.round(analysis.estimatedProfit)} €
                     </p>
                   </div>
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>
-                    🔮 Predictive AI Engine
-                  </p>
+                  <p style={sectionTitleStyle}>🔮 Predictive AI Engine</p>
 
-                  <div
-                    style={
-                      predictiveGridStyle
-                    }
-                  >
+                  <div style={predictiveGridStyle}>
                     <PredictiveCard
                       label="Demand"
-                      value={
-                        analysis.demandScore
-                      }
+                      value={analysis.demandScore}
                       emoji="📈"
                     />
 
                     <PredictiveCard
                       label="Resale"
-                      value={
-                        analysis.resaleScore
-                      }
+                      value={analysis.resaleScore}
                       emoji="💰"
                     />
 
                     <PredictiveCard
                       label="Liquidity"
-                      value={
-                        analysis.liquidityScore
-                      }
+                      value={analysis.liquidityScore}
                       emoji="⚡"
                     />
 
                     <PredictiveCard
                       label="Future"
-                      value={
-                        analysis.futurePotential
-                      }
+                      value={analysis.futurePotential}
                       emoji="🚀"
                     />
                   </div>
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>
-                    🧠 IA Insights
-                  </p>
+                  <p style={sectionTitleStyle}>🧠 IA Insights</p>
 
-                  {analysis.insights?.map(
-                    (insight, index) => (
-                      <div
-                        key={index}
-                        style={
-                          insightCardStyle
-                        }
-                      >
-                        {insight.text}
-                      </div>
-                    )
-                  )}
+                  {analysis.insights?.map((insight, index) => (
+                    <div key={index} style={insightCardStyle}>
+                      {insight.text}
+                    </div>
+                  ))}
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>
-                    🚨 Smart Alerts
-                  </p>
+                  <p style={sectionTitleStyle}>🚨 Smart Alerts</p>
 
-                  {analysis.alerts?.map(
-                    (alert, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          ...alertCardStyle,
-                          ...getAlertStyle(
-                            alert.type
-                          ),
-                        }}
-                      >
-                        {alert.text}
-                      </div>
-                    )
-                  )}
+                  {analysis.alerts?.map((alert, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        ...alertCardStyle,
+                        ...getAlertStyle(alert.type),
+                      }}
+                    >
+                      {alert.text}
+                    </div>
+                  ))}
                 </div>
 
                 <button
                   onClick={saveAnalysis}
-                  disabled={
-                    saving || saved
-                  }
+                  disabled={saving || saved}
                   style={{
                     ...buttonStyle,
-
-                    opacity:
-                      saving || saved
-                        ? 0.6
-                        : 1,
+                    opacity: saving || saved ? 0.6 : 1,
                   }}
                 >
                   {saving
@@ -432,8 +401,7 @@ const pageStyle = {
     "radial-gradient(circle at top left, #1e3a8a 0, #020617 40%, #020617 100%)",
   color: "white",
   padding: "48px",
-  fontFamily:
-    "Arial, sans-serif",
+  fontFamily: "Arial, sans-serif",
 };
 
 const containerStyle = {
@@ -447,8 +415,7 @@ const headerStyle = {
 
 const badgeStyle = {
   display: "inline-block",
-  background:
-    "rgba(59,130,246,0.18)",
+  background: "rgba(59,130,246,0.18)",
   color: "#93c5fd",
   padding: "8px 14px",
   borderRadius: "999px",
@@ -468,18 +435,15 @@ const subtitleStyle = {
 
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns:
-    "1fr 1fr",
+  gridTemplateColumns: "1fr 1fr",
   gap: "28px",
 };
 
 const cardStyle = {
-  background:
-    "rgba(15,23,42,0.82)",
+  background: "rgba(15,23,42,0.82)",
   borderRadius: "28px",
   padding: "30px",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
+  border: "1px solid rgba(148,163,184,0.16)",
 };
 
 const inputStyle = {
@@ -488,10 +452,8 @@ const inputStyle = {
   padding: "16px",
   marginTop: "14px",
   borderRadius: "16px",
-  border:
-    "1px solid rgba(148,163,184,0.18)",
-  background:
-    "rgba(2,6,23,0.8)",
+  border: "1px solid rgba(148,163,184,0.18)",
+  background: "rgba(2,6,23,0.8)",
   color: "white",
 };
 
@@ -501,15 +463,16 @@ const buttonStyle = {
   padding: "16px",
   borderRadius: "16px",
   border: "none",
-  background:
-    "linear-gradient(135deg,#2563eb,#16a34a)",
+  background: "linear-gradient(135deg,#2563eb,#16a34a)",
   color: "white",
   fontWeight: "900",
+  cursor: "pointer",
 };
 
 const messageStyle = {
   marginTop: "18px",
   color: "#93c5fd",
+  fontWeight: "800",
 };
 
 const emptyStateStyle = {
@@ -533,8 +496,7 @@ const recommendationStyle = {
   display: "inline-block",
   padding: "12px 18px",
   borderRadius: "999px",
-  background:
-    "rgba(34,197,94,0.18)",
+  background: "rgba(34,197,94,0.18)",
   color: "#86efac",
   fontWeight: "900",
   marginBottom: "24px",
@@ -550,8 +512,7 @@ const scoreCircleStyle = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  margin:
-    "0 auto 28px auto",
+  margin: "0 auto 28px auto",
 };
 
 const scoreNumberStyle = {
@@ -567,14 +528,12 @@ const scoreTextStyle = {
 
 const kpiGridStyle = {
   display: "grid",
-  gridTemplateColumns:
-    "1fr 1fr",
+  gridTemplateColumns: "1fr 1fr",
   gap: "16px",
 };
 
 const kpiCardStyle = {
-  background:
-    "rgba(2,6,23,0.75)",
+  background: "rgba(2,6,23,0.75)",
   borderRadius: "20px",
   padding: "20px",
 };
@@ -600,14 +559,12 @@ const sectionTitleStyle = {
 
 const predictiveGridStyle = {
   display: "grid",
-  gridTemplateColumns:
-    "1fr 1fr",
+  gridTemplateColumns: "1fr 1fr",
   gap: "14px",
 };
 
 const predictiveCardStyle = {
-  background:
-    "rgba(255,255,255,0.05)",
+  background: "rgba(255,255,255,0.05)",
   borderRadius: "18px",
   padding: "18px",
 };
@@ -627,8 +584,7 @@ const insightCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
   marginBottom: "12px",
-  background:
-    "rgba(255,255,255,0.05)",
+  background: "rgba(255,255,255,0.05)",
   fontWeight: "700",
 };
 
