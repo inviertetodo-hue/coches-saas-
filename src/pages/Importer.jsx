@@ -15,7 +15,6 @@ export default function Importer() {
 
   const [analysis, setAnalysis] = useState(null);
   const [semanticData, setSemanticData] = useState(null);
-
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
@@ -37,58 +36,22 @@ export default function Importer() {
     const year = Number(car.year);
     const currentYear = new Date().getFullYear();
 
-    if (!car.title.trim()) {
-      return "Falta el título del vehículo.";
-    }
-
-    if (!car.price || !Number.isFinite(price) || price <= 0) {
-      return "El precio debe ser un número válido mayor que 0.";
-    }
-
-    if (!car.km || !Number.isFinite(km) || km < 0) {
-      return "Los kilómetros deben ser un número válido.";
-    }
-
-    if (
-      !car.year ||
-      !Number.isFinite(year) ||
-      year < 1990 ||
-      year > currentYear + 1
-    ) {
-      return "El año del vehículo no es válido.";
-    }
-
-    if (price < 1000) {
-      return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
-    }
-
-    if (price > 300000) {
-      return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
-    }
-
-    if (km > 500000) {
-      return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
-    }
+    if (!car.title.trim()) return "Falta el título del vehículo.";
+    if (!car.price || !Number.isFinite(price) || price <= 0) return "El precio debe ser un número válido mayor que 0.";
+    if (!car.km || !Number.isFinite(km) || km < 0) return "Los kilómetros deben ser un número válido.";
+    if (!car.year || !Number.isFinite(year) || year < 1990 || year > currentYear + 1) return "El año del vehículo no es válido.";
+    if (price < 1000) return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
+    if (price > 300000) return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
+    if (km > 500000) return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
 
     return "";
   }
 
   function validateAnalysisBeforeSave() {
-    if (!analysis) {
-      return "No hay análisis para guardar.";
-    }
-
-    if (!Number.isFinite(Number(analysis.score))) {
-      return "El score IA no es válido. No se puede guardar.";
-    }
-
-    if (!Number.isFinite(Number(analysis.roi))) {
-      return "El ROI no es válido. No se puede guardar.";
-    }
-
-    if (!Number.isFinite(Number(analysis.estimatedProfit))) {
-      return "El beneficio estimado no es válido. No se puede guardar.";
-    }
+    if (!analysis) return "No hay análisis para guardar.";
+    if (!Number.isFinite(Number(analysis.score))) return "El score IA no es válido. No se puede guardar.";
+    if (!Number.isFinite(Number(analysis.roi))) return "El ROI no es válido. No se puede guardar.";
+    if (!Number.isFinite(Number(analysis.estimatedProfit))) return "El beneficio estimado no es válido. No se puede guardar.";
 
     return "";
   }
@@ -106,13 +69,11 @@ export default function Importer() {
     }
 
     const parsed = parseCarFromUrl(car.title);
-
     setSemanticData(parsed);
 
     const price = Number(car.price);
     const km = Number(car.km);
     const year = Number(car.year);
-
     const estimatedMarketPrice = Math.round(price * 1.28);
 
     const result = analyzeCar({
@@ -131,9 +92,7 @@ export default function Importer() {
       !Number.isFinite(Number(result.estimatedProfit))
     ) {
       setAnalysis(null);
-      setMessage(
-        "El análisis ha generado datos inválidos. Revisa los datos del coche."
-      );
+      setMessage("El análisis ha generado datos inválidos. Revisa los datos del coche.");
       return;
     }
 
@@ -156,25 +115,15 @@ export default function Importer() {
 
     const { error } = await supabase.from("import_analyses").insert({
       title: car.title.trim(),
-
       brand: semanticData?.brand || null,
-
       model: semanticData?.model || null,
-
       fuel_type: semanticData?.fuelType || null,
-
       drivetrain: semanticData?.drivetrain || null,
-
       performance_package: semanticData?.performancePackage || null,
-
       country: car.country,
-
       profit: Math.round(analysis.estimatedProfit),
-
       roi: Number(analysis.roi),
-
       score: Number(analysis.score),
-
       url: car.url.trim() || null,
     });
 
@@ -224,6 +173,8 @@ export default function Importer() {
 
   return (
     <div style={pageStyle}>
+      <style>{responsiveCss}</style>
+
       <div style={containerStyle}>
         <div style={headerStyle}>
           <p style={badgeStyle}>Coches SaaS · IA Premium</p>
@@ -235,7 +186,7 @@ export default function Importer() {
           </p>
         </div>
 
-        <div style={gridStyle}>
+        <div style={gridStyle} className="importer-grid">
           <div style={cardStyle}>
             <input
               placeholder="URL"
@@ -290,26 +241,21 @@ export default function Importer() {
 
             {analysis && (
               <>
-                <div style={recommendationStyle}>
-                  {analysis.recommendation}
-                </div>
+                <div style={recommendationStyle}>{analysis.recommendation}</div>
 
-                <div style={scoreCircleStyle}>
+                <div style={scoreCircleStyle} className="score-circle">
                   <span style={scoreNumberStyle}>{analysis.score}</span>
-
                   <span style={scoreTextStyle}>SCORE IA</span>
                 </div>
 
-                <div style={kpiGridStyle}>
+                <div style={kpiGridStyle} className="kpi-grid">
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>ROI</p>
-
                     <p style={kpiValueStyle}>{analysis.roi}%</p>
                   </div>
 
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>Beneficio</p>
-
                     <p style={kpiValueStyle}>
                       {Math.round(analysis.estimatedProfit)} €
                     </p>
@@ -319,30 +265,11 @@ export default function Importer() {
                 <div style={sectionStyle}>
                   <p style={sectionTitleStyle}>🔮 Predictive AI Engine</p>
 
-                  <div style={predictiveGridStyle}>
-                    <PredictiveCard
-                      label="Demand"
-                      value={analysis.demandScore}
-                      emoji="📈"
-                    />
-
-                    <PredictiveCard
-                      label="Resale"
-                      value={analysis.resaleScore}
-                      emoji="💰"
-                    />
-
-                    <PredictiveCard
-                      label="Liquidity"
-                      value={analysis.liquidityScore}
-                      emoji="⚡"
-                    />
-
-                    <PredictiveCard
-                      label="Future"
-                      value={analysis.futurePotential}
-                      emoji="🚀"
-                    />
+                  <div style={predictiveGridStyle} className="predictive-grid">
+                    <PredictiveCard label="Demand" value={analysis.demandScore} emoji="📈" />
+                    <PredictiveCard label="Resale" value={analysis.resaleScore} emoji="💰" />
+                    <PredictiveCard label="Liquidity" value={analysis.liquidityScore} emoji="⚡" />
+                    <PredictiveCard label="Future" value={analysis.futurePotential} emoji="🚀" />
                   </div>
                 </div>
 
@@ -380,11 +307,7 @@ export default function Importer() {
                     opacity: saving || saved ? 0.6 : 1,
                   }}
                 >
-                  {saving
-                    ? "Guardando..."
-                    : saved
-                    ? "✅ Guardado"
-                    : "Guardar análisis"}
+                  {saving ? "Guardando..." : saved ? "✅ Guardado" : "Guardar análisis"}
                 </button>
               </>
             )}
@@ -394,6 +317,26 @@ export default function Importer() {
     </div>
   );
 }
+
+const responsiveCss = `
+  @media (max-width: 900px) {
+    .importer-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .score-circle {
+      width: 150px !important;
+      height: 150px !important;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .kpi-grid,
+    .predictive-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`;
 
 const pageStyle = {
   minHeight: "100vh",
@@ -424,13 +367,14 @@ const badgeStyle = {
 };
 
 const titleStyle = {
-  fontSize: "52px",
+  fontSize: "clamp(36px, 6vw, 52px)",
   margin: 0,
 };
 
 const subtitleStyle = {
   color: "#cbd5e1",
   marginTop: "14px",
+  lineHeight: "1.6",
 };
 
 const gridStyle = {
@@ -455,6 +399,7 @@ const inputStyle = {
   border: "1px solid rgba(148,163,184,0.18)",
   background: "rgba(2,6,23,0.8)",
   color: "white",
+  outline: "none",
 };
 
 const buttonStyle = {
@@ -473,6 +418,7 @@ const messageStyle = {
   marginTop: "18px",
   color: "#93c5fd",
   fontWeight: "800",
+  lineHeight: "1.5",
 };
 
 const emptyStateStyle = {
@@ -481,6 +427,7 @@ const emptyStateStyle = {
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
+  textAlign: "center",
 };
 
 const emptyIconStyle = {
