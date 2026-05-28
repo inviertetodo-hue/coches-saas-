@@ -1,11 +1,11 @@
-import { APP_BRAND } from "../../config/appBrand";
+import { SIDEBAR_CONTENT } from "../../config/sidebarContent";
 
 export default function AppSidebarObjective() {
   return (
     <div style={objectiveBoxStyle}>
-      <p style={objectiveLabelStyle}>{APP_BRAND.objectiveLabel}</p>
+      <p style={objectiveLabelStyle}>{SIDEBAR_CONTENT.objective.label}</p>
 
-      <p style={objectiveTextStyle}>{APP_BRAND.objectiveText}</p>
+      <p style={objectiveTextStyle}>{SIDEBAR_CONTENT.objective.text}</p>
     </div>
   );
 }
