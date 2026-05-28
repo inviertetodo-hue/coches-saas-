@@ -6,9 +6,9 @@ import ScannerResultsSection from "../components/scanner/ScannerResultsSection";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
-import { buildMarketTrendProfile } from "../services/marketTrendEngine";
 import { useEnrichedMarketFeed } from "../hooks/useEnrichedMarketFeed";
 import { useSearchRadar } from "../hooks/useSearchRadar";
+import { useMarketTrendProfile } from "../hooks/useMarketTrendProfile";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -22,13 +22,10 @@ export default function Scanner() {
 
   const scan = useMemo(() => buildMarketScan(form), [form]);
 
-  const trendProfile = useMemo(() => {
-    return buildMarketTrendProfile({
-      query: form.query,
-      maxBudget: form.maxBudget,
-      semantic: scan.semantic,
-    });
-  }, [form.query, form.maxBudget, scan.semantic]);
+  const trendProfile = useMarketTrendProfile({
+    form,
+    scan,
+  });
 
   const marketFeed = useEnrichedMarketFeed({
     searchTriggered,
