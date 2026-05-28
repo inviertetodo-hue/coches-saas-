@@ -1,5 +1,6 @@
 import { analyzeCar } from "./profitAnalyzer";
 import { analyzeComparableMarket } from "./comparableIntelligence";
+import { analyzeVehicleMemory } from "./vehicleMemoryEngine";
 
 export function generateMockMarketFeed(scan) {
   const query = String(scan?.query || "BMW X5 45e").trim();
@@ -30,10 +31,18 @@ export function generateMockMarketFeed(scan) {
           ? Math.round((netProfit / car.price) * 100)
           : 0;
 
+      const memory = analyzeVehicleMemory({
+        ...car,
+        comparable,
+        netProfit,
+        netRoi,
+      });
+
       const opportunityScore =
         calculateOpportunityScore({
           analysis,
           comparable,
+          memory,
           netProfit,
           netRoi,
           car,
@@ -44,6 +53,7 @@ export function generateMockMarketFeed(scan) {
         estimatedMarketPrice,
         analysis,
         comparable,
+        memory,
         netCosts,
         netProfit,
         netRoi,
@@ -52,6 +62,7 @@ export function generateMockMarketFeed(scan) {
           opportunityScore,
           netProfit,
           comparable,
+          memory,
           analysis,
         }),
       };
@@ -200,20 +211,29 @@ function estimateImportCosts(car) {
 function calculateOpportunityScore({
   analysis,
   comparable,
+  memory,
   netProfit,
   netRoi,
   car,
 }) {
   let score = 0;
 
-  score += Number(analysis.score || 0) * 0.35;
+  score += Number(analysis.score || 0) * 0.28;
 
   score +=
     Number(
       comparable.underpricingScore || 0
-    ) * 0.35;
+    ) * 0.30;
 
-  score += Math.max(netRoi, 0) * 1.15;
+  score +=
+    Number(memory.confidence || 0) * 0.12;
+
+  score +=
+    Number(
+      memory.resaleSpeed?.score || 0
+    ) * 0.15;
+
+  score += Math.max(netRoi, 0) * 1.05;
 
   score += Math.min(
     Math.max(netProfit, 0) / 1000,
@@ -237,11 +257,13 @@ function buildDecision({
   opportunityScore,
   netProfit,
   comparable,
+  memory,
   analysis,
 }) {
   if (
-    opportunityScore >= 88 &&
-    comparable.deviationPercent >= 10
+    opportunityScore >= 90 &&
+    comparable.deviationPercent >= 10 &&
+    memory.resaleSpeed?.score >= 75
   ) {
     return "🔥 Chollo detectado";
   }
@@ -258,6 +280,13 @@ function buildDecision({
     netProfit > 3500
   ) {
     return "🟢 Buena oportunidad";
+  }
+
+  if (
+    memory.riskLevel?.toLowerCase()
+      .includes("alto")
+  ) {
+    return "⚠️ Riesgo elevado";
   }
 
   if (opportunityScore >= 52) {
@@ -290,7 +319,9 @@ function buildFeedInsights(opportunities) {
     )} €.`,
     `📊 ROI neto estimado: ${best.netRoi}%.`,
     `🧠 Desviación de mercado: ${best.comparable.deviationPercent}%.`,
-    best.comparable.insight,
+    `⚡ Probabilidad de venta rápida: ${best.memory.resaleSpeed.label}.`,
+    `🎯 Riesgo estimado: ${best.memory.riskLevel}.`,
+    best.memory.strategy.reason,
   ];
 }
 
