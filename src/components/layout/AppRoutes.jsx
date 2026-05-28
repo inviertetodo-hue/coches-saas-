@@ -1,20 +1,15 @@
-import { lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 
-const Scanner = lazy(() => import("../../pages/Scanner"));
-const Importer = lazy(() => import("../../pages/Importer"));
-const History = lazy(() => import("../../pages/History"));
+import { APP_ROUTES } from "../../config/routes";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Scanner />} />
+      {APP_ROUTES.map((route) => {
+        const Page = route.element;
 
-      <Route path="/scanner" element={<Scanner />} />
-
-      <Route path="/importer" element={<Importer />} />
-
-      <Route path="/history" element={<History />} />
+        return <Route key={route.id} path={route.path} element={<Page />} />;
+      })}
     </Routes>
   );
 }
