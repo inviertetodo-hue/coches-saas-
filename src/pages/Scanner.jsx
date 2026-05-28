@@ -8,7 +8,7 @@ import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 import { getDecisionTheme } from "../services/decisionBadgeTheme";
 import BestOpportunityCard from "../components/scanner/BestOpportunityCard";
-
+import TrendSummaryCard from "../components/scanner/TrendSummaryCard";
 export default function Scanner() {
   const [form, setForm] = useState({
     query: "BMW X5 45e",
@@ -171,30 +171,11 @@ export default function Scanner() {
               />
             </div>
 
-            <div style={trendBoxStyle}>
-              <p style={trendBadgeStyle}>📈 Tendencia de mercado</p>
-
-              <h3 style={trendTitleStyle}>{trendProfile.mainTrend.label}</h3>
-
-              <div style={trendMetricGridStyle}>
-                <SmallMetric
-                  label="Demanda"
-                  value={trendProfile.mainTrend.demand}
-                />
-
-                <SmallMetric
-                  label="Tendencia"
-                  value={trendProfile.mainTrend.trend}
-                />
-
-                <SmallMetric
-                  label="Riesgo"
-                  value={trendProfile.mainTrend.risk}
-                />
-              </div>
-
-              <p style={marketInsightStyle}>{trendProfile.summary}</p>
-            </div>
+            <TrendSummaryCard
+  trendProfile={trendProfile}
+  SmallMetric={SmallMetric}
+  marketInsightStyle={marketInsightStyle}
+/>
 
             {!searchTriggered && (
               <div style={waitingBoxStyle}>
