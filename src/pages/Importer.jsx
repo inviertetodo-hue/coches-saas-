@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { analyzeCar } from "../services/profitAnalyzer";
 import { parseCarFromUrl } from "../services/urlParser";
+import { parseMobileDeUrl } from "../services/market/adapters/mobileDeAdapter";
 
 export default function Importer() {
   const [car, setCar] = useState({
@@ -103,7 +104,17 @@ export default function Importer() {
     setSaved(false);
 
     const semanticSource = getSemanticSource();
-    const parsed = parseCarFromUrl(semanticSource);
+
+    const parsedUrlData =
+      parseMobileDeUrl(semanticSource);
+
+    const parsedSemanticData =
+      parseCarFromUrl(semanticSource);
+
+    const parsed = {
+      ...parsedSemanticData,
+      ...parsedUrlData,
+    };
 
     const resolvedTitle =
       parsed?.title?.trim() ||
