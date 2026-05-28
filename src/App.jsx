@@ -1,8 +1,8 @@
-import { Component, Suspense, lazy } from "react";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
-import AppErrorFallback from "./components/common/AppErrorFallback";
 import LoadingScreen from "./components/common/LoadingScreen";
+import RouteErrorBoundary from "./components/common/RouteErrorBoundary";
 
 import "./App.css";
 
@@ -95,36 +95,4 @@ export default function App() {
       </div>
     </BrowserRouter>
   );
-}
-
-class RouteErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      hasError: false,
-    };
-  }
-
-  static getDerivedStateFromError() {
-    return {
-      hasError: true,
-    };
-  }
-
-  componentDidCatch(error) {
-    console.error("Route rendering error:", error);
-  }
-
-  handleReload = () => {
-    window.location.reload();
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return <AppErrorFallback onReload={this.handleReload} />;
-    }
-
-    return this.props.children;
-  }
 }
