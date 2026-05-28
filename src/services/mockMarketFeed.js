@@ -1,0 +1,239 @@
+import { analyzeCar } from "./profitAnalyzer";
+
+export function generateMockMarketFeed(scan) {
+  const query = String(scan?.query || "BMW X5 45e").trim();
+
+  const listings = buildMockListings(query);
+
+  const opportunities = listings
+    .map((car) => {
+      const estimatedMarketPrice = Math.round(car.price * car.marketMultiplier);
+
+      const analysis = analyzeCar({
+        ...car,
+        estimatedMarketPrice,
+      });
+
+      const netCosts = estimateImportCosts(car);
+      const netProfit = Math.round(analysis.estimatedProfit - netCosts.total);
+      const netRoi =
+        car.price > 0 ? Math.round((netProfit / car.price) * 100) : 0;
+
+      const opportunityScore = calculateOpportunityScore({
+        analysis,
+        netProfit,
+        netRoi,
+        car,
+      });
+
+      return {
+        ...car,
+        estimatedMarketPrice,
+        analysis,
+        netCosts,
+        netProfit,
+        netRoi,
+        opportunityScore,
+        decision: buildDecision(opportunityScore, netProfit, analysis),
+      };
+    })
+    .sort((a, b) => b.opportunityScore - a.opportunityScore);
+
+  return {
+    total: opportunities.length,
+    best: opportunities[0] || null,
+    opportunities,
+    insights: buildFeedInsights(opportunities),
+  };
+}
+
+function buildMockListings(query) {
+  const text = query.toLowerCase();
+
+  if (text.includes("x5")) {
+    return [
+      {
+        id: "mock-x5-1",
+        title: "BMW X5 xDrive45e M Sport",
+        brand: "BMW",
+        model: "X5",
+        price: 57900,
+        km: 54500,
+        year: 2022,
+        country: "Alemania",
+        fuelType: "PHEV",
+        drivetrain: "xDrive AWD",
+        bodyType: "SUV",
+        performancePackage: "M Sport",
+        electrified: true,
+        marketMultiplier: 1.23,
+        source: "mobile.de",
+      },
+      {
+        id: "mock-x5-2",
+        title: "BMW X5 xDrive50e M Sport Pro",
+        brand: "BMW",
+        model: "X5",
+        price: 74900,
+        km: 18500,
+        year: 2024,
+        country: "Alemania",
+        fuelType: "PHEV",
+        drivetrain: "xDrive AWD",
+        bodyType: "SUV",
+        performancePackage: "M Sport",
+        electrified: true,
+        marketMultiplier: 1.18,
+        source: "AutoScout24",
+      },
+      {
+        id: "mock-x5-3",
+        title: "BMW X5 xDrive40d",
+        brand: "BMW",
+        model: "X5",
+        price: 52900,
+        km: 89000,
+        year: 2021,
+        country: "Holanda",
+        fuelType: "Diesel",
+        drivetrain: "xDrive AWD",
+        bodyType: "SUV",
+        performancePackage: "",
+        electrified: false,
+        marketMultiplier: 1.12,
+        source: "mobile.de",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "mock-generic-1",
+      title: `${query} Premium Opportunity`,
+      brand: detectBrand(query),
+      model: query,
+      price: 44900,
+      km: 42000,
+      year: 2022,
+      country: "Alemania",
+      fuelType: "",
+      drivetrain: "",
+      bodyType: "",
+      performancePackage: "",
+      electrified: false,
+      marketMultiplier: 1.16,
+      source: "mobile.de",
+    },
+    {
+      id: "mock-generic-2",
+      title: `${query} Low KM`,
+      brand: detectBrand(query),
+      model: query,
+      price: 51900,
+      km: 21000,
+      year: 2023,
+      country: "Bélgica",
+      fuelType: "",
+      drivetrain: "",
+      bodyType: "",
+      performancePackage: "",
+      electrified: false,
+      marketMultiplier: 1.11,
+      source: "AutoScout24",
+    },
+  ];
+}
+
+function estimateImportCosts(car) {
+  const transport = car.country === "Alemania" ? 900 : 1200;
+  const registration = 750;
+  const gestor = 450;
+  const inspection = 350;
+  const detailing = 400;
+  const riskBuffer = car.price >= 70000 ? 1800 : 900;
+
+  const total =
+    transport + registration + gestor + inspection + detailing + riskBuffer;
+
+  return {
+    transport,
+    registration,
+    gestor,
+    inspection,
+    detailing,
+    riskBuffer,
+    total,
+  };
+}
+
+function calculateOpportunityScore({ analysis, netProfit, netRoi, car }) {
+  let score = 0;
+
+  score += Number(analysis.score || 0) * 0.45;
+  score += Math.max(netRoi, 0) * 1.15;
+  score += Math.min(Math.max(netProfit, 0) / 1000, 25);
+
+  if (car.fuelType === "PHEV") score += 6;
+  if (car.bodyType === "SUV") score += 7;
+  if (car.drivetrain) score += 4;
+  if (car.km <= 60000) score += 5;
+  if (car.price >= 90000) score -= 10;
+
+  return clampScore(score);
+}
+
+function buildDecision(score, netProfit, analysis) {
+  if (score >= 82 && netProfit > 7000) {
+    return "🔥 Comprar / llamar rápido";
+  }
+
+  if (score >= 68 && netProfit > 3500) {
+    return "🟢 Buena oportunidad";
+  }
+
+  if (score >= 52) {
+    return "🟡 Analizar con calma";
+  }
+
+  if (analysis.recommendation === "❌ DESCARTAR") {
+    return "❌ Descartar";
+  }
+
+  return "⚠️ Poco margen real";
+}
+
+function buildFeedInsights(opportunities) {
+  if (!opportunities.length) {
+    return ["No hay oportunidades suficientes para comparar."];
+  }
+
+  const best = opportunities[0];
+
+  return [
+    `🥇 Mejor oportunidad detectada: ${best.title}.`,
+    `💰 Margen neto estimado: ${best.netProfit.toLocaleString("es-ES")} €.`,
+    `📊 ROI neto estimado: ${best.netRoi}%.`,
+    "🧠 Este feed es simulado para validar lógica antes de scraping real.",
+  ];
+}
+
+function detectBrand(query) {
+  const text = String(query || "").toLowerCase();
+
+  if (text.includes("bmw")) return "BMW";
+  if (text.includes("audi")) return "Audi";
+  if (text.includes("mercedes")) return "Mercedes-Benz";
+  if (text.includes("porsche")) return "Porsche";
+  if (text.includes("volvo")) return "Volvo";
+
+  return "";
+}
+
+function clampScore(value) {
+  const number = Math.round(Number(value || 0));
+
+  if (number > 100) return 100;
+  if (number < 0) return 0;
+
+  return number;
+}

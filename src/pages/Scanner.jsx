@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { buildMarketScan } from "../services/marketScanner";
+import { generateMockMarketFeed } from "../services/mockMarketFeed";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -9,7 +10,15 @@ export default function Scanner() {
     useCase: "reventa",
   });
 
-  const scan = useMemo(() => buildMarketScan(form), [form]);
+  const scan = useMemo(
+    () => buildMarketScan(form),
+    [form]
+  );
+
+  const marketFeed = useMemo(
+    () => generateMockMarketFeed(scan),
+    [scan]
+  );
 
   function updateField(field, value) {
     setForm((current) => ({
@@ -31,10 +40,10 @@ export default function Scanner() {
           </h1>
 
           <p style={subtitleStyle}>
-            Escribe qué coche quieres comprar y el
-            sistema prepara una búsqueda inteligente
-            para detectar oportunidades con margen,
-            liquidez y bajo riesgo.
+            El sistema detecta oportunidades,
+            calcula margen neto estimado y
+            prioriza operaciones con mayor
+            potencial.
           </p>
         </div>
 
@@ -52,7 +61,7 @@ export default function Scanner() {
                   event.target.value
                 )
               }
-              placeholder="BMW X5 45e, Audi Q7 TFSIe..."
+              placeholder="BMW X5 45e, Audi Q7..."
               style={inputStyle}
             />
 
@@ -95,7 +104,7 @@ export default function Scanner() {
             </select>
 
             <label style={labelStyle}>
-              Objetivo de compra
+              Objetivo
             </label>
 
             <select
@@ -109,11 +118,11 @@ export default function Scanner() {
               style={inputStyle}
             >
               <option value="reventa">
-                Comprar para reventa
+                Reventa
               </option>
 
               <option value="quedarmelo">
-                Comprar para quedármelo
+                Quedármelo
               </option>
             </select>
           </div>
@@ -135,12 +144,12 @@ export default function Scanner() {
 
               <SemanticBadge
                 active={scan.semantic?.isPhev}
-                label="PHEV / Hybrid"
+                label="PHEV"
               />
 
               <SemanticBadge
                 active={scan.semantic?.isSuv}
-                label="SUV líquido"
+                label="SUV"
               />
 
               <SemanticBadge
@@ -150,82 +159,133 @@ export default function Scanner() {
                 label="Performance"
               />
             </div>
-          </div>
-        </div>
 
-        <div style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>
-            Búsquedas rápidas del mercado
-          </h2>
+            {marketFeed.best && (
+              <div style={bestDealStyle}>
+                <p style={bestDealLabelStyle}>
+                  🏆 Mejor oportunidad detectada
+                </p>
 
-          <div style={linksGridStyle}>
-            {scan.searchLinks.map(
-              (item, index) => (
-                <a
-                  key={`${item.source}-${item.country}-${index}`}
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={linkCardStyle}
-                >
-                  <div>
-                    <p style={sourceStyle}>
-                      {item.source}
-                    </p>
+                <h3 style={bestDealTitleStyle}>
+                  {marketFeed.best.title}
+                </h3>
 
-                    <h3 style={linkTitleStyle}>
-                      {item.label}
-                    </h3>
+                <p style={bestDealDecisionStyle}>
+                  {marketFeed.best.decision}
+                </p>
 
-                    <p style={countryStyle}>
-                      Prioridad: {item.priority}
-                    </p>
-                  </div>
+                <div style={bestDealGridStyle}>
+                  <MetricCard
+                    label="Score"
+                    value={`${marketFeed.best.opportunityScore}/100`}
+                  />
 
-                  <span style={openStyle}>
-                    Abrir búsqueda →
-                  </span>
-                </a>
-              )
+                  <MetricCard
+                    label="Margen Neto"
+                    value={`${marketFeed.best.netProfit.toLocaleString(
+                      "es-ES"
+                    )} €`}
+                  />
+
+                  <MetricCard
+                    label="ROI Neto"
+                    value={`${marketFeed.best.netRoi}%`}
+                  />
+
+                  <MetricCard
+                    label="Precio"
+                    value={`${marketFeed.best.price.toLocaleString(
+                      "es-ES"
+                    )} €`}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
 
         <div style={sectionStyle}>
           <h2 style={sectionTitleStyle}>
-            Criterios para detectar el chollo
+            Feed IA de oportunidades
           </h2>
 
-          <div style={logicGridStyle}>
-            {scan.buyingLogic.map(
-              (item, index) => (
+          <div style={feedGridStyle}>
+            {marketFeed.opportunities.map(
+              (item) => (
                 <div
-                  key={`${item.title}-${index}`}
-                  style={{
-                    ...logicCardStyle,
-                    ...getLogicStyle(item.type),
-                  }}
+                  key={item.id}
+                  style={feedCardStyle}
                 >
-                  <h3 style={logicTitleStyle}>
-                    {item.title}
-                  </h3>
+                  <div>
+                    <p style={feedSourceStyle}>
+                      {item.source}
+                    </p>
 
-                  <p style={logicTextStyle}>
-                    {item.text}
-                  </p>
+                    <h3 style={feedTitleStyle}>
+                      {item.title}
+                    </h3>
+
+                    <p style={feedPriceStyle}>
+                      {item.price.toLocaleString(
+                        "es-ES"
+                      )}{" "}
+                      €
+                    </p>
+
+                    <p style={feedMetaStyle}>
+                      {item.year} ·{" "}
+                      {item.km.toLocaleString(
+                        "es-ES"
+                      )}{" "}
+                      km
+                    </p>
+                  </div>
+
+                  <div style={feedMetricsStyle}>
+                    <FeedMetric
+                      label="Opportunity"
+                      value={`${item.opportunityScore}/100`}
+                    />
+
+                    <FeedMetric
+                      label="ROI"
+                      value={`${item.netRoi}%`}
+                    />
+
+                    <FeedMetric
+                      label="Margen"
+                      value={`${item.netProfit.toLocaleString(
+                        "es-ES"
+                      )} €`}
+                    />
+                  </div>
+
+                  <div style={decisionStyle}>
+                    {item.decision}
+                  </div>
                 </div>
               )
             )}
           </div>
         </div>
 
-        <div style={nextStepStyle}>
-          <strong>Siguiente fase:</strong>{" "}
-          conectar este scanner con una Edge
-          Function para leer anuncios reales,
-          extraer título/precio/km/año,
-          analizarlos automáticamente y devolver
-          TOP oportunidades reales.
+        <div style={sectionStyle}>
+          <h2 style={sectionTitleStyle}>
+            Inteligencia IA
+          </h2>
+
+          <div style={insightGridStyle}>
+            {marketFeed.insights.map(
+              (insight, index) => (
+                <div
+                  key={index}
+                  style={insightCardStyle}
+                >
+                  {insight}
+                </div>
+              )
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -237,10 +297,7 @@ function SemanticBadge({ active, label }) {
     <div
       style={{
         ...semanticBadgeStyle,
-        opacity: active ? 1 : 0.42,
-        borderColor: active
-          ? "rgba(34,197,94,0.45)"
-          : "rgba(148,163,184,0.18)",
+        opacity: active ? 1 : 0.45,
       }}
     >
       {active ? "✅" : "○"} {label}
@@ -248,30 +305,28 @@ function SemanticBadge({ active, label }) {
   );
 }
 
-function getLogicStyle(type) {
-  if (type === "positive") {
-    return {
-      border:
-        "1px solid rgba(34,197,94,0.28)",
-      background:
-        "rgba(34,197,94,0.10)",
-    };
-  }
+function MetricCard({ label, value }) {
+  return (
+    <div style={metricCardStyle}>
+      <p style={metricLabelStyle}>{label}</p>
 
-  if (type === "warning") {
-    return {
-      border:
-        "1px solid rgba(250,204,21,0.28)",
-      background:
-        "rgba(250,204,21,0.10)",
-    };
-  }
+      <h3 style={metricValueStyle}>{value}</h3>
+    </div>
+  );
+}
 
-  return {
-    border:
-      "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(255,255,255,0.05)",
-  };
+function FeedMetric({ label, value }) {
+  return (
+    <div style={feedMetricStyle}>
+      <p style={feedMetricLabelStyle}>
+        {label}
+      </p>
+
+      <h4 style={feedMetricValueStyle}>
+        {value}
+      </h4>
+    </div>
+  );
 }
 
 const pageStyle = {
@@ -284,18 +339,18 @@ const pageStyle = {
 };
 
 const containerStyle = {
-  maxWidth: "1300px",
+  maxWidth: "1400px",
   margin: "0 auto",
 };
 
 const headerStyle = {
-  marginBottom: "34px",
+  marginBottom: "36px",
 };
 
 const badgeStyle = {
   display: "inline-block",
   background:
-    "rgba(34,197,94,0.14)",
+    "rgba(34,197,94,0.12)",
   color: "#86efac",
   padding: "8px 14px",
   borderRadius: "999px",
@@ -304,15 +359,14 @@ const badgeStyle = {
 };
 
 const titleStyle = {
-  fontSize: "clamp(36px, 6vw, 58px)",
+  fontSize: "clamp(38px, 6vw, 62px)",
   margin: 0,
-  letterSpacing: "-0.04em",
 };
 
 const subtitleStyle = {
   color: "#cbd5e1",
   marginTop: "16px",
-  lineHeight: "1.65",
+  lineHeight: "1.7",
   maxWidth: "780px",
 };
 
@@ -324,12 +378,10 @@ const gridStyle = {
 
 const cardStyle = {
   background: "rgba(15,23,42,0.82)",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
   borderRadius: "28px",
   padding: "28px",
-  boxShadow:
-    "0 24px 80px rgba(0,0,0,0.22)",
+  border:
+    "1px solid rgba(148,163,184,0.16)",
 };
 
 const labelStyle = {
@@ -338,7 +390,6 @@ const labelStyle = {
   marginBottom: "8px",
   color: "#cbd5e1",
   fontWeight: "800",
-  fontSize: "14px",
 };
 
 const inputStyle = {
@@ -357,13 +408,11 @@ const inputStyle = {
 const sectionLabelStyle = {
   color: "#93c5fd",
   fontWeight: "900",
-  marginTop: 0,
 };
 
 const summaryStyle = {
-  fontSize: "28px",
-  lineHeight: "1.25",
-  marginTop: "12px",
+  fontSize: "30px",
+  lineHeight: "1.3",
 };
 
 const semanticGridStyle = {
@@ -376,93 +425,136 @@ const semanticGridStyle = {
 const semanticBadgeStyle = {
   padding: "14px",
   borderRadius: "16px",
-  background: "rgba(2,6,23,0.65)",
-  border:
-    "1px solid rgba(148,163,184,0.18)",
-  color: "#e5e7eb",
+  background: "rgba(255,255,255,0.05)",
   fontWeight: "900",
 };
 
-const sectionStyle = {
-  marginTop: "28px",
+const bestDealStyle = {
+  marginTop: "30px",
+  padding: "24px",
+  borderRadius: "24px",
+  background:
+    "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(59,130,246,0.14))",
 };
 
-const sectionTitleStyle = {
-  fontSize: "24px",
-  marginBottom: "18px",
-};
-
-const linksGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(260px, 1fr))",
-  gap: "16px",
-};
-
-const linkCardStyle = {
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  minHeight: "155px",
-  textDecoration: "none",
-  color: "white",
-  background: "rgba(15,23,42,0.78)",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
-  borderRadius: "22px",
-  padding: "20px",
-};
-
-const sourceStyle = {
+const bestDealLabelStyle = {
   color: "#86efac",
   fontWeight: "900",
-  margin: 0,
 };
 
-const linkTitleStyle = {
-  margin: "10px 0",
-  fontSize: "18px",
+const bestDealTitleStyle = {
+  fontSize: "28px",
 };
 
-const countryStyle = {
+const bestDealDecisionStyle = {
+  color: "#facc15",
+  fontWeight: "900",
+};
+
+const bestDealGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(150px,1fr))",
+  gap: "14px",
+  marginTop: "22px",
+};
+
+const metricCardStyle = {
+  background: "rgba(2,6,23,0.55)",
+  borderRadius: "18px",
+  padding: "18px",
+};
+
+const metricLabelStyle = {
   color: "#cbd5e1",
 };
 
-const openStyle = {
-  color: "#93c5fd",
-  fontWeight: "900",
-  marginTop: "18px",
+const metricValueStyle = {
+  fontSize: "26px",
 };
 
-const logicGridStyle = {
+const sectionStyle = {
+  marginTop: "34px",
+};
+
+const sectionTitleStyle = {
+  fontSize: "28px",
+};
+
+const feedGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "16px",
+    "repeat(auto-fit,minmax(320px,1fr))",
+  gap: "18px",
 };
 
-const logicCardStyle = {
-  borderRadius: "22px",
-  padding: "20px",
-};
-
-const logicTitleStyle = {
-  marginTop: 0,
-};
-
-const logicTextStyle = {
-  color: "#e5e7eb",
-  lineHeight: "1.55",
-};
-
-const nextStepStyle = {
-  marginTop: "30px",
-  padding: "22px",
-  borderRadius: "22px",
-  background:
-    "rgba(59,130,246,0.12)",
+const feedCardStyle = {
+  background: "rgba(15,23,42,0.82)",
+  borderRadius: "24px",
+  padding: "24px",
   border:
-    "1px solid rgba(59,130,246,0.28)",
-  color: "#dbeafe",
-  lineHeight: "1.55",
+    "1px solid rgba(148,163,184,0.16)",
+};
+
+const feedSourceStyle = {
+  color: "#86efac",
+  fontWeight: "900",
+};
+
+const feedTitleStyle = {
+  fontSize: "22px",
+};
+
+const feedPriceStyle = {
+  fontSize: "34px",
+  fontWeight: "900",
+};
+
+const feedMetaStyle = {
+  color: "#cbd5e1",
+};
+
+const feedMetricsStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: "12px",
+  marginTop: "20px",
+};
+
+const feedMetricStyle = {
+  background: "rgba(255,255,255,0.05)",
+  borderRadius: "16px",
+  padding: "14px",
+};
+
+const feedMetricLabelStyle = {
+  color: "#cbd5e1",
+  fontSize: "12px",
+};
+
+const feedMetricValueStyle = {
+  fontSize: "20px",
+};
+
+const decisionStyle = {
+  marginTop: "20px",
+  padding: "14px",
+  borderRadius: "16px",
+  background:
+    "rgba(34,197,94,0.12)",
+  color: "#86efac",
+  fontWeight: "900",
+  textAlign: "center",
+};
+
+const insightGridStyle = {
+  display: "grid",
+  gap: "14px",
+};
+
+const insightCardStyle = {
+  background: "rgba(255,255,255,0.05)",
+  borderRadius: "18px",
+  padding: "18px",
+  fontWeight: "700",
 };
