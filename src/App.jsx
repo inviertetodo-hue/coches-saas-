@@ -1,6 +1,8 @@
 import { Component, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
+import AppErrorFallback from "./components/common/AppErrorFallback";
+
 import "./App.css";
 
 const Scanner = lazy(() => import("./pages/Scanner"));
@@ -95,11 +97,7 @@ export default function App() {
 }
 
 function LoadingScreen() {
-  return (
-    <div style={centerBoxStyle}>
-      Cargando inteligencia IA...
-    </div>
-  );
+  return <div style={centerBoxStyle}>Cargando inteligencia IA...</div>;
 }
 
 class RouteErrorBoundary extends Component {
@@ -127,20 +125,7 @@ class RouteErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={errorBoxStyle}>
-          <h2 style={errorTitleStyle}>No se pudo cargar esta sección</h2>
-
-          <p style={errorTextStyle}>
-            La aplicación sigue protegida. Recarga la página para volver a
-            intentar cargar el módulo.
-          </p>
-
-          <button type="button" style={buttonStyle} onClick={this.handleReload}>
-            Recargar aplicación
-          </button>
-        </div>
-      );
+      return <AppErrorFallback onReload={this.handleReload} />;
     }
 
     return this.props.children;
@@ -153,37 +138,4 @@ const centerBoxStyle = {
   placeItems: "center",
   color: "#cbd5e1",
   fontWeight: "900",
-};
-
-const errorBoxStyle = {
-  minHeight: "60vh",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  textAlign: "center",
-  padding: "32px",
-  color: "white",
-};
-
-const errorTitleStyle = {
-  fontSize: "28px",
-  marginBottom: "12px",
-};
-
-const errorTextStyle = {
-  color: "#cbd5e1",
-  lineHeight: "1.6",
-  maxWidth: "520px",
-};
-
-const buttonStyle = {
-  marginTop: "18px",
-  padding: "12px 18px",
-  borderRadius: "14px",
-  border: "1px solid rgba(59,130,246,0.35)",
-  background: "rgba(59,130,246,0.18)",
-  color: "#dbeafe",
-  fontWeight: "900",
-  cursor: "pointer",
 };
