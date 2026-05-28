@@ -208,10 +208,14 @@ export default function History() {
     executive,
   } = intelligence;
 
+  const normalizedSearch = useMemo(() => {
+    return search.trim().toLowerCase();
+  }, [search]);
+
   const filteredAnalyses = useMemo(() => {
     let result = [...cleanAnalyses];
 
-    if (search.trim()) {
+    if (normalizedSearch) {
       result = result.filter((item) => {
         const text = `
           ${item.title || ""}
@@ -222,7 +226,7 @@ export default function History() {
           ${item.performance_package || ""}
         `.toLowerCase();
 
-        return text.includes(search.toLowerCase());
+        return text.includes(normalizedSearch);
       });
     }
 
@@ -247,7 +251,7 @@ export default function History() {
     });
 
     return result;
-  }, [cleanAnalyses, filter, search, sortBy]);
+  }, [cleanAnalyses, filter, normalizedSearch, sortBy]);
 
   return (
     <div style={pageStyle}>
