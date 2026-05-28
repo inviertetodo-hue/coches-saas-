@@ -1,8 +1,6 @@
-export default function TrendSummaryCard({
-  trendProfile,
-  SmallMetric,
-  marketInsightStyle,
-}) {
+import SmallMetric from "./SmallMetric";
+
+export default function TrendSummaryCard({ trendProfile }) {
   if (!trendProfile) return null;
 
   return (
@@ -57,4 +55,11 @@ const trendMetricGridStyle = {
   gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
   gap: "10px",
   marginBottom: "16px",
+};
+
+const marketInsightStyle = {
+  marginBottom: 0,
+  color: "#e5e7eb",
+  lineHeight: "1.55",
+  fontSize: "14px",
 };
