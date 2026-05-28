@@ -1,21 +1,20 @@
 import { Link } from "react-router-dom";
 
+import { NOT_FOUND_CONTENT } from "../config/notFoundContent";
 import { ROUTE_PATHS } from "../config/routePaths";
 
 export default function NotFound() {
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
-        <p style={badgeStyle}>404</p>
+        <p style={badgeStyle}>{NOT_FOUND_CONTENT.badge}</p>
 
-        <h1 style={titleStyle}>Página no encontrada</h1>
+        <h1 style={titleStyle}>{NOT_FOUND_CONTENT.title}</h1>
 
-        <p style={textStyle}>
-          Esta sección no existe o todavía no está disponible en Coches SaaS.
-        </p>
+        <p style={textStyle}>{NOT_FOUND_CONTENT.text}</p>
 
         <Link to={ROUTE_PATHS.scanner} style={buttonStyle}>
-          Volver al Scanner IA
+          {NOT_FOUND_CONTENT.actionLabel}
         </Link>
       </div>
     </div>
