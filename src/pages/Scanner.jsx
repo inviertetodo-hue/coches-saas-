@@ -262,7 +262,15 @@ export default function Scanner() {
 
               <div style={feedGridStyle}>
                 {marketFeed.opportunities.map((item) => (
-                  <div key={item.id} style={feedCardStyle}>
+              <div
+  key={item.id}
+  style={{
+    ...feedCardStyle,
+    border: `1px solid ${getDecisionColor(
+      item.finalDecision.action
+    )}`,
+  }}
+>
                     <div>
                       <p style={feedSourceStyle}>{item.source}</p>
 
@@ -534,6 +542,23 @@ function SmallMetric({ label, value }) {
       <strong style={smallMetricValueStyle}>{value}</strong>
     </div>
   );
+}function getDecisionColor(action) {
+  switch (action) {
+    case "CONTACTAR_PRIMERO":
+      return "rgba(34,197,94,0.45)";
+
+    case "VIGILAR":
+      return "rgba(59,130,246,0.40)";
+
+    case "EVITAR":
+      return "rgba(245,158,11,0.40)";
+
+    case "DESCARTAR":
+      return "rgba(239,68,68,0.45)";
+
+    default:
+      return "rgba(148,163,184,0.18)";
+  }
 }
 
 const pageStyle = {
@@ -739,8 +764,8 @@ const feedCardStyle = {
   background: "rgba(15,23,42,0.82)",
   borderRadius: "24px",
   padding: "24px",
-  border: "1px solid rgba(148,163,184,0.16)",
-};
+  transition: "0.25s ease",
+}
 
 const feedSourceStyle = {
   color: "#86efac",
