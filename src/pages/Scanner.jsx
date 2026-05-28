@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import ScannerHeader from "../components/scanner/ScannerHeader";
+import ScannerForm from "../components/ScannerForm";
+
 import { buildMarketScan } from "../services/marketScanner";
 import { generateMockMarketFeed } from "../services/mockMarketFeed";
 import { buildSearchRecommendations } from "../services/searchRecommendationEngine";
@@ -55,8 +58,13 @@ export default function Scanner() {
       };
     }
 
-    const opportunities = rawFeed.opportunities.map(enrichDeal);
-    const best = rawFeed.best ? enrichDeal(rawFeed.best) : null;
+    const opportunities = rawFeed.opportunities
+      .map(enrichDeal)
+      .sort(
+        (a, b) => b.finalDecision.finalScore - a.finalDecision.finalScore
+      );
+
+    const best = opportunities[0] || null;
 
     return {
       ...rawFeed,
@@ -91,70 +99,14 @@ export default function Scanner() {
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
-        <div style={headerStyle}>
-          <p style={badgeStyle}>AI Automotive Opportunity Scanner</p>
-
-          <h1 style={titleStyle}>Encuentra chollos reales en Europa</h1>
-
-          <p style={subtitleStyle}>
-            Escribe el vehículo que quieres comprar y pulsa buscar. El sistema
-            prioriza oportunidades por margen neto, precio bajo mercado,
-            liquidez, riesgo y probabilidad de venta rápida.
-          </p>
-        </div>
+        <ScannerHeader />
 
         <div style={gridStyle}>
-          <div style={cardStyle}>
-            <label style={labelStyle}>Vehículo objetivo</label>
-
-            <input
-              value={form.query}
-              onChange={(event) => updateField("query", event.target.value)}
-              placeholder="BMW X5 45e, Audi Q7..."
-              style={inputStyle}
-            />
-
-            <label style={labelStyle}>Presupuesto máximo</label>
-
-            <input
-              value={form.maxBudget}
-              onChange={(event) =>
-                updateField("maxBudget", event.target.value)
-              }
-              placeholder="60000"
-              style={inputStyle}
-            />
-
-            <label style={labelStyle}>Mercado</label>
-
-            <select
-              value={form.country}
-              onChange={(event) => updateField("country", event.target.value)}
-              style={inputStyle}
-            >
-              <option>Europa</option>
-              <option>Alemania</option>
-              <option>Holanda</option>
-              <option>Bélgica</option>
-              <option>Francia</option>
-              <option>España</option>
-            </select>
-
-            <label style={labelStyle}>Objetivo</label>
-
-            <select
-              value={form.useCase}
-              onChange={(event) => updateField("useCase", event.target.value)}
-              style={inputStyle}
-            >
-              <option value="reventa">Reventa</option>
-              <option value="quedarmelo">Quedármelo</option>
-            </select>
-
-            <button onClick={handleSearch} style={searchButtonStyle}>
-              🔎 Buscar oportunidades IA
-            </button>
-          </div>
+          <ScannerForm
+            form={form}
+            updateField={updateField}
+            handleSearch={handleSearch}
+          />
 
           <div style={cardStyle}>
             <p style={sectionLabelStyle}>Resumen IA</p>
@@ -262,15 +214,15 @@ export default function Scanner() {
 
               <div style={feedGridStyle}>
                 {marketFeed.opportunities.map((item) => (
-              <div
-  key={item.id}
-  style={{
-    ...feedCardStyle,
-    border: `1px solid ${getDecisionColor(
-      item.finalDecision.action
-    )}`,
-  }}
->
+                  <div
+                    key={item.id}
+                    style={{
+                      ...feedCardStyle,
+                      border: `1px solid ${getDecisionColor(
+                        item.finalDecision.action
+                      )}`,
+                    }}
+                  >
                     <div>
                       <p style={feedSourceStyle}>{item.source}</p>
 
@@ -542,20 +494,18 @@ function SmallMetric({ label, value }) {
       <strong style={smallMetricValueStyle}>{value}</strong>
     </div>
   );
-}function getDecisionColor(action) {
+}
+
+function getDecisionColor(action) {
   switch (action) {
     case "CONTACTAR_PRIMERO":
       return "rgba(34,197,94,0.45)";
-
     case "VIGILAR":
       return "rgba(59,130,246,0.40)";
-
     case "EVITAR":
       return "rgba(245,158,11,0.40)";
-
     case "DESCARTAR":
       return "rgba(239,68,68,0.45)";
-
     default:
       return "rgba(148,163,184,0.18)";
   }
@@ -575,32 +525,6 @@ const containerStyle = {
   margin: "0 auto",
 };
 
-const headerStyle = {
-  marginBottom: "36px",
-};
-
-const badgeStyle = {
-  display: "inline-block",
-  background: "rgba(34,197,94,0.12)",
-  color: "#86efac",
-  padding: "8px 14px",
-  borderRadius: "999px",
-  fontWeight: "900",
-  marginBottom: "18px",
-};
-
-const titleStyle = {
-  fontSize: "clamp(38px, 6vw, 62px)",
-  margin: 0,
-};
-
-const subtitleStyle = {
-  color: "#cbd5e1",
-  marginTop: "16px",
-  lineHeight: "1.7",
-  maxWidth: "780px",
-};
-
 const gridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
@@ -612,40 +536,6 @@ const cardStyle = {
   borderRadius: "28px",
   padding: "28px",
   border: "1px solid rgba(148,163,184,0.16)",
-};
-
-const labelStyle = {
-  display: "block",
-  marginTop: "16px",
-  marginBottom: "8px",
-  color: "#cbd5e1",
-  fontWeight: "800",
-};
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "16px",
-  borderRadius: "16px",
-  border: "1px solid rgba(148,163,184,0.20)",
-  background: "rgba(2,6,23,0.86)",
-  color: "white",
-  outline: "none",
-  fontWeight: "700",
-};
-
-const searchButtonStyle = {
-  width: "100%",
-  marginTop: "24px",
-  padding: "18px",
-  borderRadius: "18px",
-  border: "none",
-  background: "linear-gradient(135deg,#2563eb,#16a34a)",
-  color: "white",
-  fontWeight: "900",
-  fontSize: "16px",
-  cursor: "pointer",
-  boxShadow: "0 10px 30px rgba(37,99,235,0.35)",
 };
 
 const sectionLabelStyle = {
@@ -765,7 +655,7 @@ const feedCardStyle = {
   borderRadius: "24px",
   padding: "24px",
   transition: "0.25s ease",
-}
+};
 
 const feedSourceStyle = {
   color: "#86efac",
