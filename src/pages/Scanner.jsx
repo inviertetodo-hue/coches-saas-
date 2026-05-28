@@ -3,8 +3,11 @@ import { useMemo, useState } from "react";
 import ScannerHeader from "../components/scanner/ScannerHeader";
 import SemanticBadge from "../components/scanner/SemanticBadge";
 import SmallMetric from "../components/scanner/SmallMetric";
-import MetricCard from "../components/scanner/MetricCard";
 import FeedMetric from "../components/scanner/FeedMetric";
+import BestDealCard from "../components/scanner/BestDealCard";
+import DealDecisionPill, {
+  getDecisionColor,
+} from "../components/scanner/DealDecisionPill";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
@@ -160,55 +163,7 @@ export default function Scanner() {
               </div>
             )}
 
-            {marketFeed?.best && (
-              <div style={bestDealStyle}>
-                <p style={bestDealLabelStyle}>
-                  🏆 Mejor oportunidad detectada
-                </p>
-
-                <h3 style={bestDealTitleStyle}>{marketFeed.best.title}</h3>
-
-                <div style={finalDecisionHeroStyle}>
-                  {marketFeed.best.finalDecision.label}
-                </div>
-
-                <p style={bestDealDecisionStyle}>
-                  {marketFeed.best.finalDecision.explanation}
-                </p>
-
-                <div style={bestDealGridStyle}>
-                  <MetricCard
-                    label="Score final"
-                    value={`${marketFeed.best.finalDecision.finalScore}/100`}
-                  />
-
-                  <MetricCard
-                    label="Margen neto"
-                    value={`${marketFeed.best.netProfit.toLocaleString(
-                      "es-ES"
-                    )} €`}
-                  />
-
-                  <MetricCard
-                    label="Liquidez"
-                    value={`${marketFeed.best.liquidity.liquidityScore}/100`}
-                  />
-
-                  <MetricCard
-                    label="Riesgo"
-                    value={`${marketFeed.best.dealRisk.riskScore}/100`}
-                  />
-                </div>
-
-                <div style={riskBoxStyle}>
-                  <h4 style={miniTitleStyle}>🧭 Decisión consolidada</h4>
-
-                  <p style={marketInsightStyle}>
-                    {marketFeed.best.finalDecision.explanation}
-                  </p>
-                </div>
-              </div>
-            )}
+            <BestDealCard best={marketFeed?.best} />
           </div>
         </div>
 
@@ -242,9 +197,10 @@ export default function Scanner() {
                       </p>
                     </div>
 
-                    <div style={finalDecisionStyle}>
-                      {item.finalDecision.label}
-                    </div>
+                    <DealDecisionPill
+                      action={item.finalDecision.action}
+                      label={item.finalDecision.label}
+                    />
 
                     <div style={feedMetricsStyle}>
                       <FeedMetric
@@ -461,21 +417,6 @@ export default function Scanner() {
   );
 }
 
-function getDecisionColor(action) {
-  switch (action) {
-    case "CONTACTAR_PRIMERO":
-      return "rgba(34,197,94,0.45)";
-    case "VIGILAR":
-      return "rgba(59,130,246,0.40)";
-    case "EVITAR":
-      return "rgba(245,158,11,0.40)";
-    case "DESCARTAR":
-      return "rgba(239,68,68,0.45)";
-    default:
-      return "rgba(148,163,184,0.18)";
-  }
-}
-
 const pageStyle = {
   minHeight: "100vh",
   background:
@@ -528,56 +469,6 @@ const waitingBoxStyle = {
   border: "1px solid rgba(59,130,246,0.22)",
   color: "#dbeafe",
   lineHeight: "1.55",
-};
-
-const bestDealStyle = {
-  marginTop: "30px",
-  padding: "24px",
-  borderRadius: "24px",
-  background:
-    "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(59,130,246,0.14))",
-};
-
-const bestDealLabelStyle = {
-  color: "#86efac",
-  fontWeight: "900",
-};
-
-const bestDealTitleStyle = {
-  fontSize: "28px",
-};
-
-const bestDealDecisionStyle = {
-  color: "#facc15",
-  fontWeight: "900",
-  lineHeight: "1.6",
-};
-
-const finalDecisionHeroStyle = {
-  display: "inline-block",
-  padding: "12px 18px",
-  borderRadius: "999px",
-  background: "rgba(250,204,21,0.14)",
-  color: "#fde68a",
-  fontWeight: "900",
-  marginBottom: "14px",
-};
-
-const finalDecisionStyle = {
-  marginTop: "18px",
-  padding: "14px",
-  borderRadius: "16px",
-  background: "rgba(250,204,21,0.12)",
-  color: "#fde68a",
-  fontWeight: "900",
-  textAlign: "center",
-};
-
-const bestDealGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
-  gap: "14px",
-  marginTop: "22px",
 };
 
 const sectionStyle = {
