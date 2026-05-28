@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { buildMarketScan } from "../services/marketScanner";
 import { generateMockMarketFeed } from "../services/mockMarketFeed";
 import { buildSearchRecommendations } from "../services/searchRecommendationEngine";
+import { buildMarketTrendProfile } from "../services/marketTrendEngine";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -14,6 +15,14 @@ export default function Scanner() {
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   const scan = useMemo(() => buildMarketScan(form), [form]);
+
+  const trendProfile = useMemo(() => {
+    return buildMarketTrendProfile({
+      query: form.query,
+      maxBudget: form.maxBudget,
+      semantic: scan.semantic,
+    });
+  }, [form.query, form.maxBudget, scan.semantic]);
 
   const marketFeed = useMemo(() => {
     if (!searchTriggered) return null;
@@ -124,6 +133,31 @@ export default function Scanner() {
                 active={scan.semantic?.isPerformance}
                 label="Performance"
               />
+            </div>
+
+            <div style={trendBoxStyle}>
+              <p style={trendBadgeStyle}>📈 Tendencia de mercado</p>
+
+              <h3 style={trendTitleStyle}>{trendProfile.mainTrend.label}</h3>
+
+              <div style={trendMetricGridStyle}>
+                <SmallMetric
+                  label="Demanda"
+                  value={trendProfile.mainTrend.demand}
+                />
+
+                <SmallMetric
+                  label="Tendencia"
+                  value={trendProfile.mainTrend.trend}
+                />
+
+                <SmallMetric
+                  label="Riesgo"
+                  value={trendProfile.mainTrend.risk}
+                />
+              </div>
+
+              <p style={marketInsightStyle}>{trendProfile.summary}</p>
             </div>
 
             {!searchTriggered && (
@@ -288,6 +322,40 @@ export default function Scanner() {
                     {insight}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div style={trendSectionStyle}>
+              <div style={trendHeaderStyle}>
+                <p style={trendBadgeStyle}>📈 Motor de tendencias</p>
+
+                <h2 style={trendSectionTitleStyle}>
+                  Lectura estratégica del mercado
+                </h2>
+
+                <p style={radarSummaryStyle}>{trendProfile.summary}</p>
+              </div>
+
+              <div style={trendGridStyle}>
+                {[trendProfile.mainTrend, ...trendProfile.trends]
+                  .filter(
+                    (item, index, array) =>
+                      array.findIndex((trend) => trend.label === item.label) ===
+                      index
+                  )
+                  .map((trend) => (
+                    <div key={trend.label} style={trendCardStyle}>
+                      <h3 style={trendCardTitleStyle}>{trend.label}</h3>
+
+                      <div style={trendMetricGridStyle}>
+                        <SmallMetric label="Demanda" value={trend.demand} />
+                        <SmallMetric label="Tendencia" value={trend.trend} />
+                        <SmallMetric label="Riesgo" value={trend.risk} />
+                      </div>
+
+                      <p style={marketInsightStyle}>{trend.insight}</p>
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -696,6 +764,63 @@ const insightCardStyle = {
   borderRadius: "18px",
   padding: "18px",
   fontWeight: "700",
+};
+
+const trendBoxStyle = {
+  marginTop: "24px",
+  padding: "20px",
+  borderRadius: "22px",
+  background: "rgba(14,165,233,0.10)",
+  border: "1px solid rgba(14,165,233,0.20)",
+};
+
+const trendBadgeStyle = {
+  color: "#7dd3fc",
+  fontWeight: "900",
+  marginTop: 0,
+};
+
+const trendTitleStyle = {
+  fontSize: "22px",
+  marginTop: 0,
+};
+
+const trendMetricGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
+  gap: "10px",
+  marginBottom: "16px",
+};
+
+const trendSectionStyle = {
+  marginTop: "42px",
+};
+
+const trendHeaderStyle = {
+  marginBottom: "22px",
+};
+
+const trendSectionTitleStyle = {
+  fontSize: "32px",
+  marginBottom: "10px",
+};
+
+const trendGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+  gap: "18px",
+};
+
+const trendCardStyle = {
+  background: "rgba(15,23,42,0.82)",
+  borderRadius: "24px",
+  padding: "24px",
+  border: "1px solid rgba(14,165,233,0.20)",
+};
+
+const trendCardTitleStyle = {
+  fontSize: "22px",
+  marginTop: 0,
 };
 
 const radarSectionStyle = {
