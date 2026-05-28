@@ -7,6 +7,7 @@ import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 import { getDecisionTheme } from "../services/decisionBadgeTheme";
+import BestOpportunityCard from "../components/scanner/BestOpportunityCard";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -119,9 +120,7 @@ export default function Scanner() {
 
             <input
               value={form.maxBudget}
-              onChange={(event) =>
-                updateField("maxBudget", event.target.value)
-              }
+              onChange={(event) => updateField("maxBudget", event.target.value)}
               placeholder="60000"
               style={inputStyle}
             />
@@ -205,82 +204,7 @@ export default function Scanner() {
             )}
 
             {marketFeed?.best && (
-              <div style={bestDealStyle}>
-                <p style={bestDealLabelStyle}>
-                  🏆 Mejor oportunidad detectada
-                </p>
-
-                <h3 style={bestDealTitleStyle}>{marketFeed.best.title}</h3>
-
-                <div
-                  style={{
-                    ...bestDecisionBadgeStyle,
-                    ...getDecisionTheme(marketFeed.best.finalDecision?.label),
-                  }}
-                >
-                  {marketFeed.best.finalDecision?.label}
-                </div>
-
-                <p style={marketInsightStyle}>
-                  {marketFeed.best.finalDecision?.explanation}
-                </p>
-
-                <div style={bestDealGridStyle}>
-                  <MetricCard
-                    label="Score final"
-                    value={`${marketFeed.best.finalDecision?.finalScore || 0}/100`}
-                  />
-
-                  <MetricCard
-                    label="Margen Neto"
-                    value={`${marketFeed.best.netProfit.toLocaleString(
-                      "es-ES"
-                    )} €`}
-                  />
-
-                  <MetricCard
-                    label="Liquidez"
-                    value={`${
-                      marketFeed.best.liquidity?.liquidityScore || 0
-                    }/100`}
-                  />
-
-                  <MetricCard
-                    label="Riesgo real"
-                    value={marketFeed.best.dealRisk?.level || "Medio"}
-                  />
-                </div>
-
-                <div style={liquidityBoxStyle}>
-                  <h4 style={miniTitleStyle}>💧 Liquidez estimada</h4>
-
-                  <div style={marketGridStyle}>
-                    <SmallMetric
-                      label="Venta estimada"
-                      value={`${
-                        marketFeed.best.liquidity?.expectedDaysToSell || 0
-                      } días`}
-                    />
-
-                    <SmallMetric
-                      label="Compradores"
-                      value={marketFeed.best.liquidity?.buyerPool || "Medio"}
-                    />
-                  </div>
-
-                  <p style={marketInsightStyle}>
-                    {marketFeed.best.liquidity?.summary}
-                  </p>
-                </div>
-
-                <div style={riskBoxStyle}>
-                  <h4 style={miniTitleStyle}>🛡️ Lectura de riesgo</h4>
-
-                  <p style={marketInsightStyle}>
-                    {marketFeed.best.dealRisk?.recommendation}
-                  </p>
-                </div>
-              </div>
+              <BestOpportunityCard best={marketFeed.best} />
             )}
           </div>
         </div>
@@ -597,15 +521,6 @@ function SemanticBadge({ active, label }) {
   );
 }
 
-function MetricCard({ label, value }) {
-  return (
-    <div style={metricCardStyle}>
-      <p style={metricLabelStyle}>{label}</p>
-      <h3 style={metricValueStyle}>{value}</h3>
-    </div>
-  );
-}
-
 function FeedMetric({ label, value }) {
   return (
     <div style={feedMetricStyle}>
@@ -743,53 +658,6 @@ const waitingBoxStyle = {
   border: "1px solid rgba(59,130,246,0.22)",
   color: "#dbeafe",
   lineHeight: "1.55",
-};
-
-const bestDealStyle = {
-  marginTop: "30px",
-  padding: "24px",
-  borderRadius: "24px",
-  background:
-    "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(59,130,246,0.14))",
-};
-
-const bestDealLabelStyle = {
-  color: "#86efac",
-  fontWeight: "900",
-};
-
-const bestDealTitleStyle = {
-  fontSize: "28px",
-};
-
-const bestDecisionBadgeStyle = {
-  display: "inline-block",
-  marginTop: "14px",
-  marginBottom: "14px",
-  padding: "12px 18px",
-  borderRadius: "999px",
-  fontWeight: "900",
-};
-
-const bestDealGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
-  gap: "14px",
-  marginTop: "22px",
-};
-
-const metricCardStyle = {
-  background: "rgba(2,6,23,0.55)",
-  borderRadius: "18px",
-  padding: "18px",
-};
-
-const metricLabelStyle = {
-  color: "#cbd5e1",
-};
-
-const metricValueStyle = {
-  fontSize: "26px",
 };
 
 const sectionStyle = {
