@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 
 import ScannerHeader from "../components/scanner/ScannerHeader";
 import ScannerSummaryCard from "../components/scanner/ScannerSummaryCard";
-import MarketFeedSection from "../components/scanner/MarketFeedSection";
-import AIInsightsSection from "../components/scanner/AIInsightsSection";
-import SearchRadarSection from "../components/scanner/SearchRadarSection";
+import ScannerResultsSection from "../components/scanner/ScannerResultsSection";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
@@ -119,15 +117,10 @@ export default function Scanner() {
           />
         </div>
 
-        {marketFeed && (
-          <>
-            <MarketFeedSection marketFeed={marketFeed} />
-
-            <AIInsightsSection insights={marketFeed.insights} />
-
-            <SearchRadarSection searchRadar={searchRadar} />
-          </>
-        )}
+        <ScannerResultsSection
+          marketFeed={marketFeed}
+          searchRadar={searchRadar}
+        />
       </div>
     </div>
   );
