@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import LoadingScreen from "./components/common/LoadingScreen";
 import RouteErrorBoundary from "./components/common/RouteErrorBoundary";
+
 import AppSidebar from "./components/layout/AppSidebar";
+import AppLayout from "./components/layout/AppLayout";
 
 import "./App.css";
 
@@ -14,25 +16,21 @@ const History = lazy(() => import("./pages/History"));
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="app">
-        <AppSidebar />
+      <AppLayout sidebar={<AppSidebar />}>
+        <RouteErrorBoundary>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              <Route path="/" element={<Scanner />} />
 
-        <main>
-          <RouteErrorBoundary>
-            <Suspense fallback={<LoadingScreen />}>
-              <Routes>
-                <Route path="/" element={<Scanner />} />
+              <Route path="/scanner" element={<Scanner />} />
 
-                <Route path="/scanner" element={<Scanner />} />
+              <Route path="/importer" element={<Importer />} />
 
-                <Route path="/importer" element={<Importer />} />
-
-                <Route path="/history" element={<History />} />
-              </Routes>
-            </Suspense>
-          </RouteErrorBoundary>
-        </main>
-      </div>
+              <Route path="/history" element={<History />} />
+            </Routes>
+          </Suspense>
+        </RouteErrorBoundary>
+      </AppLayout>
     </BrowserRouter>
   );
 }
