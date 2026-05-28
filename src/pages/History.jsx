@@ -47,23 +47,37 @@ export default function History() {
   const [filter, setFilter] = useState("TODOS");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("score");
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     loadAnalyses();
   }, []);
 
   async function loadAnalyses() {
+    setIsLoading(true);
+    setLoadError("");
+
     const { data, error } = await supabase
       .from("import_analyses")
       .select("*")
       .order("score", { ascending: false });
 
-    if (!error) {
-      const sanitized = sanitizeAnalysesDataset(data || []);
-      const valid = filterValidAnalyses(sanitized);
-
-      setAnalyses(valid);
+    if (error) {
+      console.error("Error loading analyses:", error);
+      setAnalyses([]);
+      setLoadError(
+        "No se han podido cargar los análisis. Revisa la conexión con Supabase o inténtalo de nuevo."
+      );
+      setIsLoading(false);
+      return;
     }
+
+    const sanitized = sanitizeAnalysesDataset(data || []);
+    const valid = filterValidAnalyses(sanitized);
+
+    setAnalyses(valid);
+    setIsLoading(false);
   }
 
   async function deleteAnalysis(id) {
@@ -72,14 +86,19 @@ export default function History() {
       .delete()
       .eq("id", id);
 
-    if (!error) {
-      loadAnalyses();
+    if (error) {
+      console.error("Error deleting analysis:", error);
+      setLoadError(
+        "No se ha podido borrar el análisis. Inténtalo de nuevo."
+      );
+      return;
     }
+
+    loadAnalyses();
   }
 
   const cleanAnalyses = useMemo(() => {
     const sanitized = sanitizeAnalysesDataset(analyses);
-
     return filterValidAnalyses(sanitized);
   }, [analyses]);
 
@@ -162,66 +181,92 @@ export default function History() {
       <div style={containerStyle}>
         <DashboardHeader />
 
-        <SystemHealthBanner health={systemHealth} />
-
-        <InstantDecisionPanel decisions={decisions} />
-
-        <GlobalStatsPanel
-          market={market}
-          risk={risk}
-          confidence={confidence}
-          learning={learning}
-          portfolio={portfolio}
-          trends={trends}
-          opportunityAlerts={opportunityAlerts}
-          temporal={temporal}
-        />
-
-        <ExecutiveSummaryPanel executive={executive} />
-
-        {systemHealth.canShowAdvanced && (
-          <AdvancedIntelligencePanel>
-            <DataQualityPanel validation={validation} />
-
-            <AdvancedMetricsPanel metrics={advancedMetrics} />
-
-            <OpportunityRadarPanel radar={radar} />
-
-            <OpportunityRankingPanel ranking={ranking} />
-
-            <WatchlistPanel watchlist={watchlist} />
-
-            <DealPipelinePanel pipeline={pipeline} />
-
-            <DealDecisionPanel decisions={decisions} />
-
-            <PortfolioSimulatorPanel simulation={simulation} />
-
-            <AIInsightsPanel
-              learning={learning}
-              confidence={confidence}
-              risk={risk}
-              portfolio={portfolio}
-              market={market}
-              trends={trends}
-              temporal={temporal}
-            />
-          </AdvancedIntelligencePanel>
+        {isLoading && (
+          <div style={statusBoxStyle}>
+            Cargando análisis guardados...
+          </div>
         )}
 
-        <HistoryControls
-          search={search}
-          setSearch={setSearch}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          filter={filter}
-          setFilter={setFilter}
-        />
+        {loadError && (
+          <div style={errorBoxStyle}>
+            <strong>Error controlado:</strong> {loadError}
+            <button style={retryButtonStyle} onClick={loadAnalyses}>
+              Reintentar
+            </button>
+          </div>
+        )}
 
-        <AnalysisGrid
-          analyses={filteredAnalyses}
-          onDelete={deleteAnalysis}
-        />
+        {!isLoading && !loadError && cleanAnalyses.length === 0 && (
+          <div style={statusBoxStyle}>
+            Todavía no hay análisis válidos guardados. Cuando analices coches,
+            aparecerán aquí.
+          </div>
+        )}
+
+        {!isLoading && (
+          <>
+            <SystemHealthBanner health={systemHealth} />
+
+            <InstantDecisionPanel decisions={decisions} />
+
+            <GlobalStatsPanel
+              market={market}
+              risk={risk}
+              confidence={confidence}
+              learning={learning}
+              portfolio={portfolio}
+              trends={trends}
+              opportunityAlerts={opportunityAlerts}
+              temporal={temporal}
+            />
+
+            <ExecutiveSummaryPanel executive={executive} />
+
+            {systemHealth.canShowAdvanced && (
+              <AdvancedIntelligencePanel>
+                <DataQualityPanel validation={validation} />
+
+                <AdvancedMetricsPanel metrics={advancedMetrics} />
+
+                <OpportunityRadarPanel radar={radar} />
+
+                <OpportunityRankingPanel ranking={ranking} />
+
+                <WatchlistPanel watchlist={watchlist} />
+
+                <DealPipelinePanel pipeline={pipeline} />
+
+                <DealDecisionPanel decisions={decisions} />
+
+                <PortfolioSimulatorPanel simulation={simulation} />
+
+                <AIInsightsPanel
+                  learning={learning}
+                  confidence={confidence}
+                  risk={risk}
+                  portfolio={portfolio}
+                  market={market}
+                  trends={trends}
+                  temporal={temporal}
+                />
+              </AdvancedIntelligencePanel>
+            )}
+
+            <HistoryControls
+              search={search}
+              setSearch={setSearch}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              filter={filter}
+              setFilter={setFilter}
+            />
+
+            <AnalysisGrid
+              analyses={filteredAnalyses}
+              onDelete={deleteAnalysis}
+            />
+          </>
+        )}
       </div>
     </div>
   );
@@ -239,4 +284,34 @@ const pageStyle = {
 const containerStyle = {
   maxWidth: "1300px",
   margin: "0 auto",
+};
+
+const statusBoxStyle = {
+  marginBottom: "24px",
+  padding: "18px 20px",
+  borderRadius: "18px",
+  background: "rgba(15, 23, 42, 0.82)",
+  border: "1px solid rgba(148, 163, 184, 0.25)",
+  color: "#e5e7eb",
+  fontSize: "15px",
+};
+
+const errorBoxStyle = {
+  marginBottom: "24px",
+  padding: "18px 20px",
+  borderRadius: "18px",
+  background: "rgba(127, 29, 29, 0.35)",
+  border: "1px solid rgba(248, 113, 113, 0.45)",
+  color: "#fee2e2",
+  fontSize: "15px",
+};
+
+const retryButtonStyle = {
+  marginLeft: "14px",
+  padding: "8px 12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.25)",
+  background: "rgba(255,255,255,0.12)",
+  color: "white",
+  cursor: "pointer",
 };
