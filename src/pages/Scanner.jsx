@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
+
 import ScannerHeader from "../components/scanner/ScannerHeader";
+import SemanticBadge from "../components/scanner/SemanticBadge";
+import SmallMetric from "../components/scanner/SmallMetric";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
@@ -456,19 +459,6 @@ export default function Scanner() {
   );
 }
 
-function SemanticBadge({ active, label }) {
-  return (
-    <div
-      style={{
-        ...semanticBadgeStyle,
-        opacity: active ? 1 : 0.45,
-      }}
-    >
-      {active ? "✅" : "○"} {label}
-    </div>
-  );
-}
-
 function MetricCard({ label, value }) {
   return (
     <div style={metricCardStyle}>
@@ -483,15 +473,6 @@ function FeedMetric({ label, value }) {
     <div style={feedMetricStyle}>
       <p style={feedMetricLabelStyle}>{label}</p>
       <h4 style={feedMetricValueStyle}>{value}</h4>
-    </div>
-  );
-}
-
-function SmallMetric({ label, value }) {
-  return (
-    <div style={smallMetricStyle}>
-      <p style={smallMetricLabelStyle}>{label}</p>
-      <strong style={smallMetricValueStyle}>{value}</strong>
     </div>
   );
 }
@@ -553,13 +534,6 @@ const semanticGridStyle = {
   gridTemplateColumns: "1fr 1fr",
   gap: "12px",
   marginTop: "24px",
-};
-
-const semanticBadgeStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  background: "rgba(255,255,255,0.05)",
-  fontWeight: "900",
 };
 
 const waitingBoxStyle = {
@@ -749,24 +723,6 @@ const marketGridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "10px",
-};
-
-const smallMetricStyle = {
-  background: "rgba(2,6,23,0.45)",
-  borderRadius: "14px",
-  padding: "12px",
-};
-
-const smallMetricLabelStyle = {
-  color: "#cbd5e1",
-  fontSize: "12px",
-  margin: 0,
-};
-
-const smallMetricValueStyle = {
-  display: "block",
-  marginTop: "8px",
-  fontSize: "16px",
 };
 
 const marketInsightStyle = {
