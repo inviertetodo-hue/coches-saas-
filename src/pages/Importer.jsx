@@ -30,47 +30,54 @@ export default function Importer() {
     }));
   }, []);
 
-  const validateCarInput = useCallback(() => {
-    const price = Number(car.price);
-    const km = Number(car.km);
-    const year = Number(car.year);
-    const currentYear = new Date().getFullYear();
+  const getSemanticSource = useCallback(() => {
+    return car.title.trim() || car.url.trim();
+  }, [car.title, car.url]);
 
-    if (!car.title.trim()) {
-      return "Falta el título del vehículo.";
-    }
+  const validateCarInput = useCallback(
+    (resolvedTitle = "") => {
+      const price = Number(car.price);
+      const km = Number(car.km);
+      const year = Number(car.year);
+      const currentYear = new Date().getFullYear();
 
-    if (!car.price || !Number.isFinite(price) || price <= 0) {
-      return "El precio debe ser un número válido mayor que 0.";
-    }
+      if (!resolvedTitle.trim()) {
+        return "Falta el título o una URL válida del vehículo.";
+      }
 
-    if (!car.km || !Number.isFinite(km) || km < 0) {
-      return "Los kilómetros deben ser un número válido.";
-    }
+      if (!car.price || !Number.isFinite(price) || price <= 0) {
+        return "El precio debe ser un número válido mayor que 0.";
+      }
 
-    if (
-      !car.year ||
-      !Number.isFinite(year) ||
-      year < 1990 ||
-      year > currentYear + 1
-    ) {
-      return "El año del vehículo no es válido.";
-    }
+      if (!car.km || !Number.isFinite(km) || km < 0) {
+        return "Los kilómetros deben ser un número válido.";
+      }
 
-    if (price < 1000) {
-      return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
-    }
+      if (
+        !car.year ||
+        !Number.isFinite(year) ||
+        year < 1990 ||
+        year > currentYear + 1
+      ) {
+        return "El año del vehículo no es válido.";
+      }
 
-    if (price > 300000) {
-      return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
-    }
+      if (price < 1000) {
+        return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
+      }
 
-    if (km > 500000) {
-      return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
-    }
+      if (price > 300000) {
+        return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
+      }
 
-    return "";
-  }, [car]);
+      if (km > 500000) {
+        return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
+      }
+
+      return "";
+    },
+    [car]
+  );
 
   const validateAnalysisBeforeSave = useCallback(() => {
     if (!analysis) {
@@ -95,7 +102,14 @@ export default function Importer() {
   const analyzeManualCar = useCallback(() => {
     setSaved(false);
 
-    const validationError = validateCarInput();
+    const semanticSource = getSemanticSource();
+    const parsed = parseCarFromUrl(semanticSource);
+    const resolvedTitle =
+      parsed?.title?.trim() ||
+      car.title.trim() ||
+      buildTitleFromUrlFallback(car.url);
+
+    const validationError = validateCarInput(resolvedTitle);
 
     if (validationError) {
       setAnalysis(null);
@@ -104,19 +118,22 @@ export default function Importer() {
       return;
     }
 
-    const parsed = parseCarFromUrl(car.title);
+    const enrichedSemanticData = {
+      ...parsed,
+      title: resolvedTitle,
+    };
 
-    setSemanticData(parsed);
+    setSemanticData(enrichedSemanticData);
 
     const price = Number(car.price);
     const km = Number(car.km);
     const year = Number(car.year);
-
     const estimatedMarketPrice = Math.round(price * 1.28);
 
     const result = analyzeCar({
       ...car,
-      ...parsed,
+      ...enrichedSemanticData,
+      title: resolvedTitle,
       price,
       km,
       year,
@@ -130,17 +147,15 @@ export default function Importer() {
       !Number.isFinite(Number(result.estimatedProfit))
     ) {
       setAnalysis(null);
-
       setMessage(
         "El análisis ha generado datos inválidos. Revisa los datos del coche."
       );
-
       return;
     }
 
     setAnalysis(result);
     setMessage("");
-  }, [car, validateCarInput]);
+  }, [car, getSemanticSource, validateCarInput]);
 
   const saveAnalysis = useCallback(async () => {
     if (saved || saving) {
@@ -157,29 +172,28 @@ export default function Importer() {
     setSaving(true);
     setMessage("");
 
-    const { error } = await supabase
-      .from("import_analyses")
-      .insert({
-        title: car.title.trim(),
-        brand: semanticData?.brand || null,
-        model: semanticData?.model || null,
-        fuel_type: semanticData?.fuelType || null,
-        drivetrain: semanticData?.drivetrain || null,
-        performance_package:
-          semanticData?.performancePackage || null,
-        country: car.country,
-        profit: Math.round(analysis.estimatedProfit),
-        roi: Number(analysis.roi),
-        score: Number(analysis.score),
-        url: car.url.trim() || null,
-      });
+    const finalTitle =
+      semanticData?.title?.trim() ||
+      car.title.trim() ||
+      buildTitleFromUrlFallback(car.url);
+
+    const { error } = await supabase.from("import_analyses").insert({
+      title: finalTitle,
+      brand: semanticData?.brand || null,
+      model: semanticData?.model || null,
+      fuel_type: semanticData?.fuelType || null,
+      drivetrain: semanticData?.drivetrain || null,
+      performance_package: semanticData?.performancePackage || null,
+      country: car.country,
+      profit: Math.round(analysis.estimatedProfit),
+      roi: Number(analysis.roi),
+      score: Number(analysis.score),
+      url: car.url.trim() || null,
+    });
 
     if (error) {
       console.error("Error saving analysis:", error);
-
-      setMessage(
-        "Error al guardar el análisis. Inténtalo de nuevo."
-      );
+      setMessage("Error al guardar el análisis. Inténtalo de nuevo.");
     } else {
       setSaved(true);
       setMessage("Análisis guardado en historial.");
@@ -223,9 +237,7 @@ export default function Importer() {
           {emoji} {label}
         </p>
 
-        <h2 style={predictiveValueStyle}>
-          {value}/100
-        </h2>
+        <h2 style={predictiveValueStyle}>{value}/100</h2>
       </div>
     );
   }
@@ -236,17 +248,12 @@ export default function Importer() {
 
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>
-            Coches SaaS · IA Premium
-          </p>
+          <p style={badgeStyle}>Coches SaaS · IA Premium</p>
 
-          <h1 style={titleStyle}>
-            Analiza oportunidades
-          </h1>
+          <h1 style={titleStyle}>Analiza oportunidades</h1>
 
           <p style={subtitleStyle}>
-            Score IA, semantic intelligence,
-            predictive AI y smart alerts.
+            Score IA, semantic intelligence, predictive AI y smart alerts.
           </p>
         </div>
 
@@ -255,68 +262,50 @@ export default function Importer() {
             <input
               placeholder="URL"
               value={car.url}
-              onChange={(e) =>
-                updateField("url", e.target.value)
-              }
+              onChange={(e) => updateField("url", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="BMW X5 xDrive M Sport PHEV"
               value={car.title}
-              onChange={(e) =>
-                updateField("title", e.target.value)
-              }
+              onChange={(e) => updateField("title", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="Precio"
               value={car.price}
-              onChange={(e) =>
-                updateField("price", e.target.value)
-              }
+              onChange={(e) => updateField("price", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="Kilómetros"
               value={car.km}
-              onChange={(e) =>
-                updateField("km", e.target.value)
-              }
+              onChange={(e) => updateField("km", e.target.value)}
               style={inputStyle}
             />
 
             <input
               placeholder="Año"
               value={car.year}
-              onChange={(e) =>
-                updateField("year", e.target.value)
-              }
+              onChange={(e) => updateField("year", e.target.value)}
               style={inputStyle}
             />
 
-            <button
-              onClick={analyzeManualCar}
-              style={buttonStyle}
-            >
+            <button onClick={analyzeManualCar} style={buttonStyle}>
               Analizar vehículo
             </button>
 
-            {message && (
-              <p style={messageStyle}>{message}</p>
-            )}
+            {message && <p style={messageStyle}>{message}</p>}
           </div>
 
           <div style={cardStyle}>
             {!analysis && (
               <div style={emptyStateStyle}>
                 <p style={emptyIconStyle}>🚘</p>
-
-                <p style={emptyTitleStyle}>
-                  Esperando análisis IA
-                </p>
+                <p style={emptyTitleStyle}>Esperando análisis IA</p>
               </div>
             )}
 
@@ -326,53 +315,29 @@ export default function Importer() {
                   {analysis.recommendation}
                 </div>
 
-                <div
-                  style={scoreCircleStyle}
-                  className="score-circle"
-                >
-                  <span style={scoreNumberStyle}>
-                    {analysis.score}
-                  </span>
-
-                  <span style={scoreTextStyle}>
-                    SCORE IA
-                  </span>
+                <div style={scoreCircleStyle} className="score-circle">
+                  <span style={scoreNumberStyle}>{analysis.score}</span>
+                  <span style={scoreTextStyle}>SCORE IA</span>
                 </div>
 
-                <div
-                  style={kpiGridStyle}
-                  className="kpi-grid"
-                >
+                <div style={kpiGridStyle} className="kpi-grid">
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>ROI</p>
-
-                    <p style={kpiValueStyle}>
-                      {analysis.roi}%
-                    </p>
+                    <p style={kpiValueStyle}>{analysis.roi}%</p>
                   </div>
 
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>
-                      Beneficio
-                    </p>
-
+                    <p style={kpiLabelStyle}>Beneficio</p>
                     <p style={kpiValueStyle}>
-                      {Math.round(
-                        analysis.estimatedProfit
-                      )} €
+                      {Math.round(analysis.estimatedProfit)} €
                     </p>
                   </div>
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>
-                    🔮 Predictive AI Engine
-                  </p>
+                  <p style={sectionTitleStyle}>🔮 Predictive AI Engine</p>
 
-                  <div
-                    style={predictiveGridStyle}
-                    className="predictive-grid"
-                  >
+                  <div style={predictiveGridStyle} className="predictive-grid">
                     <PredictiveCard
                       label="Demand"
                       value={analysis.demandScore}
@@ -400,40 +365,29 @@ export default function Importer() {
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>
-                    🧠 IA Insights
-                  </p>
+                  <p style={sectionTitleStyle}>🧠 IA Insights</p>
 
-                  {analysis.insights?.map(
-                    (insight, index) => (
-                      <div
-                        key={index}
-                        style={insightCardStyle}
-                      >
-                        {insight.text}
-                      </div>
-                    )
-                  )}
+                  {analysis.insights?.map((insight, index) => (
+                    <div key={index} style={insightCardStyle}>
+                      {insight.text}
+                    </div>
+                  ))}
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>
-                    🚨 Smart Alerts
-                  </p>
+                  <p style={sectionTitleStyle}>🚨 Smart Alerts</p>
 
-                  {analysis.alerts?.map(
-                    (alert, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          ...alertCardStyle,
-                          ...getAlertStyle(alert.type),
-                        }}
-                      >
-                        {alert.text}
-                      </div>
-                    )
-                  )}
+                  {analysis.alerts?.map((alert, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        ...alertCardStyle,
+                        ...getAlertStyle(alert.type),
+                      }}
+                    >
+                      {alert.text}
+                    </div>
+                  ))}
                 </div>
 
                 <button
@@ -441,8 +395,7 @@ export default function Importer() {
                   disabled={saving || saved}
                   style={{
                     ...buttonStyle,
-                    opacity:
-                      saving || saved ? 0.6 : 1,
+                    opacity: saving || saved ? 0.6 : 1,
                   }}
                 >
                   {saving
@@ -458,6 +411,33 @@ export default function Importer() {
       </div>
     </div>
   );
+}
+
+function buildTitleFromUrlFallback(url) {
+  if (!url || typeof url !== "string") {
+    return "";
+  }
+
+  try {
+    const decoded = decodeURIComponent(url)
+      .replace(/^https?:\/\//i, "")
+      .replace(/www\./i, "")
+      .split("?")[0]
+      .split("/")
+      .filter(Boolean)
+      .pop();
+
+    if (!decoded) return "";
+
+    return decoded
+      .replace(/\.html$/i, "")
+      .replace(/[-_+]+/g, " ")
+      .replace(/\b\d{6,}\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch {
+    return "";
+  }
 }
 
 const responsiveCss = `
@@ -550,8 +530,7 @@ const buttonStyle = {
   padding: "16px",
   borderRadius: "16px",
   border: "none",
-  background:
-    "linear-gradient(135deg,#2563eb,#16a34a)",
+  background: "linear-gradient(135deg,#2563eb,#16a34a)",
   color: "white",
   fontWeight: "900",
   cursor: "pointer",
