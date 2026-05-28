@@ -1,4 +1,5 @@
 import { analyzeCar } from "./profitAnalyzer";
+import { analyzeComparableMarket } from "./comparableIntelligence";
 
 export function generateMockMarketFeed(scan) {
   const query = String(scan?.query || "BMW X5 45e").trim();
@@ -7,37 +8,58 @@ export function generateMockMarketFeed(scan) {
 
   const opportunities = listings
     .map((car) => {
-      const estimatedMarketPrice = Math.round(car.price * car.marketMultiplier);
+      const estimatedMarketPrice = Math.round(
+        car.price * car.marketMultiplier
+      );
 
       const analysis = analyzeCar({
         ...car,
         estimatedMarketPrice,
       });
 
-      const netCosts = estimateImportCosts(car);
-      const netProfit = Math.round(analysis.estimatedProfit - netCosts.total);
-      const netRoi =
-        car.price > 0 ? Math.round((netProfit / car.price) * 100) : 0;
+      const comparable = analyzeComparableMarket(car);
 
-      const opportunityScore = calculateOpportunityScore({
-        analysis,
-        netProfit,
-        netRoi,
-        car,
-      });
+      const netCosts = estimateImportCosts(car);
+
+      const netProfit = Math.round(
+        analysis.estimatedProfit - netCosts.total
+      );
+
+      const netRoi =
+        car.price > 0
+          ? Math.round((netProfit / car.price) * 100)
+          : 0;
+
+      const opportunityScore =
+        calculateOpportunityScore({
+          analysis,
+          comparable,
+          netProfit,
+          netRoi,
+          car,
+        });
 
       return {
         ...car,
         estimatedMarketPrice,
         analysis,
+        comparable,
         netCosts,
         netProfit,
         netRoi,
         opportunityScore,
-        decision: buildDecision(opportunityScore, netProfit, analysis),
+        decision: buildDecision({
+          opportunityScore,
+          netProfit,
+          comparable,
+          analysis,
+        }),
       };
     })
-    .sort((a, b) => b.opportunityScore - a.opportunityScore);
+    .sort(
+      (a, b) =>
+        b.opportunityScore - a.opportunityScore
+    );
 
   return {
     total: opportunities.length,
@@ -145,15 +167,24 @@ function buildMockListings(query) {
 }
 
 function estimateImportCosts(car) {
-  const transport = car.country === "Alemania" ? 900 : 1200;
+  const transport =
+    car.country === "Alemania" ? 900 : 1200;
+
   const registration = 750;
   const gestor = 450;
   const inspection = 350;
   const detailing = 400;
-  const riskBuffer = car.price >= 70000 ? 1800 : 900;
+
+  const riskBuffer =
+    car.price >= 70000 ? 1800 : 900;
 
   const total =
-    transport + registration + gestor + inspection + detailing + riskBuffer;
+    transport +
+    registration +
+    gestor +
+    inspection +
+    detailing +
+    riskBuffer;
 
   return {
     transport,
@@ -166,36 +197,77 @@ function estimateImportCosts(car) {
   };
 }
 
-function calculateOpportunityScore({ analysis, netProfit, netRoi, car }) {
+function calculateOpportunityScore({
+  analysis,
+  comparable,
+  netProfit,
+  netRoi,
+  car,
+}) {
   let score = 0;
 
-  score += Number(analysis.score || 0) * 0.45;
+  score += Number(analysis.score || 0) * 0.35;
+
+  score +=
+    Number(
+      comparable.underpricingScore || 0
+    ) * 0.35;
+
   score += Math.max(netRoi, 0) * 1.15;
-  score += Math.min(Math.max(netProfit, 0) / 1000, 25);
+
+  score += Math.min(
+    Math.max(netProfit, 0) / 1000,
+    25
+  );
 
   if (car.fuelType === "PHEV") score += 6;
+
   if (car.bodyType === "SUV") score += 7;
+
   if (car.drivetrain) score += 4;
+
   if (car.km <= 60000) score += 5;
+
   if (car.price >= 90000) score -= 10;
 
   return clampScore(score);
 }
 
-function buildDecision(score, netProfit, analysis) {
-  if (score >= 82 && netProfit > 7000) {
+function buildDecision({
+  opportunityScore,
+  netProfit,
+  comparable,
+  analysis,
+}) {
+  if (
+    opportunityScore >= 88 &&
+    comparable.deviationPercent >= 10
+  ) {
+    return "🔥 Chollo detectado";
+  }
+
+  if (
+    opportunityScore >= 82 &&
+    netProfit > 7000
+  ) {
     return "🔥 Comprar / llamar rápido";
   }
 
-  if (score >= 68 && netProfit > 3500) {
+  if (
+    opportunityScore >= 68 &&
+    netProfit > 3500
+  ) {
     return "🟢 Buena oportunidad";
   }
 
-  if (score >= 52) {
+  if (opportunityScore >= 52) {
     return "🟡 Analizar con calma";
   }
 
-  if (analysis.recommendation === "❌ DESCARTAR") {
+  if (
+    analysis.recommendation ===
+    "❌ DESCARTAR"
+  ) {
     return "❌ Descartar";
   }
 
@@ -204,35 +276,51 @@ function buildDecision(score, netProfit, analysis) {
 
 function buildFeedInsights(opportunities) {
   if (!opportunities.length) {
-    return ["No hay oportunidades suficientes para comparar."];
+    return [
+      "No hay oportunidades suficientes para comparar.",
+    ];
   }
 
   const best = opportunities[0];
 
   return [
     `🥇 Mejor oportunidad detectada: ${best.title}.`,
-    `💰 Margen neto estimado: ${best.netProfit.toLocaleString("es-ES")} €.`,
+    `💰 Margen neto estimado: ${best.netProfit.toLocaleString(
+      "es-ES"
+    )} €.`,
     `📊 ROI neto estimado: ${best.netRoi}%.`,
-    "🧠 Este feed es simulado para validar lógica antes de scraping real.",
+    `🧠 Desviación de mercado: ${best.comparable.deviationPercent}%.`,
+    best.comparable.insight,
   ];
 }
 
 function detectBrand(query) {
-  const text = String(query || "").toLowerCase();
+  const text = String(query || "")
+    .toLowerCase()
+    .trim();
 
   if (text.includes("bmw")) return "BMW";
+
   if (text.includes("audi")) return "Audi";
-  if (text.includes("mercedes")) return "Mercedes-Benz";
-  if (text.includes("porsche")) return "Porsche";
+
+  if (text.includes("mercedes"))
+    return "Mercedes-Benz";
+
+  if (text.includes("porsche"))
+    return "Porsche";
+
   if (text.includes("volvo")) return "Volvo";
 
   return "";
 }
 
 function clampScore(value) {
-  const number = Math.round(Number(value || 0));
+  const number = Math.round(
+    Number(value || 0)
+  );
 
   if (number > 100) return 100;
+
   if (number < 0) return 0;
 
   return number;
