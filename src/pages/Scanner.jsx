@@ -6,6 +6,7 @@ import { buildMarketTrendProfile } from "../services/marketTrendEngine";
 import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
+import { getDecisionTheme } from "../services/decisionBadgeTheme";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -56,7 +57,6 @@ export default function Scanner() {
     };
 
     const opportunities = rawFeed.opportunities.map(enrichOpportunity);
-
     const best = rawFeed.best ? enrichOpportunity(rawFeed.best) : null;
 
     return {
@@ -212,9 +212,14 @@ export default function Scanner() {
 
                 <h3 style={bestDealTitleStyle}>{marketFeed.best.title}</h3>
 
-                <p style={bestDealDecisionStyle}>
+                <div
+                  style={{
+                    ...bestDecisionBadgeStyle,
+                    ...getDecisionTheme(marketFeed.best.finalDecision?.label),
+                  }}
+                >
                   {marketFeed.best.finalDecision?.label}
-                </p>
+                </div>
 
                 <p style={marketInsightStyle}>
                   {marketFeed.best.finalDecision?.explanation}
@@ -235,7 +240,9 @@ export default function Scanner() {
 
                   <MetricCard
                     label="Liquidez"
-                    value={`${marketFeed.best.liquidity?.liquidityScore || 0}/100`}
+                    value={`${
+                      marketFeed.best.liquidity?.liquidityScore || 0
+                    }/100`}
                   />
 
                   <MetricCard
@@ -250,7 +257,9 @@ export default function Scanner() {
                   <div style={marketGridStyle}>
                     <SmallMetric
                       label="Venta estimada"
-                      value={`${marketFeed.best.liquidity?.expectedDaysToSell || 0} días`}
+                      value={`${
+                        marketFeed.best.liquidity?.expectedDaysToSell || 0
+                      } días`}
                     />
 
                     <SmallMetric
@@ -317,7 +326,14 @@ export default function Scanner() {
                       />
                     </div>
 
-                    <div style={decisionStyle}>{item.finalDecision.label}</div>
+                    <div
+                      style={{
+                        ...decisionStyle,
+                        ...getDecisionTheme(item.finalDecision.label),
+                      }}
+                    >
+                      {item.finalDecision.label}
+                    </div>
 
                     <p style={marketInsightStyle}>
                       {item.finalDecision.explanation}
@@ -348,9 +364,7 @@ export default function Scanner() {
                         />
                       </div>
 
-                      <p style={marketInsightStyle}>
-                        {item.liquidity.summary}
-                      </p>
+                      <p style={marketInsightStyle}>{item.liquidity.summary}</p>
                     </div>
 
                     <div style={riskBoxStyle}>
@@ -748,8 +762,12 @@ const bestDealTitleStyle = {
   fontSize: "28px",
 };
 
-const bestDealDecisionStyle = {
-  color: "#facc15",
+const bestDecisionBadgeStyle = {
+  display: "inline-block",
+  marginTop: "14px",
+  marginBottom: "14px",
+  padding: "12px 18px",
+  borderRadius: "999px",
   fontWeight: "900",
 };
 
@@ -839,8 +857,6 @@ const decisionStyle = {
   marginTop: "20px",
   padding: "14px",
   borderRadius: "16px",
-  background: "rgba(34,197,94,0.12)",
-  color: "#86efac",
   fontWeight: "900",
   textAlign: "center",
 };
