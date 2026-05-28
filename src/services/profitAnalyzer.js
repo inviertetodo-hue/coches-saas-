@@ -4,12 +4,14 @@ export function analyzeCar(data) {
   const kilometers = safeNumber(data.kilometers || data.km);
   const year = safeNumber(data.year);
 
-  const brand = String(data.brand || "").toLowerCase();
-  const transmission = String(data.transmission || "").toLowerCase();
-  const drivetrain = String(data.drivetrain || "").toLowerCase();
-  const performancePackage = String(data.performancePackage || "").toLowerCase();
-  const fuelType = String(data.fuelType || "").toLowerCase();
-  const bodyType = String(data.bodyType || "").toLowerCase();
+  const title = normalize(data.title);
+  const brand = normalize(data.brand);
+  const model = normalize(data.model);
+  const transmission = normalize(data.transmission);
+  const drivetrain = normalize(data.drivetrain);
+  const performancePackage = normalize(data.performancePackage);
+  const fuelType = normalize(data.fuelType);
+  const bodyType = normalize(data.bodyType);
   const electrified = Boolean(data.electrified);
 
   const currentYear = new Date().getFullYear();
@@ -31,51 +33,83 @@ export function analyzeCar(data) {
     return buildInvalidAnalysis();
   }
 
-  const premiumBrands = [
-    "bmw",
-    "audi",
-    "mercedes",
-    "mercedes-benz",
-    "porsche",
-    "tesla",
-    "lexus",
-    "land rover",
-    "jaguar",
-    "ferrari",
-    "lamborghini",
-    "maserati",
-  ];
+  const semanticQuality = calculateSemanticQuality({
+    brand,
+    model,
+    fuelType,
+    bodyType,
+    drivetrain,
+    title,
+  });
 
-  const isPremium = premiumBrands.some((b) => brand.includes(b));
+  const isPremium = isPremiumBrand(brand);
+  const hasPremiumAWD = detectPremiumAWD(drivetrain);
+  const hasPerformancePack = detectPerformancePackage(
+    performancePackage,
+    title,
+    model
+  );
 
-  const hasPremiumAWD =
-    drivetrain.includes("quattro") ||
-    drivetrain.includes("xdrive") ||
-    drivetrain.includes("4matic");
+  const segment = detectSegment({
+    brand,
+    model,
+    title,
+    bodyType,
+    fuelType,
+    performancePackage,
+    price,
+    hasPerformancePack,
+  });
 
-  const hasPerformancePack =
-    performancePackage.includes("amg") ||
-    performancePackage.includes("rs") ||
-    performancePackage.includes("gti") ||
-    performancePackage.includes("m sport");
+  if (semanticQuality <= 25) {
+    score -= 28;
+    demandScore -= 16;
+    resaleScore -= 18;
+    liquidityScore -= 22;
+    futurePotential -= 10;
+
+    insights.push({
+      type: "negative",
+      text: "Datos semánticos insuficientes: análisis con baja confianza",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "🧠 Falta marca/modelo/configuración: score limitado",
+    });
+  } else if (semanticQuality <= 50) {
+    score -= 12;
+    liquidityScore -= 10;
+
+    insights.push({
+      type: "neutral",
+      text: "Datos del vehículo parcialmente detectados",
+    });
+  } else {
+    score += 4;
+    insights.push({
+      type: "positive",
+      text: "Datos semánticos útiles para el análisis",
+    });
+  }
 
   if (roi >= 35) {
-    score += 22;
-    demandScore += 10;
+    score += 18;
+    demandScore += 8;
     insights.push({ type: "positive", text: "ROI muy alto detectado" });
     alerts.push({ type: "success", text: "🔥 Oportunidad fuerte por ROI" });
   } else if (roi >= 25) {
-    score += 16;
+    score += 12;
     insights.push({ type: "positive", text: "Buen ROI potencial" });
   } else if (roi >= 15) {
-    score += 9;
+    score += 7;
     insights.push({ type: "neutral", text: "ROI aceptable" });
   } else if (roi >= 5) {
-    score -= 5;
+    score -= 6;
     insights.push({ type: "neutral", text: "ROI justo" });
   } else {
-    score -= 22;
-    liquidityScore -= 12;
+    score -= 24;
+    liquidityScore -= 14;
     insights.push({ type: "negative", text: "ROI demasiado bajo" });
     alerts.push({ type: "danger", text: "⚠️ ROI bajo o negativo" });
   }
@@ -85,20 +119,32 @@ export function analyzeCar(data) {
     liquidityScore -= 15;
     resaleScore -= 10;
     alerts.push({ type: "danger", text: "❌ Beneficio estimado negativo" });
+  } else if (estimatedProfit >= 25000) {
+    score += 3;
+    liquidityScore -= 4;
+    alerts.push({
+      type: "success",
+      text: "💰 Beneficio alto, pero exige validar liquidez real",
+    });
   } else if (estimatedProfit >= 10000) {
     score += 5;
-    liquidityScore += 8;
+    liquidityScore += 5;
     alerts.push({ type: "success", text: "💰 Beneficio alto detectado" });
   }
 
-  if (kilometers <= 50000) {
-    score += 14;
-    resaleScore += 15;
-    liquidityScore += 10;
+  if (kilometers <= 10000) {
+    score += 10;
+    resaleScore += 12;
+    liquidityScore += 7;
+    insights.push({ type: "positive", text: "Kilometraje muy bajo" });
+  } else if (kilometers <= 50000) {
+    score += 9;
+    resaleScore += 10;
+    liquidityScore += 6;
     insights.push({ type: "positive", text: "Kilometraje bajo" });
   } else if (kilometers <= 100000) {
-    score += 8;
-    resaleScore += 6;
+    score += 5;
+    resaleScore += 5;
     insights.push({ type: "positive", text: "Kilometraje razonable" });
   } else if (kilometers >= 180000) {
     score -= 18;
@@ -108,14 +154,19 @@ export function analyzeCar(data) {
     alerts.push({ type: "danger", text: "🚨 Kilometraje muy elevado" });
   }
 
-  if (year >= currentYear - 3) {
-    score += 14;
-    resaleScore += 15;
-    futurePotential += 10;
+  if (year >= currentYear - 2) {
+    score += 10;
+    resaleScore += 12;
+    futurePotential += 8;
+    insights.push({ type: "positive", text: "Vehículo muy moderno" });
+  } else if (year >= currentYear - 4) {
+    score += 7;
+    resaleScore += 7;
+    futurePotential += 4;
     insights.push({ type: "positive", text: "Vehículo moderno" });
-  } else if (year >= currentYear - 6) {
-    score += 8;
-    resaleScore += 6;
+  } else if (year >= currentYear - 7) {
+    score += 4;
+    resaleScore += 4;
     insights.push({ type: "positive", text: "Año competitivo" });
   } else if (age >= 15) {
     score -= 18;
@@ -126,54 +177,86 @@ export function analyzeCar(data) {
   }
 
   if (isPremium) {
-    score += 8;
-    demandScore += 10;
-    resaleScore += 8;
+    score += 6;
+    demandScore += 8;
+    resaleScore += 6;
     insights.push({ type: "positive", text: "Marca premium detectada" });
   }
 
   if (transmission.includes("autom")) {
-    score += 5;
-    demandScore += 5;
+    score += 4;
+    demandScore += 4;
     insights.push({ type: "positive", text: "Cambio automático" });
   }
 
   if (hasPremiumAWD) {
-    score += 8;
-    demandScore += 10;
-    resaleScore += 8;
+    score += 6;
+    demandScore += 8;
+    resaleScore += 6;
     insights.push({ type: "positive", text: "Sistema AWD premium detectado" });
   }
 
   if (hasPerformancePack) {
-    score += 9;
-    demandScore += 8;
-    resaleScore += 5;
-    insights.push({ type: "positive", text: "Pack performance detectado" });
+    score += 4;
+    demandScore += 10;
+    resaleScore += 4;
+    liquidityScore -= 6;
+
+    insights.push({
+      type: "positive",
+      text: "Configuración performance con atractivo comercial",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "🏁 Performance detectado: validar coste, garantía y demanda real",
+    });
   }
 
   if (electrified || fuelType.includes("phev") || fuelType.includes("ev")) {
-    score += 7;
-    futurePotential += 14;
-    demandScore += 8;
+    score += 6;
+    futurePotential += 12;
+    demandScore += 7;
     insights.push({ type: "positive", text: "Motorización electrificada" });
   }
 
   if (bodyType.includes("suv")) {
-    score += 4;
+    score += 5;
     demandScore += 10;
-    liquidityScore += 8;
+    liquidityScore += 9;
     insights.push({ type: "positive", text: "SUV con demanda fuerte" });
   }
 
   if (bodyType.includes("wagon")) {
-    score += 3;
-    resaleScore += 6;
+    score += 1;
+    resaleScore += 5;
+    liquidityScore -= hasPerformancePack ? 8 : 0;
+
     insights.push({
       type: "positive",
       text: "Carrocería familiar valorada en Europa",
     });
   }
+
+  applySegmentCalibration(segment, {
+    scoreRef: (value) => {
+      score += value;
+    },
+    demandRef: (value) => {
+      demandScore += value;
+    },
+    resaleRef: (value) => {
+      resaleScore += value;
+    },
+    liquidityRef: (value) => {
+      liquidityScore += value;
+    },
+    futureRef: (value) => {
+      futurePotential += value;
+    },
+    insights,
+    alerts,
+  });
 
   if (isPremium && hasPremiumAWD && bodyType.includes("suv")) {
     score += 8;
@@ -185,11 +268,27 @@ export function analyzeCar(data) {
     });
   }
 
-  if (hasPerformancePack && kilometers >= 150000) {
-    score -= 14;
-    resaleScore -= 14;
+  if (hasPerformancePack && kilometers >= 100000) {
+    score -= 10;
+    resaleScore -= 10;
     liquidityScore -= 10;
-    alerts.push({ type: "warning", text: "⚠️ Riesgo mecánico elevado" });
+    alerts.push({ type: "warning", text: "⚠️ Performance con kilómetros: revisar riesgo mecánico" });
+  }
+
+  if (hasPerformancePack && price >= 90000) {
+    score -= 10;
+    liquidityScore -= 14;
+    demandScore -= 3;
+
+    insights.push({
+      type: "negative",
+      text: "Ticket alto y comprador objetivo reducido",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "🎯 Coche nicho: puede tardar más en venderse",
+    });
   }
 
   if (brand.includes("tesla") && age >= 8) {
@@ -205,9 +304,37 @@ export function analyzeCar(data) {
     alerts.push({ type: "warning", text: "🕵️ Precio anormalmente bajo" });
   }
 
-  if (price >= 15000 && price <= 40000) {
+  if (price >= 15000 && price <= 40000 && semanticQuality >= 50) {
     score += 5;
     liquidityScore += 6;
+  }
+
+  if (price >= 100000) {
+    liquidityScore -= 12;
+    demandScore -= 4;
+
+    alerts.push({
+      type: "warning",
+      text: "💎 Ticket alto: liquidez más limitada",
+    });
+  }
+
+  const maxScore = calculateScoreCap({
+    semanticQuality,
+    segment,
+    roi,
+    estimatedProfit,
+    kilometers,
+    price,
+    hasPerformancePack,
+  });
+
+  if (score > maxScore) {
+    score = maxScore;
+    alerts.push({
+      type: "warning",
+      text: `🛡️ Score limitado por fiabilidad: máximo ${maxScore}`,
+    });
   }
 
   if (roi <= 0 && score > 55) {
@@ -238,7 +365,13 @@ export function analyzeCar(data) {
 
   let recommendation = "🟡 ANALIZAR";
 
-  if (score >= 85 && roi >= 15 && estimatedProfit > 0) {
+  if (
+    score >= 85 &&
+    roi >= 15 &&
+    estimatedProfit > 0 &&
+    semanticQuality >= 60 &&
+    segment !== "unknown"
+  ) {
     recommendation = "🔥 CHOLLO IA";
     alerts.push({ type: "success", text: "🏆 Score IA muy alto" });
   } else if (score <= 45 || roi <= 0 || estimatedProfit <= 0) {
@@ -255,8 +388,8 @@ export function analyzeCar(data) {
     resaleScore,
     liquidityScore,
     futurePotential,
-    insights,
-    alerts,
+    insights: dedupeItems(insights),
+    alerts: dedupeItems(alerts),
   };
 }
 
@@ -413,6 +546,299 @@ function buildInvalidAnalysis() {
   };
 }
 
+function calculateSemanticQuality({
+  brand,
+  model,
+  fuelType,
+  bodyType,
+  drivetrain,
+  title,
+}) {
+  let quality = 0;
+
+  if (brand) quality += 25;
+  if (model) quality += 25;
+  if (fuelType) quality += 15;
+  if (bodyType) quality += 15;
+  if (drivetrain) quality += 10;
+  if (title && title.length >= 12) quality += 10;
+
+  return clampScore(quality);
+}
+
+function isPremiumBrand(brand) {
+  const premiumBrands = [
+    "bmw",
+    "audi",
+    "mercedes",
+    "mercedes-benz",
+    "porsche",
+    "tesla",
+    "lexus",
+    "land rover",
+    "jaguar",
+    "ferrari",
+    "lamborghini",
+    "maserati",
+    "volvo",
+  ];
+
+  return premiumBrands.some((item) => brand.includes(item));
+}
+
+function detectPremiumAWD(drivetrain) {
+  return (
+    drivetrain.includes("quattro") ||
+    drivetrain.includes("xdrive") ||
+    drivetrain.includes("4matic") ||
+    drivetrain.includes("4motion")
+  );
+}
+
+function detectPerformancePackage(performancePackage, title, model) {
+  const text = `${performancePackage} ${title} ${model}`;
+
+  return (
+    text.includes("amg") ||
+    text.includes(" rs") ||
+    text.includes("rs3") ||
+    text.includes("rs4") ||
+    text.includes("rs5") ||
+    text.includes("rs6") ||
+    text.includes("rs7") ||
+    text.includes("m2") ||
+    text.includes("m3") ||
+    text.includes("m4") ||
+    text.includes("m5") ||
+    text.includes("m8") ||
+    text.includes("gti") ||
+    text.includes("gtd") ||
+    text.includes("competition") ||
+    text.includes("turbo") ||
+    text.includes("performance")
+  );
+}
+
+function detectSegment({
+  brand,
+  model,
+  title,
+  bodyType,
+  fuelType,
+  performancePackage,
+  price,
+  hasPerformancePack,
+}) {
+  const text = `${brand} ${model} ${title} ${bodyType} ${fuelType} ${performancePackage}`;
+
+  if (!brand && !model) return "unknown";
+
+  if (
+    hasPerformancePack &&
+    (bodyType.includes("wagon") ||
+      text.includes("touring") ||
+      text.includes("avant"))
+  ) {
+    return "performance_wagon";
+  }
+
+  if (hasPerformancePack && price >= 80000) {
+    return "high_ticket_performance";
+  }
+
+  if (bodyType.includes("suv") && fuelType.includes("phev") && isPremiumBrand(brand)) {
+    return "premium_phev_suv";
+  }
+
+  if (bodyType.includes("suv") && isPremiumBrand(brand)) {
+    return "premium_suv";
+  }
+
+  if (fuelType.includes("ev") && isPremiumBrand(brand)) {
+    return "premium_ev";
+  }
+
+  if (bodyType.includes("wagon")) {
+    return "wagon";
+  }
+
+  if (isPremiumBrand(brand) && price >= 90000) {
+    return "luxury_high_ticket";
+  }
+
+  if (isPremiumBrand(brand)) {
+    return "premium_general";
+  }
+
+  return "general";
+}
+
+function applySegmentCalibration(
+  segment,
+  {
+    scoreRef,
+    demandRef,
+    resaleRef,
+    liquidityRef,
+    futureRef,
+    insights,
+    alerts,
+  }
+) {
+  if (segment === "unknown") {
+    scoreRef(-18);
+    demandRef(-10);
+    resaleRef(-10);
+    liquidityRef(-16);
+    futureRef(-6);
+
+    insights.push({
+      type: "negative",
+      text: "Vehículo sin identificación suficiente para decisión fiable",
+    });
+
+    return;
+  }
+
+  if (segment === "premium_phev_suv") {
+    scoreRef(8);
+    demandRef(14);
+    resaleRef(8);
+    liquidityRef(12);
+    futureRef(8);
+
+    insights.push({
+      type: "positive",
+      text: "SUV premium PHEV: configuración muy vendible",
+    });
+
+    return;
+  }
+
+  if (segment === "premium_suv") {
+    scoreRef(6);
+    demandRef(12);
+    resaleRef(7);
+    liquidityRef(10);
+
+    insights.push({
+      type: "positive",
+      text: "SUV premium con buena liquidez potencial",
+    });
+
+    return;
+  }
+
+  if (segment === "performance_wagon") {
+    scoreRef(-8);
+    demandRef(8);
+    resaleRef(6);
+    liquidityRef(-16);
+    futureRef(4);
+
+    insights.push({
+      type: "neutral",
+      text: "Wagon performance: deseable, pero mercado comprador más estrecho",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "🏁 Familiar performance: no tratar como chollo masivo sin validar demanda",
+    });
+
+    return;
+  }
+
+  if (segment === "high_ticket_performance") {
+    scoreRef(-12);
+    demandRef(6);
+    resaleRef(3);
+    liquidityRef(-20);
+    futureRef(2);
+
+    insights.push({
+      type: "neutral",
+      text: "Performance de ticket alto: margen posible, rotación más lenta",
+    });
+
+    return;
+  }
+
+  if (segment === "premium_ev") {
+    scoreRef(1);
+    demandRef(5);
+    resaleRef(-2);
+    liquidityRef(0);
+    futureRef(8);
+
+    insights.push({
+      type: "neutral",
+      text: "EV premium: futuro interesante, pero depreciación sensible",
+    });
+
+    return;
+  }
+
+  if (segment === "luxury_high_ticket") {
+    scoreRef(-8);
+    demandRef(-2);
+    resaleRef(2);
+    liquidityRef(-14);
+
+    insights.push({
+      type: "neutral",
+      text: "Luxury high-ticket: oportunidad exige comprador claro",
+    });
+
+    return;
+  }
+
+  if (segment === "wagon") {
+    scoreRef(2);
+    resaleRef(5);
+    liquidityRef(0);
+
+    insights.push({
+      type: "positive",
+      text: "Familiar europeo con salida razonable si la configuración acompaña",
+    });
+  }
+}
+
+function calculateScoreCap({
+  semanticQuality,
+  segment,
+  roi,
+  estimatedProfit,
+  kilometers,
+  price,
+  hasPerformancePack,
+}) {
+  let cap = 100;
+
+  if (semanticQuality <= 25) cap = Math.min(cap, 68);
+  else if (semanticQuality <= 50) cap = Math.min(cap, 78);
+
+  if (segment === "unknown") cap = Math.min(cap, 70);
+  if (segment === "performance_wagon") cap = Math.min(cap, 88);
+  if (segment === "high_ticket_performance") cap = Math.min(cap, 84);
+  if (segment === "luxury_high_ticket") cap = Math.min(cap, 82);
+  if (segment === "premium_ev") cap = Math.min(cap, 86);
+
+  if (price >= 100000) cap = Math.min(cap, 88);
+  if (hasPerformancePack && price >= 90000) cap = Math.min(cap, 86);
+  if (kilometers >= 150000) cap = Math.min(cap, 76);
+
+  if (roi < 15) cap = Math.min(cap, 74);
+  if (estimatedProfit <= 0) cap = Math.min(cap, 50);
+
+  return cap;
+}
+
+function normalize(value) {
+  return String(value || "").toLowerCase().trim();
+}
+
 function safeNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -432,6 +858,19 @@ function getTopValue(items, key) {
   const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]);
 
   return sorted[0]?.[0] || "";
+}
+
+function dedupeItems(items) {
+  const seen = new Set();
+
+  return items.filter((item) => {
+    const key = `${item.type}-${item.text}`;
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
 }
 
 function clampScore(value) {
