@@ -6,15 +6,15 @@ export default function AppSidebarNav() {
   return (
     <nav style={navStyle}>
       {NAVIGATION_ITEMS.map((item) => (
-        <AppSidebarNavItem key={item.id} item={item} />
+        <AppSidebarNavItem key={item.path} item={item} />
       ))}
     </nav>
   );
 }
 
 const navStyle = {
+  marginTop: "42px",
   display: "flex",
   flexDirection: "column",
-  gap: "15px",
-  marginTop: "30px",
+  gap: "10px",
 };
