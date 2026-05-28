@@ -6,9 +6,7 @@ import { buildMarketTrendProfile } from "../services/marketTrendEngine";
 import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
-import { getDecisionTheme } from "../services/decisionBadgeTheme";
-import BestOpportunityCard from "../components/scanner/BestOpportunityCard";
-import TrendSummaryCard from "../components/scanner/TrendSummaryCard";
+
 export default function Scanner() {
   const [form, setForm] = useState({
     query: "BMW X5 45e",
@@ -34,38 +32,38 @@ export default function Scanner() {
 
     const rawFeed = generateMockMarketFeed(scan);
 
-    const enrichOpportunity = (item) => {
+    function enrichDeal(item) {
+      const dealRisk = analyzeDealRisk(item);
+
       const liquidity = buildLiquidityProfile({
-        query: item.title,
+        query: item.title || form.query,
         item,
         semantic: scan.semantic,
       });
 
-      const dealRisk = analyzeDealRisk(item);
-
       const finalDecision = buildFinalDealDecision({
         ...item,
-        liquidity,
         dealRisk,
+        liquidity,
       });
 
       return {
         ...item,
-        liquidity,
         dealRisk,
+        liquidity,
         finalDecision,
       };
-    };
+    }
 
-    const opportunities = rawFeed.opportunities.map(enrichOpportunity);
-    const best = rawFeed.best ? enrichOpportunity(rawFeed.best) : null;
+    const opportunities = rawFeed.opportunities.map(enrichDeal);
+    const best = rawFeed.best ? enrichDeal(rawFeed.best) : null;
 
     return {
       ...rawFeed,
       opportunities,
       best,
     };
-  }, [scan, searchTriggered]);
+  }, [form.query, scan, searchTriggered]);
 
   const searchRadar = useMemo(() => {
     if (!searchTriggered) return null;
@@ -120,7 +118,9 @@ export default function Scanner() {
 
             <input
               value={form.maxBudget}
-              onChange={(event) => updateField("maxBudget", event.target.value)}
+              onChange={(event) =>
+                updateField("maxBudget", event.target.value)
+              }
               placeholder="60000"
               style={inputStyle}
             />
@@ -171,11 +171,30 @@ export default function Scanner() {
               />
             </div>
 
-            <TrendSummaryCard
-  trendProfile={trendProfile}
-  SmallMetric={SmallMetric}
-  marketInsightStyle={marketInsightStyle}
-/>
+            <div style={trendBoxStyle}>
+              <p style={trendBadgeStyle}>📈 Tendencia de mercado</p>
+
+              <h3 style={trendTitleStyle}>{trendProfile.mainTrend.label}</h3>
+
+              <div style={trendMetricGridStyle}>
+                <SmallMetric
+                  label="Demanda"
+                  value={trendProfile.mainTrend.demand}
+                />
+
+                <SmallMetric
+                  label="Tendencia"
+                  value={trendProfile.mainTrend.trend}
+                />
+
+                <SmallMetric
+                  label="Riesgo"
+                  value={trendProfile.mainTrend.risk}
+                />
+              </div>
+
+              <p style={marketInsightStyle}>{trendProfile.summary}</p>
+            </div>
 
             {!searchTriggered && (
               <div style={waitingBoxStyle}>
@@ -185,7 +204,53 @@ export default function Scanner() {
             )}
 
             {marketFeed?.best && (
-              <BestOpportunityCard best={marketFeed.best} />
+              <div style={bestDealStyle}>
+                <p style={bestDealLabelStyle}>
+                  🏆 Mejor oportunidad detectada
+                </p>
+
+                <h3 style={bestDealTitleStyle}>{marketFeed.best.title}</h3>
+
+                <div style={finalDecisionHeroStyle}>
+                  {marketFeed.best.finalDecision.label}
+                </div>
+
+                <p style={bestDealDecisionStyle}>
+                  {marketFeed.best.finalDecision.explanation}
+                </p>
+
+                <div style={bestDealGridStyle}>
+                  <MetricCard
+                    label="Score final"
+                    value={`${marketFeed.best.finalDecision.finalScore}/100`}
+                  />
+
+                  <MetricCard
+                    label="Margen neto"
+                    value={`${marketFeed.best.netProfit.toLocaleString(
+                      "es-ES"
+                    )} €`}
+                  />
+
+                  <MetricCard
+                    label="Liquidez"
+                    value={`${marketFeed.best.liquidity.liquidityScore}/100`}
+                  />
+
+                  <MetricCard
+                    label="Riesgo"
+                    value={`${marketFeed.best.dealRisk.riskScore}/100`}
+                  />
+                </div>
+
+                <div style={riskBoxStyle}>
+                  <h4 style={miniTitleStyle}>🧭 Decisión consolidada</h4>
+
+                  <p style={marketInsightStyle}>
+                    {marketFeed.best.finalDecision.explanation}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -212,42 +277,37 @@ export default function Scanner() {
                       </p>
                     </div>
 
+                    <div style={finalDecisionStyle}>
+                      {item.finalDecision.label}
+                    </div>
+
                     <div style={feedMetricsStyle}>
                       <FeedMetric
-                        label="Final"
+                        label="Score final"
                         value={`${item.finalDecision.finalScore}/100`}
                       />
 
                       <FeedMetric label="ROI neto" value={`${item.netRoi}%`} />
 
                       <FeedMetric
-                        label="Liquidez"
-                        value={`${item.liquidity.liquidityScore}/100`}
-                      />
-
-                      <FeedMetric
-                        label="Riesgo"
-                        value={`${item.dealRisk.riskScore}/100`}
+                        label="Margen"
+                        value={`${item.netProfit.toLocaleString("es-ES")} €`}
                       />
                     </div>
 
-                    <div
-                      style={{
-                        ...decisionStyle,
-                        ...getDecisionTheme(item.finalDecision.label),
-                      }}
-                    >
-                      {item.finalDecision.label}
-                    </div>
-
-                    <p style={marketInsightStyle}>
+                    <div style={decisionStyle}>
                       {item.finalDecision.explanation}
-                    </p>
+                    </div>
 
                     <div style={liquidityBoxStyle}>
-                      <h4 style={miniTitleStyle}>💧 Liquidez estimada</h4>
+                      <h4 style={miniTitleStyle}>💧 Liquidez</h4>
 
                       <div style={marketGridStyle}>
+                        <SmallMetric
+                          label="Liquidez"
+                          value={`${item.liquidity.liquidityScore}/100`}
+                        />
+
                         <SmallMetric
                           label="Venta estimada"
                           value={`${item.liquidity.expectedDaysToSell} días`}
@@ -262,14 +322,11 @@ export default function Scanner() {
                           label="Compradores"
                           value={item.liquidity.buyerPool}
                         />
-
-                        <SmallMetric
-                          label="Riesgo"
-                          value={item.liquidity.risk}
-                        />
                       </div>
 
-                      <p style={marketInsightStyle}>{item.liquidity.summary}</p>
+                      <p style={marketInsightStyle}>
+                        {item.liquidity.summary}
+                      </p>
                     </div>
 
                     <div style={riskBoxStyle}>
@@ -282,30 +339,14 @@ export default function Scanner() {
                         />
 
                         <SmallMetric
-                          label="Alertas"
-                          value={item.dealRisk.alerts.length}
+                          label="Risk score"
+                          value={`${item.dealRisk.riskScore}/100`}
                         />
                       </div>
 
                       <p style={marketInsightStyle}>
                         {item.dealRisk.recommendation}
                       </p>
-
-                      {item.dealRisk.alerts.length > 0 && (
-                        <div style={riskAlertGridStyle}>
-                          {item.dealRisk.alerts.slice(0, 3).map((alert) => (
-                            <div key={alert.id} style={riskAlertStyle}>
-                              <strong>{alert.label}</strong>
-
-                              <p style={riskSeverityStyle}>
-                                Severidad: {alert.severity}
-                              </p>
-
-                              <p style={marketInsightStyle}>{alert.reason}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
                     <div style={marketBoxStyle}>
@@ -388,40 +429,6 @@ export default function Scanner() {
               </div>
             </div>
 
-            <div style={trendSectionStyle}>
-              <div style={trendHeaderStyle}>
-                <p style={trendBadgeStyle}>📈 Motor de tendencias</p>
-
-                <h2 style={trendSectionTitleStyle}>
-                  Lectura estratégica del mercado
-                </h2>
-
-                <p style={radarSummaryStyle}>{trendProfile.summary}</p>
-              </div>
-
-              <div style={trendGridStyle}>
-                {[trendProfile.mainTrend, ...trendProfile.trends]
-                  .filter(
-                    (item, index, array) =>
-                      array.findIndex((trend) => trend.label === item.label) ===
-                      index
-                  )
-                  .map((trend) => (
-                    <div key={trend.label} style={trendCardStyle}>
-                      <h3 style={trendCardTitleStyle}>{trend.label}</h3>
-
-                      <div style={trendMetricGridStyle}>
-                        <SmallMetric label="Demanda" value={trend.demand} />
-                        <SmallMetric label="Tendencia" value={trend.trend} />
-                        <SmallMetric label="Riesgo" value={trend.risk} />
-                      </div>
-
-                      <p style={marketInsightStyle}>{trend.insight}</p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
             {searchRadar && (
               <div style={radarSectionStyle}>
                 <div style={radarHeaderStyle}>
@@ -498,6 +505,15 @@ function SemanticBadge({ active, label }) {
       }}
     >
       {active ? "✅" : "○"} {label}
+    </div>
+  );
+}
+
+function MetricCard({ label, value }) {
+  return (
+    <div style={metricCardStyle}>
+      <p style={metricLabelStyle}>{label}</p>
+      <h3 style={metricValueStyle}>{value}</h3>
     </div>
   );
 }
@@ -641,6 +657,70 @@ const waitingBoxStyle = {
   lineHeight: "1.55",
 };
 
+const bestDealStyle = {
+  marginTop: "30px",
+  padding: "24px",
+  borderRadius: "24px",
+  background:
+    "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(59,130,246,0.14))",
+};
+
+const bestDealLabelStyle = {
+  color: "#86efac",
+  fontWeight: "900",
+};
+
+const bestDealTitleStyle = {
+  fontSize: "28px",
+};
+
+const bestDealDecisionStyle = {
+  color: "#facc15",
+  fontWeight: "900",
+  lineHeight: "1.6",
+};
+
+const finalDecisionHeroStyle = {
+  display: "inline-block",
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "rgba(250,204,21,0.14)",
+  color: "#fde68a",
+  fontWeight: "900",
+  marginBottom: "14px",
+};
+
+const finalDecisionStyle = {
+  marginTop: "18px",
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(250,204,21,0.12)",
+  color: "#fde68a",
+  fontWeight: "900",
+  textAlign: "center",
+};
+
+const bestDealGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
+  gap: "14px",
+  marginTop: "22px",
+};
+
+const metricCardStyle = {
+  background: "rgba(2,6,23,0.55)",
+  borderRadius: "18px",
+  padding: "18px",
+};
+
+const metricLabelStyle = {
+  color: "#cbd5e1",
+};
+
+const metricValueStyle = {
+  fontSize: "26px",
+};
+
 const sectionStyle = {
   marginTop: "34px",
 };
@@ -682,7 +762,7 @@ const feedMetaStyle = {
 
 const feedMetricsStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))",
+  gridTemplateColumns: "1fr 1fr 1fr",
   gap: "12px",
   marginTop: "20px",
 };
@@ -706,6 +786,8 @@ const decisionStyle = {
   marginTop: "20px",
   padding: "14px",
   borderRadius: "16px",
+  background: "rgba(34,197,94,0.12)",
+  color: "#86efac",
   fontWeight: "900",
   textAlign: "center",
 };
@@ -730,8 +812,8 @@ const liquidityBoxStyle = {
   marginTop: "18px",
   padding: "18px",
   borderRadius: "20px",
-  background: "rgba(14,165,233,0.10)",
-  border: "1px solid rgba(14,165,233,0.22)",
+  background: "rgba(20,184,166,0.10)",
+  border: "1px solid rgba(20,184,166,0.22)",
 };
 
 const riskBoxStyle = {
@@ -740,24 +822,6 @@ const riskBoxStyle = {
   borderRadius: "20px",
   background: "rgba(245,158,11,0.10)",
   border: "1px solid rgba(245,158,11,0.22)",
-};
-
-const riskAlertGridStyle = {
-  display: "grid",
-  gap: "10px",
-  marginTop: "14px",
-};
-
-const riskAlertStyle = {
-  background: "rgba(2,6,23,0.45)",
-  borderRadius: "14px",
-  padding: "14px",
-};
-
-const riskSeverityStyle = {
-  color: "#fbbf24",
-  fontWeight: "800",
-  marginBottom: "8px",
 };
 
 const miniTitleStyle = {
@@ -833,37 +897,6 @@ const trendMetricGridStyle = {
   gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
   gap: "10px",
   marginBottom: "16px",
-};
-
-const trendSectionStyle = {
-  marginTop: "42px",
-};
-
-const trendHeaderStyle = {
-  marginBottom: "22px",
-};
-
-const trendSectionTitleStyle = {
-  fontSize: "32px",
-  marginBottom: "10px",
-};
-
-const trendGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-  gap: "18px",
-};
-
-const trendCardStyle = {
-  background: "rgba(15,23,42,0.82)",
-  borderRadius: "24px",
-  padding: "24px",
-  border: "1px solid rgba(14,165,233,0.20)",
-};
-
-const trendCardTitleStyle = {
-  fontSize: "22px",
-  marginTop: 0,
 };
 
 const radarSectionStyle = {
