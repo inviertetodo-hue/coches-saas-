@@ -3,6 +3,7 @@ import { buildMarketScan } from "../services/marketScanner";
 import { generateMockMarketFeed } from "../services/mockMarketFeed";
 import { buildSearchRecommendations } from "../services/searchRecommendationEngine";
 import { buildMarketTrendProfile } from "../services/marketTrendEngine";
+import { analyzeDealRisk } from "../services/dealRiskEngine";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -26,7 +27,26 @@ export default function Scanner() {
 
   const marketFeed = useMemo(() => {
     if (!searchTriggered) return null;
-    return generateMockMarketFeed(scan);
+
+    const rawFeed = generateMockMarketFeed(scan);
+
+    const opportunities = rawFeed.opportunities.map((item) => ({
+      ...item,
+      dealRisk: analyzeDealRisk(item),
+    }));
+
+    const best = rawFeed.best
+      ? {
+          ...rawFeed.best,
+          dealRisk: analyzeDealRisk(rawFeed.best),
+        }
+      : null;
+
+    return {
+      ...rawFeed,
+      opportunities,
+      best,
+    };
   }, [scan, searchTriggered]);
 
   const searchRadar = useMemo(() => {
@@ -193,14 +213,22 @@ export default function Scanner() {
                   />
 
                   <MetricCard
-                    label="Venta rápida"
-                    value={marketFeed.best.memory?.resaleSpeed?.label || "Media"}
+                    label="Riesgo real"
+                    value={marketFeed.best.dealRisk?.level || "Medio"}
                   />
 
                   <MetricCard
-                    label="Riesgo"
-                    value={marketFeed.best.memory?.riskLevel || "Medio"}
+                    label="Risk score"
+                    value={`${marketFeed.best.dealRisk?.riskScore || 0}/100`}
                   />
+                </div>
+
+                <div style={riskBoxStyle}>
+                  <h4 style={miniTitleStyle}>🛡️ Lectura de riesgo</h4>
+
+                  <p style={marketInsightStyle}>
+                    {marketFeed.best.dealRisk?.recommendation}
+                  </p>
                 </div>
               </div>
             )}
@@ -238,12 +266,48 @@ export default function Scanner() {
                       <FeedMetric label="ROI neto" value={`${item.netRoi}%`} />
 
                       <FeedMetric
-                        label="Margen"
-                        value={`${item.netProfit.toLocaleString("es-ES")} €`}
+                        label="Riesgo"
+                        value={`${item.dealRisk.riskScore}/100`}
                       />
                     </div>
 
                     <div style={decisionStyle}>{item.decision}</div>
+
+                    <div style={riskBoxStyle}>
+                      <h4 style={miniTitleStyle}>🛡️ Riesgo de operación</h4>
+
+                      <div style={marketGridStyle}>
+                        <SmallMetric
+                          label="Nivel"
+                          value={item.dealRisk.level}
+                        />
+
+                        <SmallMetric
+                          label="Alertas"
+                          value={item.dealRisk.alerts.length}
+                        />
+                      </div>
+
+                      <p style={marketInsightStyle}>
+                        {item.dealRisk.recommendation}
+                      </p>
+
+                      {item.dealRisk.alerts.length > 0 && (
+                        <div style={riskAlertGridStyle}>
+                          {item.dealRisk.alerts.slice(0, 3).map((alert) => (
+                            <div key={alert.id} style={riskAlertStyle}>
+                              <strong>{alert.label}</strong>
+
+                              <p style={riskSeverityStyle}>
+                                Severidad: {alert.severity}
+                              </p>
+
+                              <p style={marketInsightStyle}>{alert.reason}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
                     <div style={marketBoxStyle}>
                       <h4 style={miniTitleStyle}>📊 Comparables de mercado</h4>
@@ -715,6 +779,32 @@ const memoryBoxStyle = {
   borderRadius: "20px",
   background: "rgba(34,197,94,0.09)",
   border: "1px solid rgba(34,197,94,0.18)",
+};
+
+const riskBoxStyle = {
+  marginTop: "18px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(245,158,11,0.10)",
+  border: "1px solid rgba(245,158,11,0.22)",
+};
+
+const riskAlertGridStyle = {
+  display: "grid",
+  gap: "10px",
+  marginTop: "14px",
+};
+
+const riskAlertStyle = {
+  background: "rgba(2,6,23,0.45)",
+  borderRadius: "14px",
+  padding: "14px",
+};
+
+const riskSeverityStyle = {
+  color: "#fbbf24",
+  fontWeight: "800",
+  marginBottom: "8px",
 };
 
 const miniTitleStyle = {
