@@ -1,7 +1,6 @@
-import { NavLink } from "react-router-dom";
-
 import { APP_BRAND } from "../../config/appBrand";
 import { NAVIGATION_ITEMS } from "../../config/navigation";
+import AppSidebarNavItem from "./AppSidebarNavItem";
 
 export default function AppSidebar() {
   return (
@@ -12,16 +11,7 @@ export default function AppSidebar() {
 
       <nav style={navStyle}>
         {NAVIGATION_ITEMS.map((item) => (
-          <NavLink
-            key={item.id}
-            to={item.path}
-            style={({ isActive }) => ({
-              ...navLinkStyle,
-              ...(isActive ? activeNavLinkStyle : {}),
-            })}
-          >
-            {item.label}
-          </NavLink>
+          <AppSidebarNavItem key={item.id} item={item} />
         ))}
       </nav>
 
@@ -46,21 +36,6 @@ const navStyle = {
   flexDirection: "column",
   gap: "15px",
   marginTop: "30px",
-};
-
-const navLinkStyle = {
-  padding: "10px 12px",
-  borderRadius: "14px",
-  textDecoration: "none",
-  color: "#cbd5e1",
-  fontWeight: "800",
-  border: "1px solid transparent",
-};
-
-const activeNavLinkStyle = {
-  color: "#dbeafe",
-  background: "rgba(59,130,246,0.16)",
-  border: "1px solid rgba(59,130,246,0.30)",
 };
 
 const objectiveBoxStyle = {
