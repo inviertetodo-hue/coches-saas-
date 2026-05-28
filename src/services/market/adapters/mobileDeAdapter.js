@@ -19,6 +19,42 @@ const BRAND_PATTERNS = [
   "range-rover",
 ];
 
+const PERFORMANCE_PATTERNS = [
+  "amg",
+  "competition",
+  "rs",
+  "m-sport",
+  "m340",
+  "m440",
+  "m3",
+  "m4",
+  "m5",
+  "gts",
+  "gt-r",
+  "quadrifoglio",
+  "brabus",
+];
+
+const PREMIUM_PACKAGES = [
+  "designo",
+  "night",
+  "exclusive",
+  "performance",
+  "line",
+  "sport",
+  "s-line",
+  "m-sport",
+  "avantgarde",
+];
+
+const DRIVETRAIN_PATTERNS = [
+  "quattro",
+  "xdrive",
+  "4matic",
+  "4motion",
+  "awd",
+];
+
 export function parseMobileDeUrl(url = "") {
   try {
     const normalizedUrl = String(url).toLowerCase();
@@ -42,17 +78,39 @@ export function parseMobileDeUrl(url = "") {
 
     const title = buildTitle(tokens);
 
+    const performancePackage =
+      detectPerformancePackage(tokens);
+
+    const premiumPackage =
+      detectPremiumPackage(tokens);
+
+    const drivetrain =
+      detectDrivetrain(tokens);
+
+    const fuelType =
+      detectFuelType(tokens);
+
+    const model =
+      detectModel(tokens);
+
     return {
       source: "mobile.de",
       url,
       title,
       brand,
+      model,
       year,
       semantic,
+      drivetrain,
+      fuelType,
+      performancePackage,
+      premiumPackage,
       confidence: calculateConfidence({
         brand,
         year,
         semantic,
+        performancePackage,
+        premiumPackage,
       }),
       extractedTokens: tokens,
       isValid: true,
@@ -114,6 +172,87 @@ function detectYear(tokens = []) {
   return null;
 }
 
+function detectModel(tokens = []) {
+  const modelPatterns = [
+    "g63",
+    "gle",
+    "x5",
+    "x3",
+    "q7",
+    "rs6",
+    "a45",
+    "c63",
+    "m3",
+    "m5",
+    "glc",
+    "xc90",
+    "taycan",
+    "cayenne",
+  ];
+
+  for (const model of modelPatterns) {
+    if (tokens.includes(model)) {
+      return model.toUpperCase();
+    }
+  }
+
+  return null;
+}
+
+function detectPerformancePackage(tokens = []) {
+  for (const item of PERFORMANCE_PATTERNS) {
+    if (tokens.includes(item)) {
+      return item.toUpperCase();
+    }
+  }
+
+  return null;
+}
+
+function detectPremiumPackage(tokens = []) {
+  for (const item of PREMIUM_PACKAGES) {
+    if (tokens.includes(item)) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+function detectDrivetrain(tokens = []) {
+  for (const item of DRIVETRAIN_PATTERNS) {
+    if (tokens.includes(item)) {
+      return item.toUpperCase();
+    }
+  }
+
+  return null;
+}
+
+function detectFuelType(tokens = []) {
+  const joined = tokens.join(" ");
+
+  if (
+    joined.includes("hybrid") ||
+    joined.includes("phev")
+  ) {
+    return "Hybrid";
+  }
+
+  if (
+    joined.includes("electric") ||
+    joined.includes("ev")
+  ) {
+    return "Electric";
+  }
+
+  if (joined.includes("diesel")) {
+    return "Diesel";
+  }
+
+  return "Combustion";
+}
+
 function buildSemanticProfile(tokens = []) {
   const joined = tokens.join(" ");
 
@@ -130,7 +269,7 @@ function buildSemanticProfile(tokens = []) {
 
     isPerformance:
       joined.includes("amg") ||
-      joined.includes("m") ||
+      joined.includes("competition") ||
       joined.includes("rs") ||
       joined.includes("gts"),
 
@@ -139,19 +278,20 @@ function buildSemanticProfile(tokens = []) {
       joined.includes("x5") ||
       joined.includes("gle") ||
       joined.includes("q7") ||
-      joined.includes("xc90"),
+      joined.includes("xc90") ||
+      joined.includes("g63"),
 
     isPremium:
       joined.includes("amg") ||
-      joined.includes("m") ||
       joined.includes("performance") ||
-      joined.includes("night"),
+      joined.includes("night") ||
+      joined.includes("designo"),
   };
 }
 
 function buildTitle(tokens = []) {
   return tokens
-    .slice(0, 10)
+    .slice(0, 12)
     .map((token) => {
       if (token.length <= 2) {
         return token.toUpperCase();
@@ -162,7 +302,13 @@ function buildTitle(tokens = []) {
     .join(" ");
 }
 
-function calculateConfidence({ brand, year, semantic }) {
+function calculateConfidence({
+  brand,
+  year,
+  semantic,
+  performancePackage,
+  premiumPackage,
+}) {
   let score = 40;
 
   if (brand !== "Unknown") {
@@ -181,7 +327,11 @@ function calculateConfidence({ brand, year, semantic }) {
     score += 10;
   }
 
-  if (semantic.isHybrid || semantic.isElectric) {
+  if (performancePackage) {
+    score += 10;
+  }
+
+  if (premiumPackage) {
     score += 5;
   }
 
@@ -194,8 +344,13 @@ function buildFallbackResult(url) {
     url,
     title: "Vehicle",
     brand: "Unknown",
+    model: null,
     year: null,
     confidence: 0,
+    drivetrain: null,
+    fuelType: null,
+    performancePackage: null,
+    premiumPackage: null,
     semantic: {
       isHybrid: false,
       isElectric: false,
