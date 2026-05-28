@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -5,11 +6,11 @@ import {
   Link,
 } from "react-router-dom";
 
-import Importer from "./pages/Importer";
-import History from "./pages/History";
-import Scanner from "./pages/Scanner";
-
 import "./App.css";
+
+const Scanner = lazy(() => import("./pages/Scanner"));
+const Importer = lazy(() => import("./pages/Importer"));
+const History = lazy(() => import("./pages/History"));
 
 export default function App() {
   return (
@@ -37,17 +38,11 @@ export default function App() {
               marginTop: "30px",
             }}
           >
-            <Link to="/scanner">
-              🔎 Scanner IA
-            </Link>
+            <Link to="/scanner">🔎 Scanner IA</Link>
 
-            <Link to="/importer">
-              🔗 Importador IA
-            </Link>
+            <Link to="/importer">🔗 Importador IA</Link>
 
-            <Link to="/history">
-              📊 Inteligencia Mercado
-            </Link>
+            <Link to="/history">📊 Inteligencia Mercado</Link>
           </nav>
 
           <div
@@ -55,10 +50,8 @@ export default function App() {
               marginTop: "40px",
               padding: "16px",
               borderRadius: "18px",
-              background:
-                "rgba(59,130,246,0.10)",
-              border:
-                "1px solid rgba(59,130,246,0.18)",
+              background: "rgba(59,130,246,0.10)",
+              border: "1px solid rgba(59,130,246,0.18)",
             }}
           >
             <p
@@ -80,37 +73,42 @@ export default function App() {
                 fontSize: "13px",
               }}
             >
-              Detectar los mejores coches
-              disponibles en Europa para
-              comprar mejor que el mercado.
+              Detectar los mejores coches disponibles en Europa para comprar
+              mejor que el mercado.
             </p>
           </div>
         </aside>
 
         <main>
-          <Routes>
-            <Route
-              path="/"
-              element={<Scanner />}
-            />
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              <Route path="/" element={<Scanner />} />
 
-            <Route
-              path="/scanner"
-              element={<Scanner />}
-            />
+              <Route path="/scanner" element={<Scanner />} />
 
-            <Route
-              path="/importer"
-              element={<Importer />}
-            />
+              <Route path="/importer" element={<Importer />} />
 
-            <Route
-              path="/history"
-              element={<History />}
-            />
-          </Routes>
+              <Route path="/history" element={<History />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </BrowserRouter>
+  );
+}
+
+function LoadingScreen() {
+  return (
+    <div
+      style={{
+        minHeight: "60vh",
+        display: "grid",
+        placeItems: "center",
+        color: "#cbd5e1",
+        fontWeight: "900",
+      }}
+    >
+      Cargando inteligencia IA...
+    </div>
   );
 }
