@@ -2,6 +2,7 @@ import { Component, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
 import AppErrorFallback from "./components/common/AppErrorFallback";
+import LoadingScreen from "./components/common/LoadingScreen";
 
 import "./App.css";
 
@@ -96,10 +97,6 @@ export default function App() {
   );
 }
 
-function LoadingScreen() {
-  return <div style={centerBoxStyle}>Cargando inteligencia IA...</div>;
-}
-
 class RouteErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -131,11 +128,3 @@ class RouteErrorBoundary extends Component {
     return this.props.children;
   }
 }
-
-const centerBoxStyle = {
-  minHeight: "60vh",
-  display: "grid",
-  placeItems: "center",
-  color: "#cbd5e1",
-  fontWeight: "900",
-};
