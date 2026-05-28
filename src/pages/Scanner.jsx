@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import ScannerHeader from "../components/scanner/ScannerHeader";
 import SemanticBadge from "../components/scanner/SemanticBadge";
 import SmallMetric from "../components/scanner/SmallMetric";
+import MetricCard from "../components/scanner/MetricCard";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
@@ -459,15 +460,6 @@ export default function Scanner() {
   );
 }
 
-function MetricCard({ label, value }) {
-  return (
-    <div style={metricCardStyle}>
-      <p style={metricLabelStyle}>{label}</p>
-      <h3 style={metricValueStyle}>{value}</h3>
-    </div>
-  );
-}
-
 function FeedMetric({ label, value }) {
   return (
     <div style={feedMetricStyle}>
@@ -594,20 +586,6 @@ const bestDealGridStyle = {
   gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
   gap: "14px",
   marginTop: "22px",
-};
-
-const metricCardStyle = {
-  background: "rgba(2,6,23,0.55)",
-  borderRadius: "18px",
-  padding: "18px",
-};
-
-const metricLabelStyle = {
-  color: "#cbd5e1",
-};
-
-const metricValueStyle = {
-  fontSize: "26px",
 };
 
 const sectionStyle = {
