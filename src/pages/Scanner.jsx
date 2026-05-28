@@ -6,9 +6,9 @@ import ScannerResultsSection from "../components/scanner/ScannerResultsSection";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
-import { buildSearchRecommendations } from "../services/searchRecommendationEngine";
 import { buildMarketTrendProfile } from "../services/marketTrendEngine";
 import { useEnrichedMarketFeed } from "../hooks/useEnrichedMarketFeed";
+import { useSearchRadar } from "../hooks/useSearchRadar";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -36,15 +36,12 @@ export default function Scanner() {
     form,
   });
 
-  const searchRadar = useMemo(() => {
-    if (!searchTriggered) return null;
-
-    return buildSearchRecommendations({
-      form,
-      scan,
-      marketFeed,
-    });
-  }, [form, scan, marketFeed, searchTriggered]);
+  const searchRadar = useSearchRadar({
+    searchTriggered,
+    form,
+    scan,
+    marketFeed,
+  });
 
   function updateField(field, value) {
     setSearchTriggered(false);
