@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { Badge } from "./DashboardBlocks";
 
-export default function CarAnalysisCard({ item, onDelete }) {
+function CarAnalysisCard({ item, onDelete }) {
   const quality = getDataQuality(item);
   const recommendation = getRecommendation(item.score);
 
@@ -351,3 +352,5 @@ const deleteButtonStyle = {
   fontWeight: "900",
   cursor: "pointer",
 };
+
+export default memo(CarAnalysisCard);
