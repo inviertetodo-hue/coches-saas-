@@ -1,12 +1,29 @@
+import { useMemo, useState } from "react";
 import CarAnalysisCard from "./CarAnalysisCard";
+
+const INITIAL_VISIBLE_COUNT = 12;
+const LOAD_MORE_STEP = 12;
 
 export default function AnalysisGrid({
   analyses = [],
   onDelete,
 }) {
+  const [visibleCount, setVisibleCount] = useState(
+    INITIAL_VISIBLE_COUNT
+  );
+
   const safeAnalyses = Array.isArray(analyses)
     ? analyses
     : [];
+
+  const visibleAnalyses = useMemo(() => {
+    return safeAnalyses.slice(0, visibleCount);
+  }, [safeAnalyses, visibleCount]);
+
+  const hiddenCount = Math.max(
+    0,
+    safeAnalyses.length - visibleAnalyses.length
+  );
 
   if (safeAnalyses.length === 0) {
     return (
@@ -40,12 +57,19 @@ export default function AnalysisGrid({
         </div>
 
         <div style={countBadgeStyle}>
-          {safeAnalyses.length} análisis
+          {visibleAnalyses.length}/{safeAnalyses.length} visibles
         </div>
       </div>
 
+      {safeAnalyses.length > INITIAL_VISIBLE_COUNT && (
+        <div style={performanceNoticeStyle}>
+          Vista optimizada: se muestran los primeros{" "}
+          {visibleAnalyses.length} análisis para mantener el dashboard rápido.
+        </div>
+      )}
+
       <div style={gridStyle}>
-        {safeAnalyses.map((item) => (
+        {visibleAnalyses.map((item) => (
           <CarAnalysisCard
             key={item.id || item.title}
             item={item}
@@ -53,6 +77,21 @@ export default function AnalysisGrid({
           />
         ))}
       </div>
+
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() =>
+            setVisibleCount((current) =>
+              current + LOAD_MORE_STEP
+            )
+          }
+          style={loadMoreButtonStyle}
+        >
+          Ver {Math.min(LOAD_MORE_STEP, hiddenCount)} más · quedan{" "}
+          {hiddenCount}
+        </button>
+      )}
     </div>
   );
 }
@@ -94,11 +133,34 @@ const countBadgeStyle = {
   fontSize: "13px",
 };
 
+const performanceNoticeStyle = {
+  marginBottom: "20px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  background: "rgba(15,23,42,0.72)",
+  border: "1px solid rgba(148,163,184,0.14)",
+  color: "#cbd5e1",
+  fontSize: "14px",
+  fontWeight: "700",
+};
+
 const gridStyle = {
   display: "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(360px, 1fr))",
   gap: "24px",
+};
+
+const loadMoreButtonStyle = {
+  marginTop: "26px",
+  width: "100%",
+  padding: "16px",
+  borderRadius: "18px",
+  border: "1px solid rgba(59,130,246,0.28)",
+  background: "rgba(59,130,246,0.14)",
+  color: "#bfdbfe",
+  fontWeight: "900",
+  cursor: "pointer",
 };
 
 const emptyStateStyle = {
