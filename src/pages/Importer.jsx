@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { analyzeCar } from "../services/profitAnalyzer";
 import { parseCarFromUrl } from "../services/urlParser";
@@ -19,44 +19,80 @@ export default function Importer() {
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
 
-  function updateField(field, value) {
+  const updateField = useCallback((field, value) => {
     setSaved(false);
     setAnalysis(null);
     setMessage("");
 
-    setCar({
-      ...car,
+    setCar((current) => ({
+      ...current,
       [field]: value,
-    });
-  }
+    }));
+  }, []);
 
-  function validateCarInput() {
+  const validateCarInput = useCallback(() => {
     const price = Number(car.price);
     const km = Number(car.km);
     const year = Number(car.year);
     const currentYear = new Date().getFullYear();
 
-    if (!car.title.trim()) return "Falta el título del vehículo.";
-    if (!car.price || !Number.isFinite(price) || price <= 0) return "El precio debe ser un número válido mayor que 0.";
-    if (!car.km || !Number.isFinite(km) || km < 0) return "Los kilómetros deben ser un número válido.";
-    if (!car.year || !Number.isFinite(year) || year < 1990 || year > currentYear + 1) return "El año del vehículo no es válido.";
-    if (price < 1000) return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
-    if (price > 300000) return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
-    if (km > 500000) return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
+    if (!car.title.trim()) {
+      return "Falta el título del vehículo.";
+    }
+
+    if (!car.price || !Number.isFinite(price) || price <= 0) {
+      return "El precio debe ser un número válido mayor que 0.";
+    }
+
+    if (!car.km || !Number.isFinite(km) || km < 0) {
+      return "Los kilómetros deben ser un número válido.";
+    }
+
+    if (
+      !car.year ||
+      !Number.isFinite(year) ||
+      year < 1990 ||
+      year > currentYear + 1
+    ) {
+      return "El año del vehículo no es válido.";
+    }
+
+    if (price < 1000) {
+      return "El precio parece demasiado bajo. Revisa el dato antes de analizar.";
+    }
+
+    if (price > 300000) {
+      return "El precio parece demasiado alto. Revisa el dato antes de analizar.";
+    }
+
+    if (km > 500000) {
+      return "Los kilómetros parecen demasiado altos. Revisa el dato antes de analizar.";
+    }
 
     return "";
-  }
+  }, [car]);
 
-  function validateAnalysisBeforeSave() {
-    if (!analysis) return "No hay análisis para guardar.";
-    if (!Number.isFinite(Number(analysis.score))) return "El score IA no es válido. No se puede guardar.";
-    if (!Number.isFinite(Number(analysis.roi))) return "El ROI no es válido. No se puede guardar.";
-    if (!Number.isFinite(Number(analysis.estimatedProfit))) return "El beneficio estimado no es válido. No se puede guardar.";
+  const validateAnalysisBeforeSave = useCallback(() => {
+    if (!analysis) {
+      return "No hay análisis para guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.score))) {
+      return "El score IA no es válido. No se puede guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.roi))) {
+      return "El ROI no es válido. No se puede guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.estimatedProfit))) {
+      return "El beneficio estimado no es válido. No se puede guardar.";
+    }
 
     return "";
-  }
+  }, [analysis]);
 
-  function analyzeManualCar() {
+  const analyzeManualCar = useCallback(() => {
     setSaved(false);
 
     const validationError = validateCarInput();
@@ -69,11 +105,13 @@ export default function Importer() {
     }
 
     const parsed = parseCarFromUrl(car.title);
+
     setSemanticData(parsed);
 
     const price = Number(car.price);
     const km = Number(car.km);
     const year = Number(car.year);
+
     const estimatedMarketPrice = Math.round(price * 1.28);
 
     const result = analyzeCar({
@@ -92,16 +130,22 @@ export default function Importer() {
       !Number.isFinite(Number(result.estimatedProfit))
     ) {
       setAnalysis(null);
-      setMessage("El análisis ha generado datos inválidos. Revisa los datos del coche.");
+
+      setMessage(
+        "El análisis ha generado datos inválidos. Revisa los datos del coche."
+      );
+
       return;
     }
 
     setAnalysis(result);
     setMessage("");
-  }
+  }, [car, validateCarInput]);
 
-  async function saveAnalysis() {
-    if (saved || saving) return;
+  const saveAnalysis = useCallback(async () => {
+    if (saved || saving) {
+      return;
+    }
 
     const validationError = validateAnalysisBeforeSave();
 
@@ -113,30 +157,43 @@ export default function Importer() {
     setSaving(true);
     setMessage("");
 
-    const { error } = await supabase.from("import_analyses").insert({
-      title: car.title.trim(),
-      brand: semanticData?.brand || null,
-      model: semanticData?.model || null,
-      fuel_type: semanticData?.fuelType || null,
-      drivetrain: semanticData?.drivetrain || null,
-      performance_package: semanticData?.performancePackage || null,
-      country: car.country,
-      profit: Math.round(analysis.estimatedProfit),
-      roi: Number(analysis.roi),
-      score: Number(analysis.score),
-      url: car.url.trim() || null,
-    });
+    const { error } = await supabase
+      .from("import_analyses")
+      .insert({
+        title: car.title.trim(),
+        brand: semanticData?.brand || null,
+        model: semanticData?.model || null,
+        fuel_type: semanticData?.fuelType || null,
+        drivetrain: semanticData?.drivetrain || null,
+        performance_package:
+          semanticData?.performancePackage || null,
+        country: car.country,
+        profit: Math.round(analysis.estimatedProfit),
+        roi: Number(analysis.roi),
+        score: Number(analysis.score),
+        url: car.url.trim() || null,
+      });
 
     if (error) {
       console.error("Error saving analysis:", error);
-      setMessage("Error al guardar el análisis. Inténtalo de nuevo.");
+
+      setMessage(
+        "Error al guardar el análisis. Inténtalo de nuevo."
+      );
     } else {
       setSaved(true);
       setMessage("Análisis guardado en historial.");
     }
 
     setSaving(false);
-  }
+  }, [
+    analysis,
+    car,
+    saved,
+    saving,
+    semanticData,
+    validateAnalysisBeforeSave,
+  ]);
 
   function getAlertStyle(type) {
     if (type === "success") {
@@ -166,7 +223,9 @@ export default function Importer() {
           {emoji} {label}
         </p>
 
-        <h2 style={predictiveValueStyle}>{value}/100</h2>
+        <h2 style={predictiveValueStyle}>
+          {value}/100
+        </h2>
       </div>
     );
   }
@@ -177,12 +236,17 @@ export default function Importer() {
 
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <p style={badgeStyle}>Coches SaaS · IA Premium</p>
+          <p style={badgeStyle}>
+            Coches SaaS · IA Premium
+          </p>
 
-          <h1 style={titleStyle}>Analiza oportunidades</h1>
+          <h1 style={titleStyle}>
+            Analiza oportunidades
+          </h1>
 
           <p style={subtitleStyle}>
-            Score IA, semantic intelligence, predictive AI y smart alerts.
+            Score IA, semantic intelligence,
+            predictive AI y smart alerts.
           </p>
         </div>
 
@@ -191,43 +255,58 @@ export default function Importer() {
             <input
               placeholder="URL"
               value={car.url}
-              onChange={(e) => updateField("url", e.target.value)}
+              onChange={(e) =>
+                updateField("url", e.target.value)
+              }
               style={inputStyle}
             />
 
             <input
               placeholder="BMW X5 xDrive M Sport PHEV"
               value={car.title}
-              onChange={(e) => updateField("title", e.target.value)}
+              onChange={(e) =>
+                updateField("title", e.target.value)
+              }
               style={inputStyle}
             />
 
             <input
               placeholder="Precio"
               value={car.price}
-              onChange={(e) => updateField("price", e.target.value)}
+              onChange={(e) =>
+                updateField("price", e.target.value)
+              }
               style={inputStyle}
             />
 
             <input
               placeholder="Kilómetros"
               value={car.km}
-              onChange={(e) => updateField("km", e.target.value)}
+              onChange={(e) =>
+                updateField("km", e.target.value)
+              }
               style={inputStyle}
             />
 
             <input
               placeholder="Año"
               value={car.year}
-              onChange={(e) => updateField("year", e.target.value)}
+              onChange={(e) =>
+                updateField("year", e.target.value)
+              }
               style={inputStyle}
             />
 
-            <button onClick={analyzeManualCar} style={buttonStyle}>
+            <button
+              onClick={analyzeManualCar}
+              style={buttonStyle}
+            >
               Analizar vehículo
             </button>
 
-            {message && <p style={messageStyle}>{message}</p>}
+            {message && (
+              <p style={messageStyle}>{message}</p>
+            )}
           </div>
 
           <div style={cardStyle}>
@@ -235,68 +314,126 @@ export default function Importer() {
               <div style={emptyStateStyle}>
                 <p style={emptyIconStyle}>🚘</p>
 
-                <p style={emptyTitleStyle}>Esperando análisis IA</p>
+                <p style={emptyTitleStyle}>
+                  Esperando análisis IA
+                </p>
               </div>
             )}
 
             {analysis && (
               <>
-                <div style={recommendationStyle}>{analysis.recommendation}</div>
-
-                <div style={scoreCircleStyle} className="score-circle">
-                  <span style={scoreNumberStyle}>{analysis.score}</span>
-                  <span style={scoreTextStyle}>SCORE IA</span>
+                <div style={recommendationStyle}>
+                  {analysis.recommendation}
                 </div>
 
-                <div style={kpiGridStyle} className="kpi-grid">
+                <div
+                  style={scoreCircleStyle}
+                  className="score-circle"
+                >
+                  <span style={scoreNumberStyle}>
+                    {analysis.score}
+                  </span>
+
+                  <span style={scoreTextStyle}>
+                    SCORE IA
+                  </span>
+                </div>
+
+                <div
+                  style={kpiGridStyle}
+                  className="kpi-grid"
+                >
                   <div style={kpiCardStyle}>
                     <p style={kpiLabelStyle}>ROI</p>
-                    <p style={kpiValueStyle}>{analysis.roi}%</p>
+
+                    <p style={kpiValueStyle}>
+                      {analysis.roi}%
+                    </p>
                   </div>
 
                   <div style={kpiCardStyle}>
-                    <p style={kpiLabelStyle}>Beneficio</p>
+                    <p style={kpiLabelStyle}>
+                      Beneficio
+                    </p>
+
                     <p style={kpiValueStyle}>
-                      {Math.round(analysis.estimatedProfit)} €
+                      {Math.round(
+                        analysis.estimatedProfit
+                      )} €
                     </p>
                   </div>
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>🔮 Predictive AI Engine</p>
+                  <p style={sectionTitleStyle}>
+                    🔮 Predictive AI Engine
+                  </p>
 
-                  <div style={predictiveGridStyle} className="predictive-grid">
-                    <PredictiveCard label="Demand" value={analysis.demandScore} emoji="📈" />
-                    <PredictiveCard label="Resale" value={analysis.resaleScore} emoji="💰" />
-                    <PredictiveCard label="Liquidity" value={analysis.liquidityScore} emoji="⚡" />
-                    <PredictiveCard label="Future" value={analysis.futurePotential} emoji="🚀" />
+                  <div
+                    style={predictiveGridStyle}
+                    className="predictive-grid"
+                  >
+                    <PredictiveCard
+                      label="Demand"
+                      value={analysis.demandScore}
+                      emoji="📈"
+                    />
+
+                    <PredictiveCard
+                      label="Resale"
+                      value={analysis.resaleScore}
+                      emoji="💰"
+                    />
+
+                    <PredictiveCard
+                      label="Liquidity"
+                      value={analysis.liquidityScore}
+                      emoji="⚡"
+                    />
+
+                    <PredictiveCard
+                      label="Future"
+                      value={analysis.futurePotential}
+                      emoji="🚀"
+                    />
                   </div>
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>🧠 IA Insights</p>
+                  <p style={sectionTitleStyle}>
+                    🧠 IA Insights
+                  </p>
 
-                  {analysis.insights?.map((insight, index) => (
-                    <div key={index} style={insightCardStyle}>
-                      {insight.text}
-                    </div>
-                  ))}
+                  {analysis.insights?.map(
+                    (insight, index) => (
+                      <div
+                        key={index}
+                        style={insightCardStyle}
+                      >
+                        {insight.text}
+                      </div>
+                    )
+                  )}
                 </div>
 
                 <div style={sectionStyle}>
-                  <p style={sectionTitleStyle}>🚨 Smart Alerts</p>
+                  <p style={sectionTitleStyle}>
+                    🚨 Smart Alerts
+                  </p>
 
-                  {analysis.alerts?.map((alert, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        ...alertCardStyle,
-                        ...getAlertStyle(alert.type),
-                      }}
-                    >
-                      {alert.text}
-                    </div>
-                  ))}
+                  {analysis.alerts?.map(
+                    (alert, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          ...alertCardStyle,
+                          ...getAlertStyle(alert.type),
+                        }}
+                      >
+                        {alert.text}
+                      </div>
+                    )
+                  )}
                 </div>
 
                 <button
@@ -304,10 +441,15 @@ export default function Importer() {
                   disabled={saving || saved}
                   style={{
                     ...buttonStyle,
-                    opacity: saving || saved ? 0.6 : 1,
+                    opacity:
+                      saving || saved ? 0.6 : 1,
                   }}
                 >
-                  {saving ? "Guardando..." : saved ? "✅ Guardado" : "Guardar análisis"}
+                  {saving
+                    ? "Guardando..."
+                    : saved
+                    ? "✅ Guardado"
+                    : "Guardar análisis"}
                 </button>
               </>
             )}
@@ -408,7 +550,8 @@ const buttonStyle = {
   padding: "16px",
   borderRadius: "16px",
   border: "none",
-  background: "linear-gradient(135deg,#2563eb,#16a34a)",
+  background:
+    "linear-gradient(135deg,#2563eb,#16a34a)",
   color: "white",
   fontWeight: "900",
   cursor: "pointer",
