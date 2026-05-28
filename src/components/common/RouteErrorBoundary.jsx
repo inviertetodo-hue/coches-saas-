@@ -18,7 +18,7 @@ export default class RouteErrorBoundary extends Component {
   }
 
   componentDidCatch(error) {
-    console.error("Route rendering error:", error);
+    console.error("Route loading error:", error);
   }
 
   handleReload = () => {
