@@ -4,23 +4,25 @@ export default function AppSidebarNavItem({ item }) {
   return (
     <NavLink
       to={item.path}
+      end={item.path === "/"}
       style={({ isActive }) => ({
         ...navLinkStyle,
         ...(isActive ? activeNavLinkStyle : {}),
       })}
     >
-      {item.label}
+      <span>{item.label}</span>
     </NavLink>
   );
 }
 
 const navLinkStyle = {
-  padding: "10px 12px",
-  borderRadius: "14px",
+  padding: "12px 14px",
+  borderRadius: "16px",
   textDecoration: "none",
   color: "#cbd5e1",
   fontWeight: "800",
   border: "1px solid transparent",
+  transition: "all 0.18s ease",
 };
 
 const activeNavLinkStyle = {
