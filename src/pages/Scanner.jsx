@@ -4,6 +4,7 @@ import ScannerHeader from "../components/scanner/ScannerHeader";
 import SemanticBadge from "../components/scanner/SemanticBadge";
 import SmallMetric from "../components/scanner/SmallMetric";
 import MetricCard from "../components/scanner/MetricCard";
+import FeedMetric from "../components/scanner/FeedMetric";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
@@ -460,15 +461,6 @@ export default function Scanner() {
   );
 }
 
-function FeedMetric({ label, value }) {
-  return (
-    <div style={feedMetricStyle}>
-      <p style={feedMetricLabelStyle}>{label}</p>
-      <h4 style={feedMetricValueStyle}>{value}</h4>
-    </div>
-  );
-}
-
 function getDecisionColor(action) {
   switch (action) {
     case "CONTACTAR_PRIMERO":
@@ -632,21 +624,6 @@ const feedMetricsStyle = {
   gridTemplateColumns: "1fr 1fr 1fr",
   gap: "12px",
   marginTop: "20px",
-};
-
-const feedMetricStyle = {
-  background: "rgba(255,255,255,0.05)",
-  borderRadius: "16px",
-  padding: "14px",
-};
-
-const feedMetricLabelStyle = {
-  color: "#cbd5e1",
-  fontSize: "12px",
-};
-
-const feedMetricValueStyle = {
-  fontSize: "20px",
 };
 
 const decisionStyle = {
