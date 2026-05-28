@@ -1,75 +1,125 @@
-export function evaluateAnalysisHealth(validation = {}) {
-  const qualityScore = Number(validation.qualityScore || 0);
-  const errorCount = Number(validation.errorCount || 0);
-  const warningCount = Number(validation.warningCount || 0);
-  const total = Number(validation.total || 0);
+export function evaluateAnalysisHealth(
+  validation = {}
+) {
+  const qualityScore = safeNumber(
+    validation.qualityScore
+  );
 
-  let status = "Sin datos";
-  let canTrustAI = false;
+  const errorCount = safeNumber(
+    validation.errorCount
+  );
+
+  const warningCount = safeNumber(
+    validation.warningCount
+  );
+
+  const total = safeNumber(
+    validation.total
+  );
+
+  const validCount = safeNumber(
+    validation.validCount
+  );
+
+  let status = "critical";
+
   let canShowAdvanced = false;
-  const messages = [];
+
+  let color = "#ef4444";
+
+  let label = "Sistema crítico";
+
+  const insights = [];
 
   if (total === 0) {
-    messages.push("No hay datos suficientes para evaluar la salud del sistema.");
+    insights.push(
+      "Todavía no hay análisis suficientes."
+    );
 
     return {
       status,
-      canTrustAI,
-      canShowAdvanced,
-      messages,
+      label,
+      color,
+      canShowAdvanced: false,
+      qualityScore: 0,
+      insights,
     };
   }
 
-  if (errorCount > 0) {
-    status = "Crítico";
+  if (
+    qualityScore >= 85 &&
+    errorCount === 0
+  ) {
+    status = "healthy";
 
-    messages.push(
-      "Hay errores críticos en el dataset. Revisar antes de confiar en la IA."
-    );
-  } else if (qualityScore >= 85) {
-    status = "Saludable";
-    canTrustAI = true;
     canShowAdvanced = true;
 
-    messages.push(
-      "El dataset tiene buena calidad y puede usarse con confianza."
+    color = "#22c55e";
+
+    label = "Sistema estable";
+
+    insights.push(
+      "La calidad general del sistema es alta."
     );
-  } else if (qualityScore >= 70) {
-    status = "Aceptable";
-    canTrustAI = true;
+  } else if (
+    qualityScore >= 70 &&
+    errorCount <= 1
+  ) {
+    status = "warning";
+
     canShowAdvanced = true;
 
-    messages.push(
-      "El dataset es utilizable, aunque existen avisos menores."
-    );
-  } else if (qualityScore >= 50) {
-    status = "Débil";
-    canTrustAI = false;
-    canShowAdvanced = true;
+    color = "#facc15";
 
-    messages.push(
-      "La IA puede mostrar señales, pero conviene revisar coherencia."
+    label = "Sistema estable con avisos";
+
+    insights.push(
+      "El sistema tiene avisos menores pero sigue siendo usable."
     );
   } else {
-    status = "No fiable";
-    canTrustAI = false;
+    status = "critical";
+
     canShowAdvanced = false;
 
-    messages.push(
-      "La calidad del dataset es baja. No conviene tomar decisiones todavía."
+    color = "#ef4444";
+
+    label = "Sistema inestable";
+
+    insights.push(
+      "La calidad del dataset es insuficiente para IA avanzada."
     );
   }
 
   if (warningCount > 0) {
-    messages.push(
-      `${warningCount} aviso(s) de coherencia detectados.`
+    insights.push(
+      `${warningCount} análisis contienen incoherencias.`
     );
   }
 
+  if (errorCount > 0) {
+    insights.push(
+      `${errorCount} análisis fueron bloqueados por seguridad.`
+    );
+  }
+
+  insights.push(
+    `${validCount}/${total} análisis válidos actualmente.`
+  );
+
   return {
     status,
-    canTrustAI,
+    label,
+    color,
     canShowAdvanced,
-    messages,
+    qualityScore,
+    insights,
   };
+}
+
+function safeNumber(value) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : 0;
 }
