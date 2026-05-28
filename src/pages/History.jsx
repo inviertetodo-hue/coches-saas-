@@ -35,30 +35,39 @@ import AnalysisGrid from "../components/dashboard/AnalysisGrid";
 const AdvancedIntelligencePanel = lazy(() =>
   import("../components/dashboard/AdvancedIntelligencePanel")
 );
+
 const DataQualityPanel = lazy(() =>
   import("../components/dashboard/DataQualityPanel")
 );
+
 const AdvancedMetricsPanel = lazy(() =>
   import("../components/dashboard/AdvancedMetricsPanel")
 );
+
 const OpportunityRadarPanel = lazy(() =>
   import("../components/dashboard/OpportunityRadarPanel")
 );
+
 const OpportunityRankingPanel = lazy(() =>
   import("../components/dashboard/OpportunityRankingPanel")
 );
+
 const WatchlistPanel = lazy(() =>
   import("../components/dashboard/WatchlistPanel")
 );
+
 const DealPipelinePanel = lazy(() =>
   import("../components/dashboard/DealPipelinePanel")
 );
+
 const DealDecisionPanel = lazy(() =>
   import("../components/dashboard/DealDecisionPanel")
 );
+
 const PortfolioSimulatorPanel = lazy(() =>
   import("../components/dashboard/PortfolioSimulatorPanel")
 );
+
 const AIInsightsPanel = lazy(() =>
   import("../components/dashboard/AIInsightsPanel")
 );
@@ -86,10 +95,13 @@ export default function History() {
 
     if (error) {
       console.error("Error loading analyses:", error);
+
       setAnalyses([]);
+
       setLoadError(
         "No se han podido cargar los análisis. Revisa la conexión con Supabase o inténtalo de nuevo."
       );
+
       setIsLoading(false);
       return;
     }
@@ -121,27 +133,61 @@ export default function History() {
     return filterValidAnalyses(sanitized);
   }, [analyses]);
 
-  const market = analyzeMarketIntelligence(cleanAnalyses);
-  const trends = analyzeMarketTrends(cleanAnalyses);
-  const temporal = analyzeTemporalIntelligence(cleanAnalyses);
-  const opportunityAlerts = analyzeOpportunityAlerts(cleanAnalyses);
-  const portfolio = analyzePortfolioStrategy(cleanAnalyses);
-  const risk = analyzeRiskManagement(cleanAnalyses);
-  const confidence = analyzeAIConfidence(cleanAnalyses);
-  const learning = analyzeAILearning(cleanAnalyses);
+  const intelligence = useMemo(() => {
+    const market = analyzeMarketIntelligence(cleanAnalyses);
+    const trends = analyzeMarketTrends(cleanAnalyses);
+    const temporal = analyzeTemporalIntelligence(cleanAnalyses);
+    const opportunityAlerts = analyzeOpportunityAlerts(cleanAnalyses);
+    const portfolio = analyzePortfolioStrategy(cleanAnalyses);
+    const risk = analyzeRiskManagement(cleanAnalyses);
+    const confidence = analyzeAIConfidence(cleanAnalyses);
+    const learning = analyzeAILearning(cleanAnalyses);
 
-  const validation = validateAnalysesDataset(cleanAnalyses);
-  const systemHealth = evaluateAnalysisHealth(validation);
+    const validation = validateAnalysesDataset(cleanAnalyses);
+    const systemHealth = evaluateAnalysisHealth(validation);
 
-  const advancedMetrics = generateAdvancedMetrics(cleanAnalyses);
-  const radar = generateOpportunityRadar(cleanAnalyses);
-  const ranking = generateOpportunityRanking(cleanAnalyses);
-  const watchlist = generateWatchlist(cleanAnalyses);
-  const pipeline = generateDealPipeline(cleanAnalyses);
-  const decisions = generateDealDecisions(cleanAnalyses);
-  const simulation = simulatePortfolio(cleanAnalyses);
+    const advancedMetrics = generateAdvancedMetrics(cleanAnalyses);
+    const radar = generateOpportunityRadar(cleanAnalyses);
+    const ranking = generateOpportunityRanking(cleanAnalyses);
+    const watchlist = generateWatchlist(cleanAnalyses);
+    const pipeline = generateDealPipeline(cleanAnalyses);
+    const decisions = generateDealDecisions(cleanAnalyses);
+    const simulation = simulatePortfolio(cleanAnalyses);
 
-  const executive = generateExecutiveSummary({
+    const executive = generateExecutiveSummary({
+      market,
+      trends,
+      temporal,
+      opportunityAlerts,
+      portfolio,
+      risk,
+      confidence,
+      learning,
+    });
+
+    return {
+      market,
+      trends,
+      temporal,
+      opportunityAlerts,
+      portfolio,
+      risk,
+      confidence,
+      learning,
+      validation,
+      systemHealth,
+      advancedMetrics,
+      radar,
+      ranking,
+      watchlist,
+      pipeline,
+      decisions,
+      simulation,
+      executive,
+    };
+  }, [cleanAnalyses]);
+
+  const {
     market,
     trends,
     temporal,
@@ -150,7 +196,17 @@ export default function History() {
     risk,
     confidence,
     learning,
-  });
+    validation,
+    systemHealth,
+    advancedMetrics,
+    radar,
+    ranking,
+    watchlist,
+    pipeline,
+    decisions,
+    simulation,
+    executive,
+  } = intelligence;
 
   const filteredAnalyses = useMemo(() => {
     let result = [...cleanAnalyses];
@@ -186,6 +242,7 @@ export default function History() {
       if (sortBy === "score") return b.score - a.score;
       if (sortBy === "roi") return b.roi - a.roi;
       if (sortBy === "profit") return b.profit - a.profit;
+
       return 0;
     });
 
@@ -237,16 +294,30 @@ export default function History() {
             <ExecutiveSummaryPanel executive={executive} />
 
             {systemHealth.canShowAdvanced && (
-              <Suspense fallback={<div style={loadingAdvancedStyle}>Cargando Advanced Intelligence...</div>}>
+              <Suspense
+                fallback={
+                  <div style={loadingAdvancedStyle}>
+                    Cargando Advanced Intelligence...
+                  </div>
+                }
+              >
                 <AdvancedIntelligencePanel>
                   <DataQualityPanel validation={validation} />
+
                   <AdvancedMetricsPanel metrics={advancedMetrics} />
+
                   <OpportunityRadarPanel radar={radar} />
+
                   <OpportunityRankingPanel ranking={ranking} />
+
                   <WatchlistPanel watchlist={watchlist} />
+
                   <DealPipelinePanel pipeline={pipeline} />
+
                   <DealDecisionPanel decisions={decisions} />
+
                   <PortfolioSimulatorPanel simulation={simulation} />
+
                   <AIInsightsPanel
                     learning={learning}
                     confidence={confidence}
@@ -269,7 +340,10 @@ export default function History() {
               setFilter={setFilter}
             />
 
-            <AnalysisGrid analyses={filteredAnalyses} onDelete={deleteAnalysis} />
+            <AnalysisGrid
+              analyses={filteredAnalyses}
+              onDelete={deleteAnalysis}
+            />
           </>
         )}
       </div>
