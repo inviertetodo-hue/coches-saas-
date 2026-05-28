@@ -5,6 +5,7 @@ import SemanticBadge from "../components/scanner/SemanticBadge";
 import SmallMetric from "../components/scanner/SmallMetric";
 import BestDealCard from "../components/scanner/BestDealCard";
 import MarketFeedSection from "../components/scanner/MarketFeedSection";
+import AIInsightsSection from "../components/scanner/AIInsightsSection";
 import ScannerForm from "../components/ScannerForm";
 
 import { buildMarketScan } from "../services/marketScanner";
@@ -166,17 +167,7 @@ export default function Scanner() {
           <>
             <MarketFeedSection marketFeed={marketFeed} />
 
-            <div style={sectionStyle}>
-              <h2 style={sectionTitleStyle}>Inteligencia IA</h2>
-
-              <div style={insightGridStyle}>
-                {marketFeed.insights.map((insight, index) => (
-                  <div key={index} style={insightCardStyle}>
-                    {insight}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <AIInsightsSection insights={marketFeed.insights} />
 
             {searchRadar && (
               <div style={radarSectionStyle}>
@@ -299,31 +290,11 @@ const waitingBoxStyle = {
   lineHeight: "1.55",
 };
 
-const sectionStyle = {
-  marginTop: "34px",
-};
-
-const sectionTitleStyle = {
-  fontSize: "28px",
-};
-
 const marketInsightStyle = {
   marginBottom: 0,
   color: "#e5e7eb",
   lineHeight: "1.55",
   fontSize: "14px",
-};
-
-const insightGridStyle = {
-  display: "grid",
-  gap: "14px",
-};
-
-const insightCardStyle = {
-  background: "rgba(255,255,255,0.05)",
-  borderRadius: "18px",
-  padding: "18px",
-  fontWeight: "700",
 };
 
 const trendBoxStyle = {
