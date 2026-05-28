@@ -4,6 +4,8 @@ import { generateMockMarketFeed } from "../services/mockMarketFeed";
 import { buildSearchRecommendations } from "../services/searchRecommendationEngine";
 import { buildMarketTrendProfile } from "../services/marketTrendEngine";
 import { analyzeDealRisk } from "../services/dealRiskEngine";
+import { buildLiquidityProfile } from "../services/liquidityEngine";
+import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 
 export default function Scanner() {
   const [form, setForm] = useState({
@@ -30,17 +32,32 @@ export default function Scanner() {
 
     const rawFeed = generateMockMarketFeed(scan);
 
-    const opportunities = rawFeed.opportunities.map((item) => ({
-      ...item,
-      dealRisk: analyzeDealRisk(item),
-    }));
+    const enrichOpportunity = (item) => {
+      const liquidity = buildLiquidityProfile({
+        query: item.title,
+        item,
+        semantic: scan.semantic,
+      });
 
-    const best = rawFeed.best
-      ? {
-          ...rawFeed.best,
-          dealRisk: analyzeDealRisk(rawFeed.best),
-        }
-      : null;
+      const dealRisk = analyzeDealRisk(item);
+
+      const finalDecision = buildFinalDealDecision({
+        ...item,
+        liquidity,
+        dealRisk,
+      });
+
+      return {
+        ...item,
+        liquidity,
+        dealRisk,
+        finalDecision,
+      };
+    };
+
+    const opportunities = rawFeed.opportunities.map(enrichOpportunity);
+
+    const best = rawFeed.best ? enrichOpportunity(rawFeed.best) : null;
 
     return {
       ...rawFeed,
@@ -196,13 +213,17 @@ export default function Scanner() {
                 <h3 style={bestDealTitleStyle}>{marketFeed.best.title}</h3>
 
                 <p style={bestDealDecisionStyle}>
-                  {marketFeed.best.decision}
+                  {marketFeed.best.finalDecision?.label}
+                </p>
+
+                <p style={marketInsightStyle}>
+                  {marketFeed.best.finalDecision?.explanation}
                 </p>
 
                 <div style={bestDealGridStyle}>
                   <MetricCard
-                    label="Compra recomendada"
-                    value={`${marketFeed.best.opportunityScore}/100`}
+                    label="Score final"
+                    value={`${marketFeed.best.finalDecision?.finalScore || 0}/100`}
                   />
 
                   <MetricCard
@@ -213,14 +234,34 @@ export default function Scanner() {
                   />
 
                   <MetricCard
-                    label="Riesgo real"
-                    value={marketFeed.best.dealRisk?.level || "Medio"}
+                    label="Liquidez"
+                    value={`${marketFeed.best.liquidity?.liquidityScore || 0}/100`}
                   />
 
                   <MetricCard
-                    label="Risk score"
-                    value={`${marketFeed.best.dealRisk?.riskScore || 0}/100`}
+                    label="Riesgo real"
+                    value={marketFeed.best.dealRisk?.level || "Medio"}
                   />
+                </div>
+
+                <div style={liquidityBoxStyle}>
+                  <h4 style={miniTitleStyle}>💧 Liquidez estimada</h4>
+
+                  <div style={marketGridStyle}>
+                    <SmallMetric
+                      label="Venta estimada"
+                      value={`${marketFeed.best.liquidity?.expectedDaysToSell || 0} días`}
+                    />
+
+                    <SmallMetric
+                      label="Compradores"
+                      value={marketFeed.best.liquidity?.buyerPool || "Medio"}
+                    />
+                  </div>
+
+                  <p style={marketInsightStyle}>
+                    {marketFeed.best.liquidity?.summary}
+                  </p>
                 </div>
 
                 <div style={riskBoxStyle}>
@@ -259,11 +300,16 @@ export default function Scanner() {
 
                     <div style={feedMetricsStyle}>
                       <FeedMetric
-                        label="Compra"
-                        value={`${item.opportunityScore}/100`}
+                        label="Final"
+                        value={`${item.finalDecision.finalScore}/100`}
                       />
 
                       <FeedMetric label="ROI neto" value={`${item.netRoi}%`} />
+
+                      <FeedMetric
+                        label="Liquidez"
+                        value={`${item.liquidity.liquidityScore}/100`}
+                      />
 
                       <FeedMetric
                         label="Riesgo"
@@ -271,7 +317,41 @@ export default function Scanner() {
                       />
                     </div>
 
-                    <div style={decisionStyle}>{item.decision}</div>
+                    <div style={decisionStyle}>{item.finalDecision.label}</div>
+
+                    <p style={marketInsightStyle}>
+                      {item.finalDecision.explanation}
+                    </p>
+
+                    <div style={liquidityBoxStyle}>
+                      <h4 style={miniTitleStyle}>💧 Liquidez estimada</h4>
+
+                      <div style={marketGridStyle}>
+                        <SmallMetric
+                          label="Venta estimada"
+                          value={`${item.liquidity.expectedDaysToSell} días`}
+                        />
+
+                        <SmallMetric
+                          label="Demanda"
+                          value={item.liquidity.demand}
+                        />
+
+                        <SmallMetric
+                          label="Compradores"
+                          value={item.liquidity.buyerPool}
+                        />
+
+                        <SmallMetric
+                          label="Riesgo"
+                          value={item.liquidity.risk}
+                        />
+                      </div>
+
+                      <p style={marketInsightStyle}>
+                        {item.liquidity.summary}
+                      </p>
+                    </div>
 
                     <div style={riskBoxStyle}>
                       <h4 style={miniTitleStyle}>🛡️ Riesgo de operación</h4>
@@ -735,7 +815,7 @@ const feedMetaStyle = {
 
 const feedMetricsStyle = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))",
   gap: "12px",
   marginTop: "20px",
 };
@@ -779,6 +859,14 @@ const memoryBoxStyle = {
   borderRadius: "20px",
   background: "rgba(34,197,94,0.09)",
   border: "1px solid rgba(34,197,94,0.18)",
+};
+
+const liquidityBoxStyle = {
+  marginTop: "18px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(14,165,233,0.10)",
+  border: "1px solid rgba(14,165,233,0.22)",
 };
 
 const riskBoxStyle = {
