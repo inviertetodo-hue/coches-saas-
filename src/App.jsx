@@ -1,6 +1,14 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+} from "react-router-dom";
+
 import Importer from "./pages/Importer";
 import History from "./pages/History";
+import Scanner from "./pages/Scanner";
+
 import "./App.css";
 
 export default function App() {
@@ -10,6 +18,17 @@ export default function App() {
         <aside>
           <h1>🚘 Coches SaaS</h1>
 
+          <p
+            style={{
+              color: "#94a3b8",
+              fontSize: "13px",
+              lineHeight: "1.5",
+              marginTop: "12px",
+            }}
+          >
+            AI Automotive Opportunity Platform
+          </p>
+
           <nav
             style={{
               display: "flex",
@@ -18,19 +37,77 @@ export default function App() {
               marginTop: "30px",
             }}
           >
-            <Link to="/importer">🔗 Importador</Link>
+            <Link to="/scanner">
+              🔎 Scanner IA
+            </Link>
 
-            <Link to="/history">📊 Historial</Link>
+            <Link to="/importer">
+              🔗 Importador IA
+            </Link>
+
+            <Link to="/history">
+              📊 Inteligencia Mercado
+            </Link>
           </nav>
+
+          <div
+            style={{
+              marginTop: "40px",
+              padding: "16px",
+              borderRadius: "18px",
+              background:
+                "rgba(59,130,246,0.10)",
+              border:
+                "1px solid rgba(59,130,246,0.18)",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: "#93c5fd",
+                fontWeight: "900",
+                fontSize: "13px",
+              }}
+            >
+              Objetivo
+            </p>
+
+            <p
+              style={{
+                marginTop: "10px",
+                color: "#cbd5e1",
+                lineHeight: "1.5",
+                fontSize: "13px",
+              }}
+            >
+              Detectar los mejores coches
+              disponibles en Europa para
+              comprar mejor que el mercado.
+            </p>
+          </div>
         </aside>
 
         <main>
           <Routes>
-            <Route path="/" element={<Importer />} />
+            <Route
+              path="/"
+              element={<Scanner />}
+            />
 
-            <Route path="/importer" element={<Importer />} />
+            <Route
+              path="/scanner"
+              element={<Scanner />}
+            />
 
-            <Route path="/history" element={<History />} />
+            <Route
+              path="/importer"
+              element={<Importer />}
+            />
+
+            <Route
+              path="/history"
+              element={<History />}
+            />
           </Routes>
         </main>
       </div>
