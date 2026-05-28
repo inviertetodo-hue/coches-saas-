@@ -1,181 +1,278 @@
-export function generateSearchRecommendations() {
-  const recommendations = buildRecommendations()
-    .map((item) => ({
-      ...item,
-      priorityScore: calculatePriorityScore(item),
-      decision: buildDecision(item),
-    }))
-    .sort((a, b) => b.priorityScore - a.priorityScore);
+const SEARCH_LANES = [
+  {
+    id: "bmw-x5-45e",
+    label: "BMW X5 45e",
+    segment: "premium-phev-suv",
+    budgetMin: 43000,
+    budgetMax: 62000,
+    countries: ["Alemania", "Holanda", "Bélgica"],
+    liquidity: "Alta",
+    risk: "Medio",
+    marginPotential: "Alto",
+    basePriority: 92,
+    keywords: ["bmw", "x5", "45e", "phev", "híbrido", "suv"],
+    reason:
+      "SUV premium PHEV con demanda fuerte, ticket alto defendible y margen potencial si aparece por debajo de mercado con buen historial.",
+  },
+  {
+    id: "mercedes-glc-300de-300e",
+    label: "Mercedes GLC 300de / 300e",
+    segment: "premium-phev-suv",
+    budgetMin: 38000,
+    budgetMax: 57000,
+    countries: ["Alemania", "Bélgica", "Holanda"],
+    liquidity: "Alta",
+    risk: "Medio",
+    marginPotential: "Alto",
+    basePriority: 90,
+    keywords: ["mercedes", "glc", "300de", "300e", "phev", "híbrido"],
+    reason:
+      "Modelo muy buscado para uso familiar y empresa. Buena combinación de liquidez, imagen premium y oportunidades en mercados europeos grandes.",
+  },
+  {
+    id: "audi-q7-tfsie",
+    label: "Audi Q7 TFSIe",
+    segment: "large-premium-phev-suv",
+    budgetMin: 52000,
+    budgetMax: 76000,
+    countries: ["Alemania", "Holanda"],
+    liquidity: "Media",
+    risk: "Medio-alto",
+    marginPotential: "Alto",
+    basePriority: 82,
+    keywords: ["audi", "q7", "tfsie", "tfsi", "phev", "quattro"],
+    reason:
+      "Puede dejar margen alto, pero exige más capital, mejor filtrado y comprador claro por su ticket y coste de rotación.",
+  },
+  {
+    id: "bmw-serie-3-diesel-auto",
+    label: "BMW Serie 3 diésel automático",
+    segment: "premium-diesel-sedan",
+    budgetMin: 22000,
+    budgetMax: 42000,
+    countries: ["Alemania", "Bélgica", "Francia"],
+    liquidity: "Alta",
+    risk: "Bajo-medio",
+    marginPotential: "Medio-alto",
+    basePriority: 86,
+    keywords: ["bmw", "serie 3", "320d", "330d", "diesel", "automático"],
+    reason:
+      "Producto líquido, fácil de comparar y con demanda estable. Interesante para rotación más rápida con riesgo controlado.",
+  },
+  {
+    id: "mercedes-clase-a-auto",
+    label: "Mercedes Clase A automático",
+    segment: "premium-compact",
+    budgetMin: 19000,
+    budgetMax: 36000,
+    countries: ["Alemania", "Francia", "Bélgica"],
+    liquidity: "Alta",
+    risk: "Bajo-medio",
+    marginPotential: "Medio",
+    basePriority: 84,
+    keywords: ["mercedes", "clase a", "a180", "a200", "automático"],
+    reason:
+      "Alta demanda de entrada a marca premium. Buen candidato para rotación si el precio, kilómetros y acabado cuadran.",
+  },
+  {
+    id: "toyota-hibridos",
+    label: "Toyota híbridos",
+    segment: "reliable-hybrid",
+    budgetMin: 15000,
+    budgetMax: 34000,
+    countries: ["España", "Francia", "Bélgica", "Alemania"],
+    liquidity: "Muy alta",
+    risk: "Bajo",
+    marginPotential: "Medio",
+    basePriority: 88,
+    keywords: ["toyota", "hybrid", "híbrido", "corolla", "rav4", "c-hr"],
+    reason:
+      "Liquidez muy fuerte, riesgo bajo y público comprador amplio. Ideal cuando se prioriza seguridad y velocidad de salida.",
+  },
+];
+
+const AVOID_LANES = [
+  {
+    id: "expensive-performance",
+    label: "Performance caro sin comprador claro",
+    risk: "Alto",
+    reason:
+      "El margen aparente puede ser grande, pero la liquidez suele ser menor y el comprador final es más específico.",
+  },
+  {
+    id: "too-cheap-listings",
+    label: "Anuncios demasiado baratos",
+    risk: "Muy alto",
+    reason:
+      "Un precio excesivamente bajo puede esconder daños, fraude, historial incompleto, impuestos pendientes o datos inconsistentes.",
+  },
+  {
+    id: "low-data-cars",
+    label: "Coches sin datos suficientes",
+    risk: "Alto",
+    reason:
+      "Sin kilómetros, año, versión, historial o equipamiento claro, la IA debe bajar confianza y evitar recomendar compra agresiva.",
+  },
+  {
+    id: "slow-luxury",
+    label: "Lujo caro de baja rotación",
+    risk: "Medio-alto",
+    reason:
+      "Puede inmovilizar capital durante demasiado tiempo aunque parezca barato frente a mercado.",
+  },
+];
+
+export function buildSearchRecommendations(input = {}) {
+  const form = input.form || {};
+  const scan = input.scan || {};
+  const marketFeed = input.marketFeed || null;
+
+  const query = normalizeText(form.query || scan.query || "");
+  const maxBudget = toNumber(form.maxBudget, 0);
+  const country = form.country || "Europa";
+  const useCase = form.useCase || "reventa";
+
+  const recommendedSearches = SEARCH_LANES.map((lane) => {
+    const priority = calculatePriority({
+      lane,
+      query,
+      maxBudget,
+      country,
+      useCase,
+      scan,
+      marketFeed,
+    });
+
+    return {
+      ...lane,
+      priority,
+      budgetTarget: formatBudgetRange(lane.budgetMin, lane.budgetMax),
+      countriesTarget: lane.countries,
+      isDirectMatch: hasKeywordMatch(query, lane.keywords),
+    };
+  })
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 6);
+
+  const avoidSearches = buildAvoidRecommendations({
+    scan,
+    maxBudget,
+    useCase,
+  });
+
+  const topSearch = recommendedSearches[0];
 
   return {
-    topRecommendations: recommendations.slice(0, 6),
-    avoidList: buildAvoidList(),
-    summary: buildSummary(recommendations),
+    summary: buildSummary(topSearch, country, useCase),
+    recommendedSearches,
+    avoidSearches,
   };
 }
 
-function buildRecommendations() {
-  return [
-    {
-      id: "bmw-x5-45e",
-      title: "BMW X5 xDrive45e",
-      segment: "SUV premium PHEV",
-      budgetRange: "52.000 € - 62.000 €",
-      targetCountries: ["Alemania", "Holanda", "Bélgica"],
-      resaleSpeed: 82,
-      marginPotential: 84,
-      risk: 42,
-      liquidity: 86,
-      confidence: 86,
-      reason:
-        "Alta demanda, buena liquidez, configuración premium vendible y margen interesante si aparece por debajo de mercado.",
-    },
-    {
-      id: "mercedes-glc-300de",
-      title: "Mercedes GLC 300de / 300e",
-      segment: "SUV premium PHEV",
-      budgetRange: "42.000 € - 58.000 €",
-      targetCountries: ["Alemania", "Bélgica", "Francia"],
-      resaleSpeed: 78,
-      marginPotential: 78,
-      risk: 46,
-      liquidity: 82,
-      confidence: 82,
-      reason:
-        "SUV premium con demanda sólida, buen encaje para importación y comprador amplio.",
-    },
-    {
-      id: "audi-q7-tfsie",
-      title: "Audi Q7 55 TFSIe quattro",
-      segment: "SUV premium PHEV grande",
-      budgetRange: "55.000 € - 70.000 €",
-      targetCountries: ["Alemania", "Holanda"],
-      resaleSpeed: 70,
-      marginPotential: 80,
-      risk: 52,
-      liquidity: 72,
-      confidence: 78,
-      reason:
-        "Buen margen potencial, pero ticket alto y rotación algo más lenta que X5 o GLC.",
-    },
-    {
-      id: "bmw-serie-3-diesel",
-      title: "BMW Serie 3 320d / 330d automático",
-      segment: "Berlina premium líquida",
-      budgetRange: "24.000 € - 38.000 €",
-      targetCountries: ["Alemania", "Bélgica"],
-      resaleSpeed: 84,
-      marginPotential: 68,
-      risk: 38,
-      liquidity: 88,
-      confidence: 84,
-      reason:
-        "Rotación rápida, demanda estable y ticket más accesible para reventa.",
-    },
-    {
-      id: "mercedes-clase-a-auto",
-      title: "Mercedes Clase A automático",
-      segment: "Compacto premium",
-      budgetRange: "22.000 € - 34.000 €",
-      targetCountries: ["Alemania", "Francia", "Bélgica"],
-      resaleSpeed: 86,
-      marginPotential: 62,
-      risk: 36,
-      liquidity: 90,
-      confidence: 82,
-      reason:
-        "Producto fácil de vender, comprador amplio y menor riesgo de capital inmovilizado.",
-    },
-    {
-      id: "toyota-hybrid",
-      title: "Toyota híbridos",
-      segment: "Híbrido eficiente",
-      budgetRange: "18.000 € - 32.000 €",
-      targetCountries: ["Francia", "Bélgica", "Alemania"],
-      resaleSpeed: 88,
-      marginPotential: 58,
-      risk: 28,
-      liquidity: 86,
-      confidence: 80,
-      reason:
-        "Bajo riesgo, alta confianza mecánica y venta rápida, aunque margen normalmente menor.",
-    },
-  ];
-}
+function calculatePriority({
+  lane,
+  query,
+  maxBudget,
+  country,
+  useCase,
+  scan,
+  marketFeed,
+}) {
+  let score = lane.basePriority;
 
-function calculatePriorityScore(item) {
-  const score =
-    item.resaleSpeed * 0.25 +
-    item.marginPotential * 0.25 +
-    item.liquidity * 0.25 +
-    item.confidence * 0.15 -
-    item.risk * 0.10;
+  if (hasKeywordMatch(query, lane.keywords)) score += 8;
+  if (country !== "Europa" && lane.countries.includes(country)) score += 5;
+  if (country !== "Europa" && !lane.countries.includes(country)) score -= 6;
 
-  return clampScore(score);
-}
+  if (maxBudget > 0) {
+    if (maxBudget >= lane.budgetMin && maxBudget <= lane.budgetMax + 5000) {
+      score += 6;
+    }
 
-function buildDecision(item) {
-  const priority = calculatePriorityScore(item);
-
-  if (priority >= 82) {
-    return "🔥 Buscar primero";
+    if (maxBudget < lane.budgetMin) score -= 18;
+    if (maxBudget > lane.budgetMax + 18000) score -= 4;
   }
 
-  if (priority >= 72) {
-    return "🟢 Buena línea de búsqueda";
+  if (useCase === "quedarmelo" && lane.risk === "Bajo") score += 4;
+  if (useCase === "quedarmelo" && lane.risk.includes("Alto")) score -= 6;
+  if (useCase === "reventa" && lane.liquidity.includes("Alta")) score += 5;
+  if (useCase === "reventa" && lane.liquidity === "Media") score -= 3;
+
+  if (scan.semantic?.isPerformance && lane.risk.includes("Alto")) score -= 8;
+  if (scan.semantic?.isPhev && lane.segment.includes("phev")) score += 4;
+  if (scan.semantic?.isSuv && lane.segment.includes("suv")) score += 4;
+
+  if (
+    marketFeed?.best?.opportunityScore >= 80 &&
+    hasKeywordMatch(query, lane.keywords)
+  ) {
+    score += 4;
   }
 
-  if (priority >= 62) {
-    return "🟡 Buscar si aparece buen precio";
+  return clamp(Math.round(score), 1, 100);
+}
+
+function buildAvoidRecommendations({ scan, maxBudget, useCase }) {
+  const recommendations = [...AVOID_LANES];
+
+  if (scan.semantic?.isPerformance) {
+    recommendations.unshift({
+      id: "performance-warning",
+      label: "Performance premium con score artificialmente alto",
+      risk: "Alto",
+      reason:
+        "Si el coche es muy prestacional, exige más margen de seguridad porque la salida puede ser lenta y el mantenimiento pesa más.",
+    });
   }
 
-  return "⚠️ Solo con descuento fuerte";
-}
-
-function buildAvoidList() {
-  return [
-    {
-      id: "high-ticket-performance",
-      title: "Performance de ticket alto sin comprador claro",
+  if (maxBudget >= 70000 && useCase === "reventa") {
+    recommendations.unshift({
+      id: "high-ticket-warning",
+      label: "Ticket alto para reventa rápida",
+      risk: "Medio-alto",
       reason:
-        "Puede tener margen bruto, pero suele tener menor liquidez, costes altos y venta más lenta.",
-    },
-    {
-      id: "too-cheap-listings",
-      title: "Anuncios demasiado baratos",
-      reason:
-        "Pueden esconder daños, historial dudoso, fraude, importación compleja o costes ocultos.",
-    },
-    {
-      id: "low-data-cars",
-      title: "Coches sin datos suficientes",
-      reason:
-        "Si falta marca, modelo, kilometraje, año o historial, la confianza debe ser baja.",
-    },
-    {
-      id: "slow-rotation-luxury",
-      title: "Lujo muy caro sin demanda clara",
-      reason:
-        "Puede inmovilizar capital durante demasiado tiempo aunque el margen aparente sea alto.",
-    },
-  ];
-}
-
-function buildSummary(recommendations) {
-  const best = recommendations[0];
-
-  if (!best) {
-    return "Todavía no hay líneas de búsqueda recomendadas.";
+        "Por encima de 70.000 €, conviene priorizar liquidez y comprador final antes que margen teórico.",
+    });
   }
 
-  return `Ahora mismo la mejor línea de búsqueda es ${best.title}, con prioridad ${best.priorityScore}/100.`;
+  return recommendations.slice(0, 5);
 }
 
-function clampScore(value) {
-  const number = Math.round(Number(value || 0));
+function buildSummary(topSearch, country, useCase) {
+  if (!topSearch) {
+    return "No hay suficientes datos para priorizar líneas de búsqueda todavía.";
+  }
 
-  if (number > 100) return 100;
-  if (number < 0) return 0;
+  const objective =
+    useCase === "quedarmelo" ? "compra segura" : "reventa con margen";
 
-  return number;
+  return `Radar IA recomienda empezar por ${topSearch.label} para ${objective} en ${country}. Prioridad ${topSearch.priority}/100 por liquidez ${topSearch.liquidity.toLowerCase()}, riesgo ${topSearch.risk.toLowerCase()} y margen potencial ${topSearch.marginPotential.toLowerCase()}.`;
+}
+
+function hasKeywordMatch(query, keywords) {
+  if (!query) return false;
+
+  return keywords.some((keyword) => query.includes(normalizeText(keyword)));
+}
+
+function normalizeText(value) {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function toNumber(value, fallback) {
+  const parsed = Number(String(value).replace(/[^0-9.]/g, ""));
+
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatBudgetRange(min, max) {
+  return `${min.toLocaleString("es-ES")} € - ${max.toLocaleString("es-ES")} €`;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
