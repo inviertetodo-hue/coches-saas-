@@ -66,6 +66,23 @@ const BODY_PATTERNS = [
   "shooting-brake",
 ];
 
+const HIGH_LIQUIDITY_MODELS = [
+  "x5",
+  "gle",
+  "q7",
+  "glc",
+  "model-y",
+  "model-3",
+];
+
+const LOW_LIQUIDITY_MODELS = [
+  "g63",
+  "rs6",
+  "m5",
+  "c63",
+  "gt-r",
+];
+
 export function parseMobileDeUrl(url = "") {
   try {
     const normalizedUrl = String(url).toLowerCase();
@@ -115,12 +132,27 @@ export function parseMobileDeUrl(url = "") {
         drivetrain,
       });
 
+    const liquidityProfile =
+      detectLiquidityProfile({
+        model,
+        performancePackage,
+        bodyType,
+      });
+
     const marketSegment =
       detectMarketSegment({
         brand,
         performancePackage,
         bodyType,
         fuelType,
+      });
+
+    const riskProfile =
+      detectRiskProfile({
+        performancePackage,
+        fuelType,
+        luxuryScore,
+        model,
       });
 
     return {
@@ -137,7 +169,9 @@ export function parseMobileDeUrl(url = "") {
       premiumPackage,
       bodyType,
       luxuryScore,
+      liquidityProfile,
       marketSegment,
+      riskProfile,
       confidence: calculateConfidence({
         brand,
         year,
@@ -341,6 +375,73 @@ function calculateLuxuryScore({
   return Math.min(score, 100);
 }
 
+function detectLiquidityProfile({
+  model,
+  performancePackage,
+  bodyType,
+}) {
+  if (
+    LOW_LIQUIDITY_MODELS.includes(
+      String(model || "").toLowerCase()
+    )
+  ) {
+    return "Low Liquidity";
+  }
+
+  if (
+    HIGH_LIQUIDITY_MODELS.includes(
+      String(model || "").toLowerCase()
+    )
+  ) {
+    return "High Liquidity";
+  }
+
+  if (
+    performancePackage &&
+    bodyType === "SUV"
+  ) {
+    return "Medium Liquidity";
+  }
+
+  return "Standard Liquidity";
+}
+
+function detectRiskProfile({
+  performancePackage,
+  fuelType,
+  luxuryScore,
+  model,
+}) {
+  let risk = "Moderate";
+
+  if (performancePackage) {
+    risk = "High";
+  }
+
+  if (
+    luxuryScore >= 80 &&
+    performancePackage
+  ) {
+    risk = "Very High";
+  }
+
+  if (
+    fuelType === "Electric"
+  ) {
+    risk = "Technology Sensitive";
+  }
+
+  if (
+    String(model || "")
+      .toLowerCase()
+      .includes("g63")
+  ) {
+    risk = "Ultra Premium Risk";
+  }
+
+  return risk;
+}
+
 function detectMarketSegment({
   brand,
   performancePackage,
@@ -474,7 +575,9 @@ function buildFallbackResult(url) {
     premiumPackage: null,
     bodyType: null,
     luxuryScore: 0,
+    liquidityProfile: "Unknown",
     marketSegment: "Unknown",
+    riskProfile: "Unknown",
     semantic: {
       isHybrid: false,
       isElectric: false,
