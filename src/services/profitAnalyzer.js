@@ -12,6 +12,10 @@ export function analyzeCar(data) {
   const performancePackage = normalize(data.performancePackage);
   const fuelType = normalize(data.fuelType);
   const bodyType = normalize(data.bodyType);
+  const marketSegment = normalize(data.marketSegment);
+  const liquidityProfile = normalize(data.liquidityProfile);
+  const riskProfile = normalize(data.riskProfile);
+  const luxuryScore = safeNumber(data.luxuryScore);
   const electrified = Boolean(data.electrified);
 
   const currentYear = new Date().getFullYear();
@@ -258,6 +262,30 @@ export function analyzeCar(data) {
     alerts,
   });
 
+  applyMarketAdapterCalibration({
+    marketSegment,
+    liquidityProfile,
+    riskProfile,
+    luxuryScore,
+    scoreRef: (value) => {
+      score += value;
+    },
+    demandRef: (value) => {
+      demandScore += value;
+    },
+    resaleRef: (value) => {
+      resaleScore += value;
+    },
+    liquidityRef: (value) => {
+      liquidityScore += value;
+    },
+    futureRef: (value) => {
+      futurePotential += value;
+    },
+    insights,
+    alerts,
+  });
+
   if (isPremium && hasPremiumAWD && bodyType.includes("suv")) {
     score += 8;
     demandScore += 15;
@@ -272,7 +300,10 @@ export function analyzeCar(data) {
     score -= 10;
     resaleScore -= 10;
     liquidityScore -= 10;
-    alerts.push({ type: "warning", text: "⚠️ Performance con kilómetros: revisar riesgo mecánico" });
+    alerts.push({
+      type: "warning",
+      text: "⚠️ Performance con kilómetros: revisar riesgo mecánico",
+    });
   }
 
   if (hasPerformancePack && price >= 90000) {
@@ -327,6 +358,10 @@ export function analyzeCar(data) {
     kilometers,
     price,
     hasPerformancePack,
+    marketSegment,
+    liquidityProfile,
+    riskProfile,
+    luxuryScore,
   });
 
   if (score > maxScore) {
@@ -370,11 +405,17 @@ export function analyzeCar(data) {
     roi >= 15 &&
     estimatedProfit > 0 &&
     semanticQuality >= 60 &&
-    segment !== "unknown"
+    segment !== "unknown" &&
+    !isHardRiskProfile(riskProfile)
   ) {
     recommendation = "🔥 CHOLLO IA";
     alerts.push({ type: "success", text: "🏆 Score IA muy alto" });
-  } else if (score <= 45 || roi <= 0 || estimatedProfit <= 0) {
+  } else if (
+    score <= 45 ||
+    roi <= 0 ||
+    estimatedProfit <= 0 ||
+    isHardRiskProfile(riskProfile)
+  ) {
     recommendation = "❌ DESCARTAR";
     alerts.push({ type: "danger", text: "❌ Riesgo elevado detectado" });
   }
@@ -544,6 +585,137 @@ function buildInvalidAnalysis() {
       },
     ],
   };
+}
+
+function applyMarketAdapterCalibration({
+  marketSegment,
+  liquidityProfile,
+  riskProfile,
+  luxuryScore,
+  scoreRef,
+  demandRef,
+  resaleRef,
+  liquidityRef,
+  futureRef,
+  insights,
+  alerts,
+}) {
+  if (liquidityProfile.includes("high liquidity")) {
+    scoreRef(5);
+    demandRef(8);
+    liquidityRef(12);
+    resaleRef(5);
+
+    insights.push({
+      type: "positive",
+      text: "Perfil de liquidez alto detectado por market adapter",
+    });
+  }
+
+  if (liquidityProfile.includes("low liquidity")) {
+    scoreRef(-10);
+    demandRef(-4);
+    liquidityRef(-22);
+    resaleRef(-6);
+
+    insights.push({
+      type: "negative",
+      text: "Perfil de liquidez baja: posible rotación lenta",
+    });
+
+    alerts.push({
+      type: "warning",
+      text: "💧 Liquidez baja detectada por market adapter",
+    });
+  }
+
+  if (liquidityProfile.includes("medium liquidity")) {
+    liquidityRef(-4);
+
+    insights.push({
+      type: "neutral",
+      text: "Liquidez media: requiere precio correcto y comprador claro",
+    });
+  }
+
+  if (riskProfile.includes("ultra premium")) {
+    scoreRef(-16);
+    demandRef(-8);
+    liquidityRef(-18);
+    resaleRef(-8);
+    futureRef(-4);
+
+    alerts.push({
+      type: "danger",
+      text: "🏛️ Riesgo ultra premium: ticket muy alto y mercado comprador estrecho",
+    });
+  } else if (riskProfile.includes("very high")) {
+    scoreRef(-12);
+    liquidityRef(-14);
+    resaleRef(-8);
+
+    alerts.push({
+      type: "warning",
+      text: "🚨 Riesgo muy alto detectado por perfil de mercado",
+    });
+  } else if (riskProfile.includes("high")) {
+    scoreRef(-8);
+    liquidityRef(-10);
+    resaleRef(-5);
+
+    alerts.push({
+      type: "warning",
+      text: "⚠️ Riesgo alto detectado por perfil de mercado",
+    });
+  } else if (riskProfile.includes("technology sensitive")) {
+    scoreRef(-4);
+    resaleRef(-8);
+    futureRef(6);
+
+    alerts.push({
+      type: "warning",
+      text: "🔋 Riesgo tecnológico: revisar batería, garantía y degradación",
+    });
+  }
+
+  if (marketSegment.includes("performance luxury suv")) {
+    scoreRef(-4);
+    demandRef(6);
+    liquidityRef(-8);
+
+    insights.push({
+      type: "neutral",
+      text: "Performance Luxury SUV: deseable, pero no siempre líquido",
+    });
+  }
+
+  if (marketSegment.includes("electric premium")) {
+    futureRef(8);
+    resaleRef(-4);
+
+    insights.push({
+      type: "neutral",
+      text: "Premium eléctrico: potencial futuro con riesgo de depreciación",
+    });
+  }
+
+  if (luxuryScore >= 90) {
+    scoreRef(-5);
+    liquidityRef(-8);
+
+    alerts.push({
+      type: "warning",
+      text: "💎 Luxury score muy alto: validar comprador antes de inmovilizar capital",
+    });
+  } else if (luxuryScore >= 70) {
+    demandRef(4);
+    resaleRef(3);
+
+    insights.push({
+      type: "positive",
+      text: "Luxury score alto: configuración atractiva para comprador premium",
+    });
+  }
 }
 
 function calculateSemanticQuality({
@@ -813,6 +985,10 @@ function calculateScoreCap({
   kilometers,
   price,
   hasPerformancePack,
+  marketSegment,
+  liquidityProfile,
+  riskProfile,
+  luxuryScore,
 }) {
   let cap = 100;
 
@@ -825,6 +1001,12 @@ function calculateScoreCap({
   if (segment === "luxury_high_ticket") cap = Math.min(cap, 82);
   if (segment === "premium_ev") cap = Math.min(cap, 86);
 
+  if (marketSegment.includes("performance luxury suv")) cap = Math.min(cap, 82);
+  if (liquidityProfile.includes("low liquidity")) cap = Math.min(cap, 76);
+  if (riskProfile.includes("ultra premium")) cap = Math.min(cap, 72);
+  if (riskProfile.includes("very high")) cap = Math.min(cap, 78);
+  if (luxuryScore >= 90) cap = Math.min(cap, 80);
+
   if (price >= 100000) cap = Math.min(cap, 88);
   if (hasPerformancePack && price >= 90000) cap = Math.min(cap, 86);
   if (kilometers >= 150000) cap = Math.min(cap, 76);
@@ -833,6 +1015,10 @@ function calculateScoreCap({
   if (estimatedProfit <= 0) cap = Math.min(cap, 50);
 
   return cap;
+}
+
+function isHardRiskProfile(riskProfile) {
+  return riskProfile.includes("ultra premium");
 }
 
 function normalize(value) {
