@@ -1,34 +1,138 @@
 const BRAND_PATTERNS = [
-  "bmw",
+  "abarth",
+  "alfa-romeo",
+  "alfa",
   "audi",
-  "mercedes-benz",
-  "mercedes",
-  "porsche",
-  "volkswagen",
-  "toyota",
-  "lexus",
-  "tesla",
+  "bmw",
+  "byd",
+  "citroen",
   "cupra",
-  "seat",
-  "peugeot",
-  "renault",
-  "kia",
+  "dacia",
+  "fiat",
+  "ford",
   "hyundai",
-  "volvo",
+  "jaguar",
+  "jeep",
+  "kia",
   "land-rover",
   "range-rover",
+  "lexus",
+  "mazda",
+  "mercedes-benz",
+  "mercedes",
+  "mg",
+  "mini",
+  "nissan",
+  "opel",
+  "peugeot",
+  "porsche",
+  "renault",
+  "seat",
+  "skoda",
+  "škoda",
+  "tesla",
+  "toyota",
+  "volkswagen",
+  "vw",
+  "volvo",
+];
+
+const MODEL_PATTERNS = [
+  "fabia",
+  "octavia",
+  "superb",
+  "kodiaq",
+  "karoq",
+  "kamiq",
+  "golf",
+  "passat",
+  "polo",
+  "tiguan",
+  "touareg",
+  "arteon",
+  "id3",
+  "id-3",
+  "id4",
+  "id-4",
+  "leon",
+  "ateca",
+  "arona",
+  "formentor",
+  "born",
+  "tavascan",
+  "corolla",
+  "yaris",
+  "rav4",
+  "land-cruiser",
+  "camry",
+  "prius",
+  "chr",
+  "c-hr",
+  "x1",
+  "x3",
+  "x5",
+  "x6",
+  "x7",
+  "m3",
+  "m4",
+  "m5",
+  "serie-1",
+  "serie-3",
+  "serie-5",
+  "a3",
+  "a4",
+  "a5",
+  "a6",
+  "a7",
+  "q3",
+  "q5",
+  "q7",
+  "q8",
+  "rs3",
+  "rs4",
+  "rs5",
+  "rs6",
+  "rs7",
+  "glc",
+  "gle",
+  "gls",
+  "g63",
+  "c63",
+  "a45",
+  "clase-a",
+  "clase-c",
+  "clase-e",
+  "taycan",
+  "cayenne",
+  "macan",
+  "panamera",
+  "911",
+  "model-3",
+  "model-s",
+  "model-x",
+  "model-y",
+  "xc40",
+  "xc60",
+  "xc90",
 ];
 
 const PERFORMANCE_PATTERNS = [
   "amg",
   "competition",
   "rs",
+  "rs3",
+  "rs4",
+  "rs5",
+  "rs6",
+  "rs7",
   "m-sport",
   "m340",
   "m440",
   "m3",
   "m4",
   "m5",
+  "gti",
+  "gtd",
   "gts",
   "gt-r",
   "quadrifoglio",
@@ -45,12 +149,17 @@ const PREMIUM_PACKAGES = [
   "s-line",
   "m-sport",
   "avantgarde",
+  "advanced",
+  "edition",
+  "full-options",
+  "keramik",
 ];
 
 const DRIVETRAIN_PATTERNS = [
   "quattro",
   "xdrive",
   "4matic",
+  "4m",
   "4motion",
   "awd",
 ];
@@ -64,6 +173,8 @@ const BODY_PATTERNS = [
   "wagon",
   "sedan",
   "shooting-brake",
+  "familiar",
+  "berlina",
 ];
 
 const HIGH_LIQUIDITY_MODELS = [
@@ -71,89 +182,89 @@ const HIGH_LIQUIDITY_MODELS = [
   "gle",
   "q7",
   "glc",
+  "q5",
+  "tiguan",
+  "golf",
+  "octavia",
   "model-y",
   "model-3",
+  "rav4",
+  "corolla",
 ];
 
 const LOW_LIQUIDITY_MODELS = [
   "g63",
   "rs6",
+  "rs4",
   "m5",
   "c63",
   "gt-r",
+  "panamera",
 ];
 
 export function parseMobileDeUrl(url = "") {
   try {
-    const normalizedUrl = String(url).toLowerCase();
+    const normalizedUrl = normalizeText(url);
 
     if (!normalizedUrl.includes("mobile.de")) {
       return buildFallbackResult(url);
     }
 
     const slug = extractSlug(normalizedUrl);
+    const queryTokens = extractQueryTokens(normalizedUrl);
 
-    const tokens = slug
-      .split("-")
-      .map((token) => token.trim())
-      .filter(Boolean);
+    const tokens = normalizeTokens([
+      ...slug.split("-"),
+      ...queryTokens,
+    ]);
+
+    const hasUsefulSlug = detectUsefulSlug(slug);
 
     const brand = detectBrand(tokens);
-
+    const model = detectModel(tokens);
     const year = detectYear(tokens);
 
-    const semantic = buildSemanticProfile(tokens);
+    const fuelType = detectFuelType(tokens, normalizedUrl);
+    const semantic = buildSemanticProfile(tokens, fuelType);
+    const title = hasUsefulSlug ? buildTitle(tokens) : "Vehicle";
 
-    const title = buildTitle(tokens);
+    const performancePackage = detectPerformancePackage(tokens);
+    const premiumPackage = detectPremiumPackage(tokens);
+    const drivetrain = detectDrivetrain(tokens);
+    const bodyType = detectBodyType(tokens, model);
 
-    const performancePackage =
-      detectPerformancePackage(tokens);
+    const luxuryScore = calculateLuxuryScore({
+      semantic,
+      performancePackage,
+      premiumPackage,
+      drivetrain,
+      brand,
+    });
 
-    const premiumPackage =
-      detectPremiumPackage(tokens);
+    const liquidityProfile = detectLiquidityProfile({
+      model,
+      performancePackage,
+      bodyType,
+    });
 
-    const drivetrain =
-      detectDrivetrain(tokens);
+    const marketSegment = detectMarketSegment({
+      brand,
+      performancePackage,
+      bodyType,
+      fuelType,
+    });
 
-    const fuelType =
-      detectFuelType(tokens);
+    const riskProfile = detectRiskProfile({
+      performancePackage,
+      fuelType,
+      luxuryScore,
+      model,
+    });
 
-    const model =
-      detectModel(tokens);
-
-    const bodyType =
-      detectBodyType(tokens);
-
-    const luxuryScore =
-      calculateLuxuryScore({
-        semantic,
-        performancePackage,
-        premiumPackage,
-        drivetrain,
-      });
-
-    const liquidityProfile =
-      detectLiquidityProfile({
-        model,
-        performancePackage,
-        bodyType,
-      });
-
-    const marketSegment =
-      detectMarketSegment({
-        brand,
-        performancePackage,
-        bodyType,
-        fuelType,
-      });
-
-    const riskProfile =
-      detectRiskProfile({
-        performancePackage,
-        fuelType,
-        luxuryScore,
-        model,
-      });
+    const needsManualTitle =
+      !hasUsefulSlug ||
+      brand === "Unknown" ||
+      !model;
 
     return {
       source: "mobile.de",
@@ -172,27 +283,113 @@ export function parseMobileDeUrl(url = "") {
       liquidityProfile,
       marketSegment,
       riskProfile,
+      needsManualTitle,
       confidence: calculateConfidence({
         brand,
+        model,
         year,
         semantic,
         performancePackage,
         premiumPackage,
+        hasUsefulSlug,
       }),
       extractedTokens: tokens,
       isValid: true,
     };
   } catch (error) {
     console.error("mobileDeAdapter error", error);
-
     return buildFallbackResult(url);
   }
 }
 
 function extractSlug(url) {
-  const parts = url.split("/");
+  const withoutQuery = url.split("?")[0];
+  const parts = withoutQuery.split("/").filter(Boolean);
 
-  return parts[parts.length - 1] || "";
+  const htmlPart = parts.find((part) => part.endsWith(".html"));
+
+  if (!htmlPart) {
+    return "";
+  }
+
+  const htmlIndex = parts.indexOf(htmlPart);
+  const previousPart = parts[htmlIndex - 1] || "";
+
+  if (
+    previousPart &&
+    previousPart !== "details.html" &&
+    !previousPart.includes("fahrzeuge") &&
+    !previousPart.includes("auto-inserat")
+  ) {
+    return previousPart.replace(/\.html$/i, "");
+  }
+
+  if (htmlPart !== "details.html") {
+    return htmlPart.replace(/\.html$/i, "");
+  }
+
+  return "";
+}
+
+function extractQueryTokens(url) {
+  try {
+    const query = url.split("?")[1] || "";
+    const params = new URLSearchParams(query);
+    const tokens = [];
+
+    const fuel = params.get("ft");
+
+    if (fuel) {
+      tokens.push(fuel);
+    }
+
+    return tokens;
+  } catch {
+    return [];
+  }
+}
+
+function normalizeTokens(tokens = []) {
+  return tokens
+    .map((token) => normalizeText(token))
+    .flatMap((token) => token.split(/[\s_+]+/))
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .filter((token) => !/^\d{6,}$/.test(token))
+    .filter((token) => token !== "html");
+}
+
+function normalizeText(value = "") {
+  return String(value)
+    .toLowerCase()
+    .replace(/%c3%9f/g, "ss")
+    .replace(/%c5%a1/g, "s")
+    .replace(/%c5%a0/g, "s")
+    .replace(/%c3%a9/g, "e")
+    .replace(/%c3%a8/g, "e")
+    .replace(/%c3%a1/g, "a")
+    .replace(/%c3%a0/g, "a")
+    .replace(/%c3%ad/g, "i")
+    .replace(/%c3%b3/g, "o")
+    .replace(/%c3%ba/g, "u")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function detectUsefulSlug(slug = "") {
+  if (!slug) {
+    return false;
+  }
+
+  if (slug.includes("details")) {
+    return false;
+  }
+
+  if (/^\d+$/.test(slug)) {
+    return false;
+  }
+
+  return slug.split("-").filter(Boolean).length >= 2;
 }
 
 function detectBrand(tokens = []) {
@@ -208,6 +405,7 @@ function detectBrand(tokens = []) {
 function normalizeBrand(brand) {
   switch (brand) {
     case "mercedes-benz":
+    case "mercedes":
       return "Mercedes-Benz";
 
     case "land-rover":
@@ -216,11 +414,23 @@ function normalizeBrand(brand) {
     case "range-rover":
       return "Range Rover";
 
+    case "volkswagen":
+    case "vw":
+      return "Volkswagen";
+
+    case "skoda":
+    case "škoda":
+      return "Skoda";
+
+    case "alfa-romeo":
+    case "alfa":
+      return "Alfa Romeo";
+
+    case "citroen":
+      return "Citroën";
+
     default:
-      return (
-        brand.charAt(0).toUpperCase() +
-        brand.slice(1)
-      );
+      return brand.charAt(0).toUpperCase() + brand.slice(1);
   }
 }
 
@@ -243,33 +453,32 @@ function detectYear(tokens = []) {
 }
 
 function detectModel(tokens = []) {
-  const modelPatterns = [
-    "g63",
-    "gle",
-    "x5",
-    "x3",
-    "q7",
-    "rs6",
-    "a45",
-    "c63",
-    "m3",
-    "m5",
-    "glc",
-    "xc90",
-    "taycan",
-    "cayenne",
-    "panamera",
-    "model-3",
-    "model-y",
-  ];
-
-  for (const model of modelPatterns) {
+  for (const model of MODEL_PATTERNS) {
     if (tokens.includes(model)) {
-      return model.toUpperCase();
+      return normalizeModel(model);
     }
   }
 
   return null;
+}
+
+function normalizeModel(model) {
+  return model
+    .replace("model-3", "Model 3")
+    .replace("model-s", "Model S")
+    .replace("model-x", "Model X")
+    .replace("model-y", "Model Y")
+    .replace("serie-1", "Serie 1")
+    .replace("serie-3", "Serie 3")
+    .replace("serie-5", "Serie 5")
+    .replace("clase-a", "Clase A")
+    .replace("clase-c", "Clase C")
+    .replace("clase-e", "Clase E")
+    .replace("id-3", "ID.3")
+    .replace("id3", "ID.3")
+    .replace("id-4", "ID.4")
+    .replace("id4", "ID.4")
+    .toUpperCase();
 }
 
 function detectPerformancePackage(tokens = []) {
@@ -302,17 +511,46 @@ function detectDrivetrain(tokens = []) {
   return null;
 }
 
-function detectBodyType(tokens = []) {
+function detectBodyType(tokens = [], model = "") {
   for (const item of BODY_PATTERNS) {
     if (tokens.includes(item)) {
-      return item;
+      return normalizeBodyType(item);
     }
   }
 
+  const suvModels = [
+    "x1",
+    "x3",
+    "x5",
+    "x6",
+    "x7",
+    "gle",
+    "glc",
+    "gls",
+    "g63",
+    "q3",
+    "q5",
+    "q7",
+    "q8",
+    "tiguan",
+    "touareg",
+    "kodiaq",
+    "karoq",
+    "kamiq",
+    "rav4",
+    "xc40",
+    "xc60",
+    "xc90",
+    "model-y",
+    "model-x",
+  ];
+
+  const normalizedModel = normalizeText(model);
+
   if (
-    tokens.includes("x5") ||
-    tokens.includes("gle") ||
-    tokens.includes("g63")
+    suvModels.some((item) =>
+      tokens.includes(item) || normalizedModel.includes(item)
+    )
   ) {
     return "SUV";
   }
@@ -320,24 +558,46 @@ function detectBodyType(tokens = []) {
   return null;
 }
 
-function detectFuelType(tokens = []) {
+function normalizeBodyType(bodyType) {
+  if (bodyType === "avant" || bodyType === "touring" || bodyType === "wagon") {
+    return "wagon";
+  }
+
+  if (bodyType === "berlina") {
+    return "sedan";
+  }
+
+  return bodyType;
+}
+
+function detectFuelType(tokens = [], url = "") {
   const joined = tokens.join(" ");
+  const text = `${joined} ${url}`;
 
   if (
-    joined.includes("hybrid") ||
-    joined.includes("phev")
+    text.includes("electricity") ||
+    text.includes("electric") ||
+    text.includes("ev") ||
+    text.includes("bev")
+  ) {
+    return "Electric";
+  }
+
+  if (
+    text.includes("hybrid") ||
+    text.includes("phev") ||
+    text.includes("plugin") ||
+    text.includes("plug-in")
   ) {
     return "Hybrid";
   }
 
   if (
-    joined.includes("electric") ||
-    joined.includes("ev")
+    text.includes("diesel") ||
+    text.includes("-d-") ||
+    tokens.includes("tdi") ||
+    tokens.includes("cdi")
   ) {
-    return "Electric";
-  }
-
-  if (joined.includes("diesel")) {
     return "Diesel";
   }
 
@@ -349,8 +609,13 @@ function calculateLuxuryScore({
   performancePackage,
   premiumPackage,
   drivetrain,
+  brand,
 }) {
-  let score = 40;
+  let score = 35;
+
+  if (isPremiumBrandName(brand)) {
+    score += 15;
+  }
 
   if (semantic.isPremium) {
     score += 20;
@@ -380,26 +645,21 @@ function detectLiquidityProfile({
   performancePackage,
   bodyType,
 }) {
+  const normalizedModel = normalizeText(model);
+
   if (
-    LOW_LIQUIDITY_MODELS.includes(
-      String(model || "").toLowerCase()
-    )
+    LOW_LIQUIDITY_MODELS.some((item) => normalizedModel.includes(item))
   ) {
     return "Low Liquidity";
   }
 
   if (
-    HIGH_LIQUIDITY_MODELS.includes(
-      String(model || "").toLowerCase()
-    )
+    HIGH_LIQUIDITY_MODELS.some((item) => normalizedModel.includes(item))
   ) {
     return "High Liquidity";
   }
 
-  if (
-    performancePackage &&
-    bodyType === "SUV"
-  ) {
+  if (performancePackage && bodyType === "SUV") {
     return "Medium Liquidity";
   }
 
@@ -418,24 +678,15 @@ function detectRiskProfile({
     risk = "High";
   }
 
-  if (
-    luxuryScore >= 80 &&
-    performancePackage
-  ) {
+  if (luxuryScore >= 80 && performancePackage) {
     risk = "Very High";
   }
 
-  if (
-    fuelType === "Electric"
-  ) {
+  if (fuelType === "Electric") {
     risk = "Technology Sensitive";
   }
 
-  if (
-    String(model || "")
-      .toLowerCase()
-      .includes("g63")
-  ) {
+  if (normalizeText(model).includes("g63")) {
     risk = "Ultra Premium Risk";
   }
 
@@ -448,109 +699,121 @@ function detectMarketSegment({
   bodyType,
   fuelType,
 }) {
-  if (
-    performancePackage &&
-    bodyType === "SUV"
-  ) {
+  if (performancePackage && bodyType === "SUV") {
     return "Performance Luxury SUV";
   }
 
-  if (
-    fuelType === "Electric"
-  ) {
+  if (fuelType === "Electric") {
     return "Electric Premium";
   }
 
-  if (
-    brand === "Porsche" ||
-    brand === "Mercedes-Benz" ||
-    brand === "BMW"
-  ) {
+  if (isPremiumBrandName(brand)) {
     return "Premium";
   }
 
   return "General";
 }
 
-function buildSemanticProfile(tokens = []) {
+function buildSemanticProfile(tokens = [], fuelType = "") {
   const joined = tokens.join(" ");
 
   return {
     isHybrid:
+      fuelType === "Hybrid" ||
       joined.includes("hybrid") ||
       joined.includes("phev") ||
       joined.includes("plugin"),
 
     isElectric:
+      fuelType === "Electric" ||
       joined.includes("electric") ||
       joined.includes("ev") ||
       joined.includes("tesla"),
 
     isPerformance:
-      joined.includes("amg") ||
-      joined.includes("competition") ||
-      joined.includes("rs") ||
-      joined.includes("gts"),
+      PERFORMANCE_PATTERNS.some((item) => tokens.includes(item)),
 
     isSuv:
       joined.includes("suv") ||
-      joined.includes("x5") ||
-      joined.includes("gle") ||
-      joined.includes("q7") ||
-      joined.includes("xc90") ||
-      joined.includes("g63"),
+      [
+        "x1",
+        "x3",
+        "x5",
+        "x6",
+        "x7",
+        "gle",
+        "glc",
+        "gls",
+        "q3",
+        "q5",
+        "q7",
+        "q8",
+        "kodiaq",
+        "karoq",
+        "kamiq",
+        "rav4",
+        "xc40",
+        "xc60",
+        "xc90",
+        "g63",
+      ].some((item) => tokens.includes(item)),
 
     isPremium:
       joined.includes("amg") ||
       joined.includes("performance") ||
       joined.includes("night") ||
-      joined.includes("designo"),
+      joined.includes("designo") ||
+      joined.includes("s-line") ||
+      joined.includes("m-sport"),
   };
 }
 
 function buildTitle(tokens = []) {
   return tokens
-    .slice(0, 12)
+    .slice(0, 14)
     .map((token) => {
       if (token.length <= 2) {
         return token.toUpperCase();
       }
 
-      return (
-        token.charAt(0).toUpperCase() +
-        token.slice(1)
-      );
+      return token.charAt(0).toUpperCase() + token.slice(1);
     })
     .join(" ");
 }
 
 function calculateConfidence({
   brand,
+  model,
   year,
   semantic,
   performancePackage,
   premiumPackage,
+  hasUsefulSlug,
 }) {
-  let score = 40;
+  let score = hasUsefulSlug ? 35 : 15;
 
   if (brand !== "Unknown") {
     score += 20;
   }
 
+  if (model) {
+    score += 20;
+  }
+
   if (year) {
-    score += 15;
+    score += 10;
   }
 
   if (semantic.isPremium) {
-    score += 10;
+    score += 5;
   }
 
   if (semantic.isPerformance) {
-    score += 10;
+    score += 5;
   }
 
   if (performancePackage) {
-    score += 10;
+    score += 5;
   }
 
   if (premiumPackage) {
@@ -558,6 +821,24 @@ function calculateConfidence({
   }
 
   return Math.min(score, 100);
+}
+
+function isPremiumBrandName(brand = "") {
+  const normalizedBrand = normalizeText(brand);
+
+  return [
+    "audi",
+    "bmw",
+    "mercedes",
+    "mercedes-benz",
+    "porsche",
+    "tesla",
+    "lexus",
+    "land rover",
+    "range rover",
+    "jaguar",
+    "volvo",
+  ].some((item) => normalizedBrand.includes(item));
 }
 
 function buildFallbackResult(url) {
@@ -578,6 +859,7 @@ function buildFallbackResult(url) {
     liquidityProfile: "Unknown",
     marketSegment: "Unknown",
     riskProfile: "Unknown",
+    needsManualTitle: true,
     semantic: {
       isHybrid: false,
       isElectric: false,
