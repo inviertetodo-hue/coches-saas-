@@ -39,15 +39,15 @@ export default function Importer() {
       const currentYear = new Date().getFullYear();
 
       if (!resolvedTitle.trim()) {
-        return "Falta el título o una URL válida del vehículo.";
+        return "Pega una URL o escribe el título del vehículo.";
       }
 
       if (!car.price || !Number.isFinite(price) || price <= 0) {
-        return "El precio debe ser un número válido mayor que 0.";
+        return "URL recibida. Añade el precio para calcular ROI y beneficio real.";
       }
 
       if (!car.km || !Number.isFinite(km) || km < 0) {
-        return "Los kilómetros deben ser un número válido.";
+        return "URL recibida. Añade los kilómetros para completar el análisis.";
       }
 
       if (
@@ -56,7 +56,7 @@ export default function Importer() {
         year < 1990 ||
         year > currentYear + 1
       ) {
-        return "El año del vehículo no es válido.";
+        return "URL recibida. Añade el año para completar el análisis.";
       }
 
       return "";
@@ -101,7 +101,10 @@ export default function Importer() {
 
     if (validationError) {
       setAnalysis(null);
-      setSemanticData(null);
+      setSemanticData({
+        ...parsed,
+        title: resolvedTitle,
+      });
       setMessage(validationError);
       return;
     }
@@ -147,6 +150,16 @@ export default function Importer() {
       setMessage("");
     }
   }, [car, validateCarInput]);
+
+  const analyzeWithEnter = useCallback(
+    (event) => {
+      if (event.key !== "Enter") return;
+
+      event.preventDefault();
+      analyzeManualCar();
+    },
+    [analyzeManualCar]
+  );
 
   const saveAnalysis = useCallback(async () => {
     if (saved || saving) return;
@@ -244,9 +257,10 @@ export default function Importer() {
         <div style={gridStyle} className="importer-grid">
           <div style={cardStyle}>
             <input
-              placeholder="URL del anuncio"
+              placeholder="URL del anuncio · pega URL y pulsa Enter"
               value={car.url}
               onChange={(e) => updateField("url", e.target.value)}
+              onKeyDown={analyzeWithEnter}
               style={inputStyle}
             />
 
@@ -254,6 +268,7 @@ export default function Importer() {
               placeholder="Título del vehículo (opcional si pegas URL)"
               value={car.title}
               onChange={(e) => updateField("title", e.target.value)}
+              onKeyDown={analyzeWithEnter}
               style={inputStyle}
             />
 
@@ -261,6 +276,7 @@ export default function Importer() {
               placeholder="Precio"
               value={car.price}
               onChange={(e) => updateField("price", e.target.value)}
+              onKeyDown={analyzeWithEnter}
               style={inputStyle}
             />
 
@@ -268,6 +284,7 @@ export default function Importer() {
               placeholder="Kilómetros"
               value={car.km}
               onChange={(e) => updateField("km", e.target.value)}
+              onKeyDown={analyzeWithEnter}
               style={inputStyle}
             />
 
@@ -275,6 +292,7 @@ export default function Importer() {
               placeholder="Año"
               value={car.year}
               onChange={(e) => updateField("year", e.target.value)}
+              onKeyDown={analyzeWithEnter}
               style={inputStyle}
             />
 
