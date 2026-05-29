@@ -55,6 +55,17 @@ const DRIVETRAIN_PATTERNS = [
   "awd",
 ];
 
+const BODY_PATTERNS = [
+  "suv",
+  "coupe",
+  "cabrio",
+  "avant",
+  "touring",
+  "wagon",
+  "sedan",
+  "shooting-brake",
+];
+
 export function parseMobileDeUrl(url = "") {
   try {
     const normalizedUrl = String(url).toLowerCase();
@@ -93,6 +104,25 @@ export function parseMobileDeUrl(url = "") {
     const model =
       detectModel(tokens);
 
+    const bodyType =
+      detectBodyType(tokens);
+
+    const luxuryScore =
+      calculateLuxuryScore({
+        semantic,
+        performancePackage,
+        premiumPackage,
+        drivetrain,
+      });
+
+    const marketSegment =
+      detectMarketSegment({
+        brand,
+        performancePackage,
+        bodyType,
+        fuelType,
+      });
+
     return {
       source: "mobile.de",
       url,
@@ -105,6 +135,9 @@ export function parseMobileDeUrl(url = "") {
       fuelType,
       performancePackage,
       premiumPackage,
+      bodyType,
+      luxuryScore,
+      marketSegment,
       confidence: calculateConfidence({
         brand,
         year,
@@ -150,7 +183,10 @@ function normalizeBrand(brand) {
       return "Range Rover";
 
     default:
-      return brand.charAt(0).toUpperCase() + brand.slice(1);
+      return (
+        brand.charAt(0).toUpperCase() +
+        brand.slice(1)
+      );
   }
 }
 
@@ -188,6 +224,9 @@ function detectModel(tokens = []) {
     "xc90",
     "taycan",
     "cayenne",
+    "panamera",
+    "model-3",
+    "model-y",
   ];
 
   for (const model of modelPatterns) {
@@ -229,6 +268,24 @@ function detectDrivetrain(tokens = []) {
   return null;
 }
 
+function detectBodyType(tokens = []) {
+  for (const item of BODY_PATTERNS) {
+    if (tokens.includes(item)) {
+      return item;
+    }
+  }
+
+  if (
+    tokens.includes("x5") ||
+    tokens.includes("gle") ||
+    tokens.includes("g63")
+  ) {
+    return "SUV";
+  }
+
+  return null;
+}
+
 function detectFuelType(tokens = []) {
   const joined = tokens.join(" ");
 
@@ -251,6 +308,67 @@ function detectFuelType(tokens = []) {
   }
 
   return "Combustion";
+}
+
+function calculateLuxuryScore({
+  semantic,
+  performancePackage,
+  premiumPackage,
+  drivetrain,
+}) {
+  let score = 40;
+
+  if (semantic.isPremium) {
+    score += 20;
+  }
+
+  if (semantic.isPerformance) {
+    score += 20;
+  }
+
+  if (performancePackage) {
+    score += 10;
+  }
+
+  if (premiumPackage) {
+    score += 5;
+  }
+
+  if (drivetrain) {
+    score += 5;
+  }
+
+  return Math.min(score, 100);
+}
+
+function detectMarketSegment({
+  brand,
+  performancePackage,
+  bodyType,
+  fuelType,
+}) {
+  if (
+    performancePackage &&
+    bodyType === "SUV"
+  ) {
+    return "Performance Luxury SUV";
+  }
+
+  if (
+    fuelType === "Electric"
+  ) {
+    return "Electric Premium";
+  }
+
+  if (
+    brand === "Porsche" ||
+    brand === "Mercedes-Benz" ||
+    brand === "BMW"
+  ) {
+    return "Premium";
+  }
+
+  return "General";
 }
 
 function buildSemanticProfile(tokens = []) {
@@ -297,7 +415,10 @@ function buildTitle(tokens = []) {
         return token.toUpperCase();
       }
 
-      return token.charAt(0).toUpperCase() + token.slice(1);
+      return (
+        token.charAt(0).toUpperCase() +
+        token.slice(1)
+      );
     })
     .join(" ");
 }
@@ -351,6 +472,9 @@ function buildFallbackResult(url) {
     fuelType: null,
     performancePackage: null,
     premiumPackage: null,
+    bodyType: null,
+    luxuryScore: 0,
+    marketSegment: "Unknown",
     semantic: {
       isHybrid: false,
       isElectric: false,
