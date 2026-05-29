@@ -116,6 +116,39 @@ const MODEL_PATTERNS = [
   "xc90",
 ];
 
+const MOBILE_DE_MS_REFERENCE = {
+  "25200": {
+    brand: "Volkswagen",
+    models: {
+      "14": "Golf",
+    },
+  },
+  "18700": {
+    brand: "Peugeot",
+    models: {
+      "47": "3008",
+    },
+  },
+  "11600": {
+    brand: "Hyundai",
+    models: {
+      "27": "Tucson",
+    },
+  },
+  "13200": {
+    brand: "Kia",
+    models: {
+      "25": "Sportage",
+    },
+  },
+  "19300": {
+    brand: "Nissan",
+    models: {
+      "26": "Qashqai",
+    },
+  },
+};
+
 const PERFORMANCE_PATTERNS = [
   "amg",
   "competition",
@@ -190,6 +223,10 @@ const HIGH_LIQUIDITY_MODELS = [
   "model-3",
   "rav4",
   "corolla",
+  "3008",
+  "sportage",
+  "tucson",
+  "qashqai",
 ];
 
 const LOW_LIQUIDITY_MODELS = [
@@ -212,6 +249,8 @@ export function parseMobileDeUrl(url = "") {
 
     const slug = extractSlug(normalizedUrl);
     const queryTokens = extractQueryTokens(normalizedUrl);
+    const msMatches = extractMsMatches(url);
+    const singleMsMatch = getSingleReliableMsMatch(msMatches);
 
     const tokens = normalizeTokens([
       ...slug.split("-"),
@@ -220,13 +259,21 @@ export function parseMobileDeUrl(url = "") {
 
     const hasUsefulSlug = detectUsefulSlug(slug);
 
-    const brand = detectBrand(tokens);
-    const model = detectModel(tokens);
+    const slugBrand = detectBrand(tokens);
+    const slugModel = detectModel(tokens);
     const year = detectYear(tokens);
 
+    const brand = slugBrand !== "Unknown"
+      ? slugBrand
+      : singleMsMatch?.brand || "Unknown";
+
+    const model = slugModel || singleMsMatch?.model || null;
+
     const fuelType = detectFuelType(tokens, normalizedUrl);
-    const semantic = buildSemanticProfile(tokens, fuelType);
-    const title = hasUsefulSlug ? buildTitle(tokens) : "Vehicle";
+    const semantic = buildSemanticProfile(tokens, fuelType, model);
+    const title = hasUsefulSlug
+      ? buildTitle(tokens)
+      : buildTitleFromMsMatch(singleMsMatch);
 
     const performancePackage = detectPerformancePackage(tokens);
     const premiumPackage = detectPremiumPackage(tokens);
@@ -261,10 +308,13 @@ export function parseMobileDeUrl(url = "") {
       model,
     });
 
+    const hasReliableIdentity =
+      brand !== "Unknown" &&
+      Boolean(model);
+
     const needsManualTitle =
-      !hasUsefulSlug ||
-      brand === "Unknown" ||
-      !model;
+      !hasReliableIdentity ||
+      (msMatches.length > 1 && !hasUsefulSlug);
 
     return {
       source: "mobile.de",
@@ -284,6 +334,7 @@ export function parseMobileDeUrl(url = "") {
       marketSegment,
       riskProfile,
       needsManualTitle,
+      possibleMatches: msMatches,
       confidence: calculateConfidence({
         brand,
         model,
@@ -292,6 +343,8 @@ export function parseMobileDeUrl(url = "") {
         performancePackage,
         premiumPackage,
         hasUsefulSlug,
+        hasReliableMsMatch: Boolean(singleMsMatch),
+        hasMultipleMsMatches: msMatches.length > 1,
       }),
       extractedTokens: tokens,
       isValid: true,
@@ -347,6 +400,57 @@ function extractQueryTokens(url) {
   } catch {
     return [];
   }
+}
+
+function extractMsMatches(url = "") {
+  try {
+    const query = String(url).split("?")[1] || "";
+    const params = new URLSearchParams(query);
+    const rawMsValues = params.getAll("ms");
+    const matches = [];
+
+    for (const rawValue of rawMsValues) {
+      const decodedValue = decodeURIComponent(rawValue || "");
+      const [brandCode, modelCode] = decodedValue.split(";");
+
+      const brandReference = MOBILE_DE_MS_REFERENCE[brandCode];
+
+      if (!brandReference) {
+        continue;
+      }
+
+      const model = brandReference.models?.[modelCode] || null;
+
+      matches.push({
+        brandCode,
+        modelCode,
+        brand: brandReference.brand,
+        model,
+      });
+    }
+
+    return matches;
+  } catch {
+    return [];
+  }
+}
+
+function getSingleReliableMsMatch(matches = []) {
+  const reliableMatches = matches.filter((match) => match.brand && match.model);
+
+  if (reliableMatches.length !== 1) {
+    return null;
+  }
+
+  return reliableMatches[0];
+}
+
+function buildTitleFromMsMatch(match) {
+  if (!match?.brand && !match?.model) {
+    return "Vehicle";
+  }
+
+  return [match.brand, match.model].filter(Boolean).join(" ");
 }
 
 function normalizeTokens(tokens = []) {
@@ -543,6 +647,10 @@ function detectBodyType(tokens = [], model = "") {
     "xc90",
     "model-y",
     "model-x",
+    "3008",
+    "sportage",
+    "tucson",
+    "qashqai",
   ];
 
   const normalizedModel = normalizeText(model);
@@ -714,8 +822,9 @@ function detectMarketSegment({
   return "General";
 }
 
-function buildSemanticProfile(tokens = [], fuelType = "") {
+function buildSemanticProfile(tokens = [], fuelType = "", model = "") {
   const joined = tokens.join(" ");
+  const normalizedModel = normalizeText(model);
 
   return {
     isHybrid:
@@ -756,7 +865,11 @@ function buildSemanticProfile(tokens = [], fuelType = "") {
         "xc60",
         "xc90",
         "g63",
-      ].some((item) => tokens.includes(item)),
+        "3008",
+        "sportage",
+        "tucson",
+        "qashqai",
+      ].some((item) => tokens.includes(item) || normalizedModel.includes(item)),
 
     isPremium:
       joined.includes("amg") ||
@@ -789,8 +902,18 @@ function calculateConfidence({
   performancePackage,
   premiumPackage,
   hasUsefulSlug,
+  hasReliableMsMatch,
+  hasMultipleMsMatches,
 }) {
   let score = hasUsefulSlug ? 35 : 15;
+
+  if (hasReliableMsMatch) {
+    score += 25;
+  }
+
+  if (hasMultipleMsMatches) {
+    score -= 20;
+  }
 
   if (brand !== "Unknown") {
     score += 20;
@@ -820,7 +943,7 @@ function calculateConfidence({
     score += 5;
   }
 
-  return Math.min(score, 100);
+  return Math.max(0, Math.min(score, 100));
 }
 
 function isPremiumBrandName(brand = "") {
@@ -860,6 +983,7 @@ function buildFallbackResult(url) {
     marketSegment: "Unknown",
     riskProfile: "Unknown",
     needsManualTitle: true,
+    possibleMatches: [],
     semantic: {
       isHybrid: false,
       isElectric: false,
