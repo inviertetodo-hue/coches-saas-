@@ -27,9 +27,56 @@ export default function MarketMemoryPanel({ memory }) {
         <Metric label="Marca dominante" value={memory.topBrand || "n/d"} />
       </div>
 
+      <h4 style={sectionTitleStyle}>🏆 Mejores oportunidades históricas</h4>
+
+      <div style={gridStyle}>
+        <Metric
+          label="Mejor marca por ROI"
+          value={formatWinner(memory.bestROIBrand, "roi")}
+        />
+
+        <Metric
+          label="Mejor marca por Score"
+          value={formatWinner(memory.bestScoreBrand, "score")}
+        />
+
+        <Metric
+          label="Mejor modelo por ROI"
+          value={formatWinner(memory.bestROIModel, "roi")}
+        />
+
+        <Metric
+          label="Mejor modelo por Score"
+          value={formatWinner(memory.bestScoreModel, "score")}
+        />
+      </div>
+
+      <div style={gridStyle}>
+        <Metric
+          label="Mejor configuración ROI"
+          value={formatWinner(memory.bestROIConfiguration, "roi")}
+        />
+
+        <Metric
+          label="Mejor configuración Score"
+          value={formatWinner(memory.bestScoreConfiguration, "score")}
+        />
+
+        <Metric
+          label="Modelo dominante"
+          value={memory.topModel || "n/d"}
+        />
+
+        <Metric
+          label="Configuración dominante"
+          value={memory.topConfiguration || "n/d"}
+        />
+      </div>
+
       <p style={textStyle}>
-        El sistema ya puede empezar a comparar nuevas oportunidades contra tu
-        histórico real de coches analizados.
+        El sistema ya puede comparar nuevas oportunidades contra tu histórico
+        real y detectar qué marcas, modelos y configuraciones están funcionando
+        mejor en tu mercado.
       </p>
     </div>
   );
@@ -42,6 +89,18 @@ function Metric({ label, value }) {
       <strong style={metricValueStyle}>{value}</strong>
     </div>
   );
+}
+
+function formatWinner(winner, type) {
+  if (!winner?.label) {
+    return "n/d";
+  }
+
+  if (type === "roi") {
+    return `${winner.label} · ${winner.averageROI}%`;
+  }
+
+  return `${winner.label} · ${winner.averageScore}/100`;
 }
 
 const cardStyle = {
@@ -64,10 +123,19 @@ const titleStyle = {
   fontSize: "24px",
 };
 
+const sectionTitleStyle = {
+  marginTop: "26px",
+  marginBottom: "16px",
+  color: "#e5e7eb",
+  fontSize: "18px",
+  fontWeight: "900",
+};
+
 const gridStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
   gap: "14px",
+  marginBottom: "14px",
 };
 
 const metricStyle = {
@@ -86,6 +154,7 @@ const metricValueStyle = {
   display: "block",
   marginTop: "8px",
   fontSize: "20px",
+  lineHeight: "1.25",
 };
 
 const textStyle = {

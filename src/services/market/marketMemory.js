@@ -17,19 +17,9 @@ export function buildMarketMemory(analyses = []) {
   const averageROI = calculateAverage(cleanAnalyses, "roi");
   const averageProfit = calculateAverage(cleanAnalyses, "profit");
 
-  const topBrand = detectTopValue(cleanAnalyses, "brand");
-  const topFuelType = detectTopValue(cleanAnalyses, "fuel_type");
-  const topPerformance = detectTopValue(cleanAnalyses, "performance_package");
-
   const brandRanking = buildGroupedRanking(cleanAnalyses, "brand");
   const modelRanking = buildModelRanking(cleanAnalyses);
   const configurationRanking = buildConfigurationRanking(cleanAnalyses);
-
-  const topModel = modelRanking[0] || null;
-  const topConfiguration = configurationRanking[0] || null;
-
-  const liquidityMap = buildLiquidityMap(cleanAnalyses);
-  const riskMap = buildRiskMap(cleanAnalyses);
 
   return {
     totalAnalyses: cleanAnalyses.length,
@@ -38,19 +28,25 @@ export function buildMarketMemory(analyses = []) {
     averageROI: Math.round(averageROI),
     averageProfit: Math.round(averageProfit),
 
-    topBrand,
-    topFuelType,
-    topPerformance,
+    topBrand: brandRanking[0]?.label || "",
+    topFuelType: detectTopValue(cleanAnalyses, "fuel_type"),
+    topPerformance: detectTopValue(cleanAnalyses, "performance_package"),
+    topModel: modelRanking[0]?.label || "",
+    topConfiguration: configurationRanking[0]?.label || "",
 
-    topModel: topModel?.label || "",
-    topConfiguration: topConfiguration?.label || "",
+    bestROIBrand: detectBestByMetric(brandRanking, "averageROI"),
+    bestScoreBrand: detectBestByMetric(brandRanking, "averageScore"),
+    bestROIModel: detectBestByMetric(modelRanking, "averageROI"),
+    bestScoreModel: detectBestByMetric(modelRanking, "averageScore"),
+    bestROIConfiguration: detectBestByMetric(configurationRanking, "averageROI"),
+    bestScoreConfiguration: detectBestByMetric(configurationRanking, "averageScore"),
 
     brandRanking,
     modelRanking,
     configurationRanking,
 
-    liquidityMap,
-    riskMap,
+    liquidityMap: buildLiquidityMap(cleanAnalyses),
+    riskMap: buildRiskMap(cleanAnalyses),
   };
 }
 
@@ -66,6 +62,13 @@ function createEmptyMemory() {
     topPerformance: "",
     topModel: "",
     topConfiguration: "",
+
+    bestROIBrand: null,
+    bestScoreBrand: null,
+    bestROIModel: null,
+    bestScoreModel: null,
+    bestROIConfiguration: null,
+    bestScoreConfiguration: null,
 
     brandRanking: [],
     modelRanking: [],
@@ -214,6 +217,28 @@ function finalizeGroups(groups) {
       return b.averageROI - a.averageROI;
     })
     .slice(0, 10);
+}
+
+function detectBestByMetric(groups = [], metric) {
+  const validGroups = groups.filter((group) => {
+    return group && Number.isFinite(Number(group[metric]));
+  });
+
+  if (!validGroups.length) {
+    return null;
+  }
+
+  return [...validGroups].sort((a, b) => {
+    if (Number(b[metric]) !== Number(a[metric])) {
+      return Number(b[metric]) - Number(a[metric]);
+    }
+
+    if (Number(b.count) !== Number(a.count)) {
+      return Number(b.count) - Number(a.count);
+    }
+
+    return Number(b.averageProfit || 0) - Number(a.averageProfit || 0);
+  })[0];
 }
 
 function calculateAverage(items, field) {
