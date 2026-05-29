@@ -65,11 +65,29 @@ export default function Importer() {
 
   const validateAnalysisBeforeSave = useCallback(() => {
     if (!analysis) return "No hay análisis para guardar.";
-    if (!Number.isFinite(Number(analysis.score))) return "El score IA no es válido.";
-    if (!Number.isFinite(Number(analysis.roi))) return "El ROI no es válido.";
-    if (!Number.isFinite(Number(analysis.estimatedProfit))) return "El beneficio estimado no es válido.";
+
+    if (!semanticData?.brand) {
+      return "Añade un título válido para identificar la marca antes de guardar.";
+    }
+
+    if (!semanticData?.model) {
+      return "Añade un título válido para identificar el modelo antes de guardar.";
+    }
+
+    if (!Number.isFinite(Number(analysis.score))) {
+      return "El score IA no es válido.";
+    }
+
+    if (!Number.isFinite(Number(analysis.roi))) {
+      return "El ROI no es válido.";
+    }
+
+    if (!Number.isFinite(Number(analysis.estimatedProfit))) {
+      return "El beneficio estimado no es válido.";
+    }
+
     return "";
-  }, [analysis]);
+  }, [analysis, semanticData]);
 
   const hydrateCarFromListing = useCallback(async (currentCar) => {
     const urlSource = currentCar.url.trim();
