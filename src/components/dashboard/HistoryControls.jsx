@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export default function HistoryControls({
   search,
   setSearch,
@@ -5,7 +7,18 @@ export default function HistoryControls({
   setSortBy,
   filter,
   setFilter,
+  onDeleteAllHistory,
+  isDeletingHistory = false,
 }) {
+  const [searchDraft, setSearchDraft] = useState("");
+
+  function applySearchOnEnter(event) {
+    if (event.key !== "Enter") return;
+
+    setSearch(searchDraft.trim());
+    setSearchDraft("");
+  }
+
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
@@ -17,24 +30,44 @@ export default function HistoryControls({
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setSearch("");
-            setSortBy("score");
-            setFilter("TODOS");
-          }}
-          style={resetButtonStyle}
-        >
-          Reset filtros
-        </button>
+        <div style={headerActionsStyle}>
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setSearchDraft("");
+              setSortBy("score");
+              setFilter("TODOS");
+            }}
+            style={resetButtonStyle}
+          >
+            Reset filtros
+          </button>
+
+          <button
+            type="button"
+            onClick={onDeleteAllHistory}
+            disabled={isDeletingHistory}
+            style={{
+              ...deleteButtonStyle,
+              opacity: isDeletingHistory ? 0.6 : 1,
+            }}
+          >
+            {isDeletingHistory ? "Eliminando..." : "Eliminar historial"}
+          </button>
+        </div>
       </div>
 
       <div style={controlsContainerStyle}>
         <input
-          placeholder="Buscar BMW, xDrive, PHEV, Audi, Mercedes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder={
+            search
+              ? `Filtro activo: ${search}. Escribe otra búsqueda y pulsa Enter...`
+              : "Buscar BMW, xDrive, PHEV, Audi, Mercedes... Pulsa Enter"
+          }
+          value={searchDraft}
+          onChange={(e) => setSearchDraft(e.target.value)}
+          onKeyDown={applySearchOnEnter}
           style={searchInputStyle}
         />
 
@@ -113,6 +146,13 @@ const headerStyle = {
   marginBottom: "22px",
 };
 
+const headerActionsStyle = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+};
+
 const eyebrowStyle = {
   color: "#93c5fd",
   fontSize: "12px",
@@ -134,6 +174,16 @@ const resetButtonStyle = {
   background: "rgba(255,255,255,0.06)",
   color: "#cbd5e1",
   border: "1px solid rgba(148,163,184,0.18)",
+  fontWeight: "900",
+  cursor: "pointer",
+};
+
+const deleteButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "999px",
+  background: "rgba(239,68,68,0.16)",
+  color: "#fecaca",
+  border: "1px solid rgba(248,113,113,0.35)",
   fontWeight: "900",
   cursor: "pointer",
 };

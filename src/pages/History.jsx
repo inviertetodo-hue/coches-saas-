@@ -81,6 +81,7 @@ export default function History() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("score");
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
@@ -129,6 +130,40 @@ export default function History() {
     }
 
     loadAnalyses();
+  }
+
+  async function deleteAllHistory() {
+    if (isDeletingHistory) return;
+
+    const confirmed = window.confirm(
+      "¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer."
+    );
+
+    if (!confirmed) return;
+
+    setIsDeletingHistory(true);
+    setLoadError("");
+
+    const { error } = await supabase
+      .from("import_analyses")
+      .delete()
+      .not("id", "is", null);
+
+    if (error) {
+      console.error("Error deleting all history:", error);
+      setLoadError("No se ha podido eliminar el historial completo. Inténtalo de nuevo.");
+      setIsDeletingHistory(false);
+      return;
+    }
+
+    setSearch("");
+    setFilter("TODOS");
+    setSortBy("score");
+    setAnalyses([]);
+
+    await loadAnalyses();
+
+    setIsDeletingHistory(false);
   }
 
   const cleanAnalyses = useMemo(() => {
@@ -351,6 +386,8 @@ export default function History() {
               setSortBy={setSortBy}
               filter={filter}
               setFilter={setFilter}
+              onDeleteAllHistory={deleteAllHistory}
+              isDeletingHistory={isDeletingHistory}
             />
 
             <AnalysisGrid
