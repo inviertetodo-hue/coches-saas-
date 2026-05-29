@@ -7,6 +7,7 @@ export function analyzeCar(data) {
   const title = normalize(data.title);
   const brand = normalize(data.brand);
   const model = normalize(data.model);
+  const engine = normalize(data.engine);
   const transmission = normalize(data.transmission);
   const drivetrain = normalize(data.drivetrain);
   const performancePackage = normalize(data.performancePackage);
@@ -53,6 +54,16 @@ export function analyzeCar(data) {
     title,
     model
   );
+
+  const engineProfile = detectEuropeanEngineProfile({
+    brand,
+    model,
+    engine,
+    title,
+    fuelType,
+    transmission,
+    bodyType,
+  });
 
   const segment = detectSegment({
     brand,
@@ -241,6 +252,26 @@ export function analyzeCar(data) {
       text: "Carrocería familiar valorada en Europa",
     });
   }
+
+  applyEuropeanEngineCalibration(engineProfile, {
+    scoreRef: (value) => {
+      score += value;
+    },
+    demandRef: (value) => {
+      demandScore += value;
+    },
+    resaleRef: (value) => {
+      resaleScore += value;
+    },
+    liquidityRef: (value) => {
+      liquidityScore += value;
+    },
+    futureRef: (value) => {
+      futurePotential += value;
+    },
+    insights,
+    alerts,
+  });
 
   applySegmentCalibration(segment, {
     scoreRef: (value) => {
@@ -584,6 +615,190 @@ function buildInvalidAnalysis() {
         text: "❌ No se puede confiar en este análisis",
       },
     ],
+  };
+}
+
+function applyEuropeanEngineCalibration(
+  engineProfile,
+  {
+    scoreRef,
+    demandRef,
+    resaleRef,
+    liquidityRef,
+    futureRef,
+    insights,
+    alerts,
+  }
+) {
+  if (!engineProfile || engineProfile.type === "unknown") {
+    return;
+  }
+
+  scoreRef(engineProfile.score);
+  demandRef(engineProfile.demand);
+  resaleRef(engineProfile.resale);
+  liquidityRef(engineProfile.liquidity);
+  futureRef(engineProfile.future);
+
+  insights.push({
+    type: engineProfile.insightType,
+    text: engineProfile.insight,
+  });
+
+  if (engineProfile.alert) {
+    alerts.push(engineProfile.alert);
+  }
+}
+
+function detectEuropeanEngineProfile({
+  brand,
+  model,
+  engine,
+  title,
+  fuelType,
+  transmission,
+  bodyType,
+}) {
+  const text = normalize(
+    `${brand} ${model} ${engine} ${title} ${fuelType} ${transmission} ${bodyType}`
+  );
+
+  if (
+    text.includes("phev") ||
+    text.includes("plug in") ||
+    text.includes("plug-in") ||
+    text.includes("e-hybrid") ||
+    text.includes("tfsie") ||
+    text.includes("tfsi e") ||
+    /\b(30e|40e|45e|50e|300e|350e|400e|450e|580e)\b/.test(text)
+  ) {
+    return {
+      type: "phev",
+      score: 5,
+      demand: 7,
+      resale: 8,
+      liquidity: 4,
+      future: 10,
+      insightType: "positive",
+      insight: "Motor PHEV europeo con buen potencial de reventa",
+    };
+  }
+
+  if (
+    text.includes("hybrid") ||
+    text.includes("hibrido") ||
+    text.includes("mhev") ||
+    text.includes("mild hybrid")
+  ) {
+    return {
+      type: "hybrid",
+      score: 4,
+      demand: 6,
+      resale: 6,
+      liquidity: 5,
+      future: 8,
+      insightType: "positive",
+      insight: "Motorización híbrida con demanda creciente",
+    };
+  }
+
+  if (
+    text.includes("electric") ||
+    text.includes("electrico") ||
+    text.includes("ev") ||
+    text.includes("bev") ||
+    text.includes("e tron") ||
+    text.includes("etron") ||
+    text.includes("taycan")
+  ) {
+    return {
+      type: "ev",
+      score: 2,
+      demand: 5,
+      resale: -2,
+      liquidity: 1,
+      future: 12,
+      insightType: "neutral",
+      insight: "EV con potencial futuro, pero sensible a depreciación y batería",
+      alert: {
+        type: "warning",
+        text: "🔋 EV: revisar batería, garantía y degradación",
+      },
+    };
+  }
+
+  if (
+    text.includes("tdi") ||
+    text.includes("dci") ||
+    text.includes("bluehdi") ||
+    text.includes("blue hdi") ||
+    text.includes("hdi") ||
+    text.includes("crdi") ||
+    text.includes("crdi") ||
+    text.includes("cdi")
+  ) {
+    return {
+      type: "european_diesel",
+      score: 3,
+      demand: 2,
+      resale: 4,
+      liquidity: 6,
+      future: -2,
+      insightType: "positive",
+      insight: "Diésel europeo vendible si kilometraje y normativa acompañan",
+    };
+  }
+
+  if (
+    text.includes("tsi") ||
+    text.includes("tfsi") ||
+    text.includes("tce") ||
+    text.includes("ecoboost") ||
+    text.includes("dig-t") ||
+    text.includes("digt") ||
+    text.includes("skyactiv")
+  ) {
+    return {
+      type: "european_petrol_turbo",
+      score: 3,
+      demand: 5,
+      resale: 3,
+      liquidity: 5,
+      future: 1,
+      insightType: "positive",
+      insight: "Gasolina turbo europea con buena liquidez comercial",
+    };
+  }
+
+  if (
+    text.includes("dsg") ||
+    text.includes("stronic") ||
+    text.includes("s tronic") ||
+    text.includes("automatic") ||
+    text.includes("automático") ||
+    text.includes("automatico")
+  ) {
+    return {
+      type: "automatic_commercial",
+      score: 2,
+      demand: 4,
+      resale: 3,
+      liquidity: 4,
+      future: 0,
+      insightType: "positive",
+      insight: "Transmisión automática con atractivo comercial",
+    };
+  }
+
+  return {
+    type: "unknown",
+    score: 0,
+    demand: 0,
+    resale: 0,
+    liquidity: 0,
+    future: 0,
+    insightType: "neutral",
+    insight: "",
   };
 }
 
