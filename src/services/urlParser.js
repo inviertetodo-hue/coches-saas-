@@ -123,7 +123,7 @@ const BRAND_ALIASES = [
   { keys: ["lamborghini"], value: "Lamborghini" },
   { keys: ["cupra"], value: "Cupra" },
   { keys: ["seat"], value: "SEAT" },
-  { keys: ["skoda"], value: "Skoda" },
+  { keys: ["skoda", "škoda"], value: "Skoda" },
   { keys: ["toyota"], value: "Toyota" },
   { keys: ["ford"], value: "Ford" },
   { keys: ["peugeot"], value: "Peugeot" },
@@ -166,13 +166,14 @@ const MODEL_GROUPS = {
   ],
 
   "Mercedes-Benz": [
+    "clase a", "clase b", "clase c", "clase e", "clase s",
     "classe a", "classe b", "classe c", "classe e", "classe s",
     "class a", "class b", "class c", "class e", "class s",
     "a 180", "a 200", "a 220", "a 250", "a35", "a45",
     "c 200", "c 220", "c 300", "c 400", "c 43", "c 63",
     "e 200", "e 220", "e 300", "e 400", "e 43", "e 53", "e 63",
     "s 350", "s 400", "s 500", "s 580", "s 63",
-    "cla", "cls", "gla", "glb", "glc", "gle", "gls", "g class",
+    "cla", "cls", "gla", "glb", "glc", "gle", "gls", "g class", "g63",
     "eqc", "eqa", "eqb", "eqe", "eqs",
     "sl", "slk", "amg gt",
   ],
@@ -200,23 +201,99 @@ const MODEL_GROUPS = {
   ],
 
   Cupra: [
-    "formentor", "ateca", "leon", "born", "tavascan",
+    "formentor", "ateca", "leon", "born", "tavascan", "terramar",
+  ],
+
+  SEAT: [
+    "leon", "ibiza", "arona", "ateca", "tarraco", "alhambra", "toledo",
+  ],
+
+  Skoda: [
+    "fabia", "octavia", "superb", "kodiaq", "karoq", "kamiq", "scala", "enyaq", "citigo",
   ],
 
   Volkswagen: [
-    "golf", "polo", "passat", "tiguan", "touareg", "arteon", "id 3", "id 4", "id 5", "id buzz",
+    "golf", "polo", "passat", "tiguan", "touareg", "arteon", "t roc", "t cross",
+    "touran", "sharan", "up", "id 3", "id 4", "id 5", "id buzz",
   ],
 
   Toyota: [
     "rav4", "land cruiser", "corolla", "camry", "yaris", "chr", "c hr", "supra",
+    "prius", "aygo", "hilux", "highlander", "proace",
   ],
 
   Lexus: [
-    "nx", "rx", "ux", "es", "ls", "lc", "rc",
+    "nx", "rx", "ux", "es", "ls", "lc", "rc", "lbx", "ct",
   ],
 
   Jaguar: [
     "f pace", "e pace", "i pace", "xe", "xf", "xj", "f type",
+  ],
+
+  Renault: [
+    "clio", "megane", "mégane", "captur", "kadjar", "austral", "arkana", "espace",
+    "scenic", "scénic", "koleos", "talisman", "zoe", "rafale",
+  ],
+
+  Peugeot: [
+    "108", "208", "308", "408", "508", "2008", "3008", "5008", "rifter", "traveller",
+  ],
+
+  Ford: [
+    "fiesta", "focus", "mondeo", "puma", "kuga", "mustang", "explorer", "edge",
+    "s max", "galaxy", "ranger", "tourneo", "transit",
+  ],
+
+  Hyundai: [
+    "i10", "i20", "i30", "ioniq", "ioniq 5", "ioniq 6", "kona", "tucson",
+    "santa fe", "bayon", "i40",
+  ],
+
+  Kia: [
+    "ceed", "xceed", "x ceed", "sportage", "sorento", "niro", "stonic", "picanto",
+    "rio", "ev3", "ev6", "ev9", "optima", "proceed",
+  ],
+
+  Mazda: [
+    "mazda 2", "mazda 3", "mazda 6", "cx 3", "cx 30", "cx 5", "cx 60", "cx 80",
+    "mx 5", "mx 30",
+  ],
+
+  Nissan: [
+    "micra", "juke", "qashqai", "x trail", "x-trail", "ariya", "leaf", "navara", "pulsar",
+  ],
+
+  Opel: [
+    "corsa", "astra", "insignia", "mokka", "crossland", "grandland", "zafira",
+    "combo", "vivaro",
+  ],
+
+  Fiat: [
+    "500", "500x", "500l", "600", "panda", "tipo", "doblo", "ducato", "topolino",
+  ],
+
+  Honda: [
+    "civic", "accord", "jazz", "hr v", "hr-v", "cr v", "cr-v", "e", "zr v", "zr-v",
+  ],
+
+  Dacia: [
+    "sandero", "duster", "jogger", "logan", "lodgy", "spring", "dokker",
+  ],
+
+  "Citroën": [
+    "c1", "c2", "c3", "c4", "c5", "c3 aircross", "c5 aircross", "berlingo", "spacetourer",
+  ],
+
+  DS: [
+    "ds 3", "ds 4", "ds 5", "ds 7", "ds 9",
+  ],
+
+  Jeep: [
+    "avenger", "renegade", "compass", "cherokee", "grand cherokee", "wrangler",
+  ],
+
+  Smart: [
+    "fortwo", "forfour", "smart 1", "smart 3", "hashtag 1", "hashtag 3",
   ],
 };
 
@@ -239,7 +316,6 @@ function detectBrand(text, tokens) {
 
 function detectModel(text, brand) {
   const models = brand && MODEL_GROUPS[brand] ? MODEL_GROUPS[brand] : GENERIC_MODELS;
-
   const sortedModels = [...models].sort((a, b) => b.length - a.length);
 
   for (const model of sortedModels) {
@@ -404,7 +480,7 @@ function detectBodyType(text, model) {
 
   if (
     hasPhrase(combined, "suv") ||
-    /\b(x1|x2|x3|x4|x5|x6|x7|q2|q3|q4|q5|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|touareg|tiguan|formentor|rav4|range rover|defender|discovery)\b/.test(combined)
+    /\b(x1|x2|x3|x4|x5|x6|x7|q2|q3|q4|q5|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|touareg|tiguan|formentor|rav4|range rover|defender|discovery|kodiaq|karoq|kamiq|sportage|sorento|tucson|santa fe|qashqai|x trail|x-trail|3008|5008|duster|compass|grand cherokee)\b/.test(combined)
   ) {
     return "SUV";
   }
@@ -428,10 +504,7 @@ function detectBodyType(text, model) {
     return "Sedan";
   }
 
-  if (
-    hasPhrase(combined, "coupe") ||
-    hasPhrase(combined, "coupe")
-  ) {
+  if (hasPhrase(combined, "coupe")) {
     return "Coupe";
   }
 
@@ -448,11 +521,8 @@ function detectBodyType(text, model) {
 }
 
 function detectElectrified(text) {
-  return (
-    detectFuelType(text) === "PHEV" ||
-    detectFuelType(text) === "Hybrid" ||
-    detectFuelType(text) === "EV"
-  );
+  const fuel = detectFuelType(text);
+  return fuel === "PHEV" || fuel === "Hybrid" || fuel === "EV";
 }
 
 function detectPremiumConfig(text, data) {
@@ -538,16 +608,16 @@ function formatModel(model, brand) {
   const normalized = normalizeText(model);
 
   const directFormats = {
-    "ix": "iX",
-    "i3": "i3",
-    "i4": "i4",
-    "i5": "i5",
-    "i7": "i7",
-    "i8": "i8",
+    ix: "iX",
+    i3: "i3",
+    i4: "i4",
+    i5: "i5",
+    i7: "i7",
+    i8: "i8",
     "e tron": "e-tron",
-    "etron": "e-tron",
-    "rsq3": "RS Q3",
-    "rsq8": "RS Q8",
+    etron: "e-tron",
+    rsq3: "RS Q3",
+    rsq8: "RS Q8",
     "amg gt": "AMG GT",
     "g class": "G-Class",
     "id 3": "ID.3",
@@ -555,6 +625,8 @@ function formatModel(model, brand) {
     "id 5": "ID.5",
     "id buzz": "ID. Buzz",
     "c hr": "C-HR",
+    "x trail": "X-Trail",
+    "x-trail": "X-Trail",
     "f pace": "F-Pace",
     "e pace": "E-Pace",
     "i pace": "I-Pace",
@@ -569,6 +641,7 @@ function formatModel(model, brand) {
     return normalized
       .replace(/^classe /, "Clase ")
       .replace(/^class /, "Clase ")
+      .replace(/^clase /, "Clase ")
       .replace(/\bglc\b/, "GLC")
       .replace(/\bgle\b/, "GLE")
       .replace(/\bgls\b/, "GLS")
@@ -583,6 +656,7 @@ function formatModel(model, brand) {
       .replace(/\beqs\b/, "EQS")
       .replace(/\bslk\b/, "SLK")
       .replace(/\bsl\b/, "SL")
+      .replace(/\bg63\b/, "G63")
       .replace(/\s+/g, " ")
       .trim();
   }
@@ -604,8 +678,8 @@ function formatModel(model, brand) {
       if (/^m\d$/i.test(word)) return word.toUpperCase();
       if (/^xc\d+$/i.test(word)) return word.toUpperCase();
       if (/^v\d+$/i.test(word)) return word.toUpperCase();
-      if (/^s\d+$/i.test(word)) return word.toUpperCase();
       if (/^nx|rx|ux|es|ls|lc|rc$/i.test(word)) return word.toUpperCase();
+      if (/^cx$/i.test(word)) return word.toUpperCase();
       return capitalizeWord(word);
     })
     .join(" ");
