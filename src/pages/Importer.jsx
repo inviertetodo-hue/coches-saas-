@@ -319,6 +319,12 @@ export default function Importer() {
     );
   }
 
+  const saveDisabled =
+    saving ||
+    saved ||
+    !semanticData?.brand ||
+    !semanticData?.model;
+
   return (
     <div style={pageStyle}>
       <style>{responsiveCss}</style>
@@ -458,13 +464,20 @@ export default function Importer() {
 
                 <button
                   onClick={saveAnalysis}
-                  disabled={saving || saved}
+                  disabled={saveDisabled}
                   style={{
                     ...buttonStyle,
-                    opacity: saving || saved ? 0.6 : 1,
+                    opacity: saveDisabled ? 0.6 : 1,
+                    cursor: saveDisabled ? "not-allowed" : "pointer",
                   }}
                 >
-                  {saving ? "Guardando..." : saved ? "✅ Guardado" : "Guardar análisis"}
+                  {saving
+                    ? "Guardando..."
+                    : saved
+                    ? "✅ Guardado"
+                    : !semanticData?.brand || !semanticData?.model
+                    ? "⚠️ Añade marca y modelo"
+                    : "Guardar análisis"}
                 </button>
               </>
             )}
