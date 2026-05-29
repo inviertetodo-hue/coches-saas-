@@ -25,6 +25,7 @@ import { evaluateAnalysisHealth } from "../services/analysisHealthGate";
 import { filterValidAnalyses } from "../services/analysisGuard";
 
 import { buildMarketMemory } from "../services/market/marketMemory";
+import { buildIntelligenceEngine } from "../services/intelligence/intelligenceEngine";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SystemHealthBanner from "../components/dashboard/SystemHealthBanner";
@@ -32,6 +33,7 @@ import InstantDecisionPanel from "../components/dashboard/InstantDecisionPanel";
 import GlobalStatsPanel from "../components/dashboard/GlobalStatsPanel";
 import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
 import MarketMemoryPanel from "../components/dashboard/MarketMemoryPanel";
+import MarketIntelligencePanel from "../components/dashboard/MarketIntelligencePanel";
 import HistoryControls from "../components/dashboard/HistoryControls";
 import AnalysisGrid from "../components/dashboard/AnalysisGrid";
 
@@ -173,6 +175,10 @@ export default function History() {
 
   const marketMemory = useMemo(() => {
     return buildMarketMemory(cleanAnalyses);
+  }, [cleanAnalyses]);
+
+  const marketIntelligence = useMemo(() => {
+    return buildIntelligenceEngine(cleanAnalyses);
   }, [cleanAnalyses]);
 
   const intelligence = useMemo(() => {
@@ -340,6 +346,8 @@ export default function History() {
             <ExecutiveSummaryPanel executive={executive} />
 
             <MarketMemoryPanel memory={marketMemory} />
+
+            <MarketIntelligencePanel intelligence={marketIntelligence} />
 
             {systemHealth.canShowAdvanced && (
               <Suspense
