@@ -13,20 +13,38 @@ export function buildIntelligenceEngine(analyses = []) {
 
   const bestOpportunity = findBestOpportunity(cleanAnalyses);
   const worstOpportunity = findWorstOpportunity(cleanAnalyses);
+  const topOpportunities = buildTopOpportunities(cleanAnalyses);
+  const weakOpportunities = buildWeakOpportunities(cleanAnalyses);
+  const brandProfitRanking = buildProfitRanking(cleanAnalyses, "brand");
+  const modelProfitRanking = buildModelProfitRanking(cleanAnalyses);
   const marketTrend = detectMarketTrend(cleanAnalyses);
   const buyRecommendation = buildBuyRecommendation(cleanAnalyses, bestOpportunity);
+  const weeklyRecommendation = buildWeeklyRecommendation({
+    topOpportunities,
+    brandProfitRanking,
+    modelProfitRanking,
+    marketTrend,
+  });
+
   const marketInsights = buildMarketInsights(cleanAnalyses, {
     bestOpportunity,
     worstOpportunity,
     marketTrend,
+    brandProfitRanking,
+    modelProfitRanking,
   });
 
   return {
     totalAnalyses: cleanAnalyses.length,
     bestOpportunity,
     worstOpportunity,
+    topOpportunities,
+    weakOpportunities,
+    brandProfitRanking,
+    modelProfitRanking,
     marketTrend,
     buyRecommendation,
+    weeklyRecommendation,
     marketInsights,
   };
 }
@@ -36,8 +54,13 @@ function createEmptyIntelligence() {
     totalAnalyses: 0,
     bestOpportunity: null,
     worstOpportunity: null,
+    topOpportunities: [],
+    weakOpportunities: [],
+    brandProfitRanking: [],
+    modelProfitRanking: [],
     marketTrend: "Sin datos",
     buyRecommendation: "Guarda más análisis para generar recomendaciones.",
+    weeklyRecommendation: "Guarda más análisis para generar una recomendación semanal.",
     marketInsights: [],
   };
 }
@@ -58,18 +81,26 @@ function normalizeAnalysis(item) {
 
 function findBestOpportunity(items) {
   return [...items].sort((a, b) => {
-    const aScore = calculateOpportunityPower(a);
-    const bScore = calculateOpportunityPower(b);
-    return bScore - aScore;
+    return calculateOpportunityPower(b) - calculateOpportunityPower(a);
   })[0];
 }
 
 function findWorstOpportunity(items) {
   return [...items].sort((a, b) => {
-    const aScore = calculateOpportunityPower(a);
-    const bScore = calculateOpportunityPower(b);
-    return aScore - bScore;
+    return calculateOpportunityPower(a) - calculateOpportunityPower(b);
   })[0];
+}
+
+function buildTopOpportunities(items) {
+  return [...items]
+    .sort((a, b) => calculateOpportunityPower(b) - calculateOpportunityPower(a))
+    .slice(0, 5);
+}
+
+function buildWeakOpportunities(items) {
+  return [...items]
+    .sort((a, b) => calculateOpportunityPower(a) - calculateOpportunityPower(b))
+    .slice(0, 5);
 }
 
 function calculateOpportunityPower(item) {
@@ -82,6 +113,87 @@ function calculateOpportunityPower(item) {
     Math.min(roi, 45) * 0.85 +
     Math.min(profit / 100, 45) * 0.45
   );
+}
+
+function buildProfitRanking(items, field) {
+  const groups = {};
+
+  for (const item of items) {
+    const key = cleanText(item[field]);
+
+    if (!key) continue;
+
+    if (!groups[key]) {
+      groups[key] = createRankingGroup(key);
+    }
+
+    addToRankingGroup(groups[key], item);
+  }
+
+  return finalizeRankingGroups(groups);
+}
+
+function buildModelProfitRanking(items) {
+  const groups = {};
+
+  for (const item of items) {
+    if (!item.brand || !item.model) continue;
+
+    const key = `${item.brand} ${item.model}`;
+
+    if (!groups[key]) {
+      groups[key] = createRankingGroup(key);
+    }
+
+    addToRankingGroup(groups[key], item);
+  }
+
+  return finalizeRankingGroups(groups);
+}
+
+function createRankingGroup(label) {
+  return {
+    label,
+    count: 0,
+    totalProfit: 0,
+    totalROI: 0,
+    totalScore: 0,
+    bestProfit: 0,
+    bestROI: 0,
+    bestScore: 0,
+  };
+}
+
+function addToRankingGroup(group, item) {
+  group.count += 1;
+  group.totalProfit += safeNumber(item.profit);
+  group.totalROI += safeNumber(item.roi);
+  group.totalScore += safeNumber(item.score);
+  group.bestProfit = Math.max(group.bestProfit, safeNumber(item.profit));
+  group.bestROI = Math.max(group.bestROI, safeNumber(item.roi));
+  group.bestScore = Math.max(group.bestScore, safeNumber(item.score));
+}
+
+function finalizeRankingGroups(groups) {
+  return Object.values(groups)
+    .map((group) => ({
+      ...group,
+      averageProfit: Math.round(group.totalProfit / group.count),
+      averageROI: Math.round(group.totalROI / group.count),
+      averageScore: Math.round(group.totalScore / group.count),
+    }))
+    .sort((a, b) => {
+      if (b.averageProfit !== a.averageProfit) {
+        return b.averageProfit - a.averageProfit;
+      }
+
+      if (b.averageROI !== a.averageROI) {
+        return b.averageROI - a.averageROI;
+      }
+
+      return b.averageScore - a.averageScore;
+    })
+    .slice(0, 5);
 }
 
 function detectMarketTrend(items) {
@@ -123,6 +235,35 @@ function buildBuyRecommendation(items, bestOpportunity) {
   return "No hay una compra clara ahora mismo. Conviene seguir buscando mejores oportunidades.";
 }
 
+function buildWeeklyRecommendation({
+  topOpportunities,
+  brandProfitRanking,
+  modelProfitRanking,
+  marketTrend,
+}) {
+  const bestDeal = topOpportunities[0];
+  const bestBrand = brandProfitRanking[0];
+  const bestModel = modelProfitRanking[0];
+
+  if (!bestDeal) {
+    return "Todavía no hay datos suficientes para una recomendación semanal.";
+  }
+
+  if (bestDeal.score >= 85 && bestDeal.roi >= 25) {
+    return `Esta semana prioriza oportunidades similares a ${bestDeal.title}. La señal de mercado es: ${marketTrend}.`;
+  }
+
+  if (bestModel?.label) {
+    return `Esta semana busca modelos similares a ${bestModel.label}, con ROI alto y margen verificable.`;
+  }
+
+  if (bestBrand?.label) {
+    return `Esta semana vigila especialmente ${bestBrand.label}, porque aparece como marca rentable en tu histórico.`;
+  }
+
+  return "Esta semana conviene analizar más anuncios antes de tomar decisiones agresivas.";
+}
+
 function buildMarketInsights(items, context) {
   const insights = [];
 
@@ -137,6 +278,24 @@ function buildMarketInsights(items, context) {
   if (context.bestOpportunity) {
     insights.push(
       `Mejor oportunidad detectada: ${context.bestOpportunity.title} con score ${context.bestOpportunity.score} y ROI ${context.bestOpportunity.roi}%.`
+    );
+  }
+
+  if (context.worstOpportunity) {
+    insights.push(
+      `Oportunidad más débil detectada: ${context.worstOpportunity.title} con score ${context.worstOpportunity.score}.`
+    );
+  }
+
+  if (context.brandProfitRanking?.[0]) {
+    insights.push(
+      `Marca más rentable por beneficio medio: ${context.brandProfitRanking[0].label} con ${context.brandProfitRanking[0].averageProfit} € de beneficio medio.`
+    );
+  }
+
+  if (context.modelProfitRanking?.[0]) {
+    insights.push(
+      `Modelo más rentable por beneficio medio: ${context.modelProfitRanking[0].label} con ${context.modelProfitRanking[0].averageProfit} € de beneficio medio.`
     );
   }
 
