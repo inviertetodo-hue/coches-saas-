@@ -532,20 +532,39 @@ export function analyzeMarketIntelligence(analyses = []) {
     };
   }
 
-  const total = analyses.length;
+  const cleanAnalyses = analyses.filter((item) => {
+    return item && Number.isFinite(Number(item.score));
+  });
+
+  if (!cleanAnalyses.length) {
+    return {
+      total: 0,
+      bestBrand: "",
+      bestFuelType: "",
+      bestDrivetrain: "",
+      bestPerformance: "",
+      bestConfiguration: "",
+      averageScore: 0,
+      averageROI: 0,
+      marketInsights: [],
+    };
+  }
+
+  const total = cleanAnalyses.length;
 
   const averageScore = Math.round(
-    analyses.reduce((acc, item) => acc + Number(item.score || 0), 0) / total
+    cleanAnalyses.reduce((acc, item) => acc + Number(item.score || 0), 0) / total
   );
 
   const averageROI = Math.round(
-    analyses.reduce((acc, item) => acc + Number(item.roi || 0), 0) / total
+    cleanAnalyses.reduce((acc, item) => acc + Number(item.roi || 0), 0) / total
   );
 
-  const bestBrand = getTopValue(analyses, "brand");
-  const bestFuelType = getTopValue(analyses, "fuel_type");
-  const bestDrivetrain = getTopValue(analyses, "drivetrain");
-  const bestPerformance = getTopValue(analyses, "performance_package");
+  const bestBrand = getTopValue(cleanAnalyses, "brand");
+  const bestFuelType = getTopValue(cleanAnalyses, "fuel_type");
+  const bestDrivetrain = getTopValue(cleanAnalyses, "drivetrain");
+  const bestPerformance = getTopValue(cleanAnalyses, "performance_package");
+  const bestConfiguration = getTopVehicleConfiguration(cleanAnalyses);
 
   const marketInsights = [];
 
@@ -573,6 +592,10 @@ export function analyzeMarketIntelligence(analyses = []) {
     marketInsights.push(`🏁 ${bestPerformance} muestra presencia premium.`);
   }
 
+  if (bestConfiguration) {
+    marketInsights.push(`🎯 Configuración líder real: ${bestConfiguration}.`);
+  }
+
   return {
     total,
     averageScore,
@@ -581,14 +604,7 @@ export function analyzeMarketIntelligence(analyses = []) {
     bestFuelType,
     bestDrivetrain,
     bestPerformance,
-    bestConfiguration: [
-      bestBrand,
-      bestFuelType,
-      bestDrivetrain,
-      bestPerformance,
-    ]
-      .filter(Boolean)
-      .join(" · "),
+    bestConfiguration,
     marketInsights,
   };
 }
@@ -733,7 +749,6 @@ function detectEuropeanEngineProfile({
     text.includes("bluehdi") ||
     text.includes("blue hdi") ||
     text.includes("hdi") ||
-    text.includes("crdi") ||
     text.includes("crdi") ||
     text.includes("cdi")
   ) {
@@ -1254,6 +1269,30 @@ function getTopValue(items, key) {
     if (!value) continue;
 
     counter[value] = (counter[value] || 0) + 1;
+  }
+
+  const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]);
+
+  return sorted[0]?.[0] || "";
+}
+
+function getTopVehicleConfiguration(items) {
+  const counter = {};
+
+  for (const item of items) {
+    const brand = String(item.brand || "").trim();
+    const model = String(item.model || "").trim();
+    const fuel = String(item.fuel_type || "").trim();
+
+    if (!brand || !model) {
+      continue;
+    }
+
+    const label = [brand, model, fuel]
+      .filter(Boolean)
+      .join(" · ");
+
+    counter[label] = (counter[label] || 0) + 1;
   }
 
   const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]);
