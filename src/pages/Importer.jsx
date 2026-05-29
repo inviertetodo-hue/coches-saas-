@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { analyzeCar } from "../services/profitAnalyzer";
 import { parseCarFromUrl } from "../services/urlParser";
 import { parseMobileDeUrl } from "../services/market/adapters/mobileDeAdapter";
+import { readListingFromUrl } from "../services/market/listingReader";
 
 export default function Importer() {
   const [car, setCar] = useState({
@@ -19,6 +20,7 @@ export default function Importer() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
+  const [isReadingListing, setIsReadingListing] = useState(false);
 
   const updateField = useCallback((field, value) => {
     setSaved(false);
@@ -31,38 +33,35 @@ export default function Importer() {
     }));
   }, []);
 
-  const validateCarInput = useCallback(
-    (resolvedTitle = "") => {
-      const price = Number(car.price);
-      const km = Number(car.km);
-      const year = Number(car.year);
-      const currentYear = new Date().getFullYear();
+  const validateCarInput = useCallback((workingCar, resolvedTitle = "") => {
+    const price = Number(workingCar.price);
+    const km = Number(workingCar.km);
+    const year = Number(workingCar.year);
+    const currentYear = new Date().getFullYear();
 
-      if (!resolvedTitle.trim()) {
-        return "Pega una URL o escribe el título del vehículo.";
-      }
+    if (!resolvedTitle.trim()) {
+      return "Pega una URL o escribe el título del vehículo.";
+    }
 
-      if (!car.price || !Number.isFinite(price) || price <= 0) {
-        return "URL recibida. Añade el precio para calcular ROI y beneficio real.";
-      }
+    if (!workingCar.price || !Number.isFinite(price) || price <= 0) {
+      return "URL recibida. Añade el precio para calcular ROI y beneficio real.";
+    }
 
-      if (!car.km || !Number.isFinite(km) || km < 0) {
-        return "URL recibida. Añade los kilómetros para completar el análisis.";
-      }
+    if (!workingCar.km || !Number.isFinite(km) || km < 0) {
+      return "URL recibida. Añade los kilómetros para completar el análisis.";
+    }
 
-      if (
-        !car.year ||
-        !Number.isFinite(year) ||
-        year < 1990 ||
-        year > currentYear + 1
-      ) {
-        return "URL recibida. Añade el año para completar el análisis.";
-      }
+    if (
+      !workingCar.year ||
+      !Number.isFinite(year) ||
+      year < 1990 ||
+      year > currentYear + 1
+    ) {
+      return "URL recibida. Añade el año para completar el análisis.";
+    }
 
-      return "";
-    },
-    [car]
-  );
+    return "";
+  }, []);
 
   const validateAnalysisBeforeSave = useCallback(() => {
     if (!analysis) return "No hay análisis para guardar.";
@@ -72,18 +71,79 @@ export default function Importer() {
     return "";
   }, [analysis]);
 
-  const analyzeManualCar = useCallback(() => {
-    setSaved(false);
+  const hydrateCarFromListing = useCallback(async (currentCar) => {
+    const urlSource = currentCar.url.trim();
 
-    const urlSource = car.url.trim();
-    const titleSource = car.title.trim();
+    if (!urlSource) {
+      return {
+        car: currentCar,
+        message: "",
+      };
+    }
+
+    const needsAutomaticRead =
+      !currentCar.title.trim() ||
+      !currentCar.price ||
+      !currentCar.km ||
+      !currentCar.year;
+
+    if (!needsAutomaticRead) {
+      return {
+        car: currentCar,
+        message: "",
+      };
+    }
+
+    setIsReadingListing(true);
+
+    const listing = await readListingFromUrl(urlSource);
+
+    setIsReadingListing(false);
+
+    if (!listing.success) {
+      return {
+        car: currentCar,
+        message: listing.blocked
+          ? "mobile.de ha bloqueado la lectura automática. Añade precio, kilómetros y año manualmente."
+          : "No se han podido leer datos automáticos. Añade precio, kilómetros y año manualmente.",
+      };
+    }
+
+    const listingData = listing.data || {};
+
+    const nextCar = {
+      ...currentCar,
+      title: currentCar.title || listingData.title || "",
+      price: currentCar.price || listingData.price || "",
+      km: currentCar.km || listingData.km || "",
+      year: currentCar.year || listingData.year || "",
+      country: currentCar.country || listingData.country || "Alemania",
+      url: currentCar.url || listingData.url || "",
+    };
+
+    setCar(nextCar);
+
+    return {
+      car: nextCar,
+      message: listing.warning || "Datos del anuncio leídos automáticamente.",
+    };
+  }, []);
+
+  const analyzeManualCar = useCallback(async () => {
+    setSaved(false);
+    setAnalysis(null);
+
+    const hydrated = await hydrateCarFromListing(car);
+    const workingCar = hydrated.car;
+
+    const urlSource = workingCar.url.trim();
+    const titleSource = workingCar.title.trim();
 
     const parsedUrlData = urlSource
       ? parseMobileDeUrl(urlSource)
       : {};
 
     const parsedSemanticData = parseCarFromUrl(titleSource || urlSource);
-
     const parsedTitleData = parseBasicVehicleText(titleSource);
 
     const parsed = mergeParsedVehicleData({
@@ -97,7 +157,7 @@ export default function Importer() {
       parsed?.title?.trim() ||
       buildTitleFromUrlFallback(urlSource);
 
-    const validationError = validateCarInput(resolvedTitle);
+    const validationError = validateCarInput(workingCar, resolvedTitle);
 
     if (validationError) {
       setAnalysis(null);
@@ -105,7 +165,7 @@ export default function Importer() {
         ...parsed,
         title: resolvedTitle,
       });
-      setMessage(validationError);
+      setMessage(hydrated.message || validationError);
       return;
     }
 
@@ -116,13 +176,13 @@ export default function Importer() {
 
     setSemanticData(enrichedSemanticData);
 
-    const price = Number(car.price);
-    const km = Number(car.km);
-    const year = Number(car.year);
+    const price = Number(workingCar.price);
+    const km = Number(workingCar.km);
+    const year = Number(workingCar.year);
     const estimatedMarketPrice = Math.round(price * 1.28);
 
     const result = analyzeCar({
-      ...car,
+      ...workingCar,
       ...enrichedSemanticData,
       title: resolvedTitle,
       price,
@@ -147,9 +207,9 @@ export default function Importer() {
     if (parsedUrlData?.needsManualTitle && !titleSource && !parsed.brand && !parsed.model) {
       setMessage("Esta URL no contiene marca/modelo. Añade el título del vehículo para mejorar el análisis.");
     } else {
-      setMessage("");
+      setMessage(hydrated.message || "");
     }
-  }, [car, validateCarInput]);
+  }, [car, hydrateCarFromListing, validateCarInput]);
 
   const analyzeWithEnter = useCallback(
     (event) => {
@@ -296,8 +356,15 @@ export default function Importer() {
               style={inputStyle}
             />
 
-            <button onClick={analyzeManualCar} style={buttonStyle}>
-              Analizar vehículo
+            <button
+              onClick={analyzeManualCar}
+              disabled={isReadingListing}
+              style={{
+                ...buttonStyle,
+                opacity: isReadingListing ? 0.65 : 1,
+              }}
+            >
+              {isReadingListing ? "Leyendo anuncio..." : "Analizar vehículo"}
             </button>
 
             {message && <p style={messageStyle}>{message}</p>}
