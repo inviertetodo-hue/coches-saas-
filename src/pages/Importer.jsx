@@ -319,11 +319,23 @@ export default function Importer() {
     );
   }
 
+  const saveBlockedByIdentity = Boolean(
+    analysis &&
+    (!semanticData?.brand || !semanticData?.model)
+  );
+
   const saveDisabled =
     saving ||
     saved ||
-    !semanticData?.brand ||
-    !semanticData?.model;
+    saveBlockedByIdentity;
+
+  const saveButtonText = saving
+    ? "Guardando..."
+    : saved
+    ? "✅ Guardado"
+    : saveBlockedByIdentity
+    ? "⚠️ Añade marca y modelo"
+    : "Guardar análisis";
 
   return (
     <div style={pageStyle}>
@@ -467,17 +479,14 @@ export default function Importer() {
                   disabled={saveDisabled}
                   style={{
                     ...buttonStyle,
-                    opacity: saveDisabled ? 0.6 : 1,
+                    background: saveDisabled
+                      ? "linear-gradient(135deg,#475569,#334155)"
+                      : buttonStyle.background,
+                    opacity: saveDisabled ? 0.75 : 1,
                     cursor: saveDisabled ? "not-allowed" : "pointer",
                   }}
                 >
-                  {saving
-                    ? "Guardando..."
-                    : saved
-                    ? "✅ Guardado"
-                    : !semanticData?.brand || !semanticData?.model
-                    ? "⚠️ Añade marca y modelo"
-                    : "Guardar análisis"}
+                  {saveButtonText}
                 </button>
               </>
             )}
