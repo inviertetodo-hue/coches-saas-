@@ -11,6 +11,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
     if (!searchTriggered) return null;
 
     const rawFeed = generateMockMarketFeed(scan);
+    const maxBudget = Number(form.maxBudget || scan.maxBudget || 0);
 
     function enrichDeal(item) {
       const dealRisk = analyzeDealRisk(item);
@@ -38,7 +39,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       };
 
       const opportunityPreview =
-        findOpportunities([normalizedListing])[0] || null;
+        findOpportunities([normalizedListing], { maxBudget })[0] || null;
 
       const opportunityScore =
         opportunityPreview?.opportunityScore || item.opportunityScore || 0;
@@ -58,6 +59,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         ...item,
         opportunityScore,
         opportunityLevel,
+        opportunitySignals: opportunityPreview?.opportunitySignals || null,
         dealRisk,
         liquidity,
         finalDecision,
@@ -81,6 +83,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       ),
       opportunityScore: item.opportunityScore,
       opportunityLevel: item.opportunityLevel,
+      opportunitySignals: item.opportunitySignals,
     }));
 
     const best = opportunities[0] || null;
@@ -94,8 +97,8 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         total: opportunityEnginePreview.length,
         bestScore: opportunityEnginePreview[0]?.opportunityScore || 0,
         bestLevel: opportunityEnginePreview[0]?.opportunityLevel || "NONE",
-        mode: "ranking-connected",
+        mode: "budget-aware-ranking",
       },
     };
-  }, [form.query, scan, searchTriggered]);
+  }, [form.query, form.maxBudget, scan, searchTriggered]);
 }
