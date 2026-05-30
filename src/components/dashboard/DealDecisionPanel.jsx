@@ -6,37 +6,74 @@ export default function DealDecisionPanel({ decisions }) {
     : [];
 
   const buyCount = items.filter((item) => item.decision === "Comprar").length;
-  const negotiateCount = items.filter((item) => item.decision === "Negociar").length;
-  const watchCount = items.filter((item) => item.decision === "Vigilar").length;
-  const discardCount = items.filter((item) => item.decision === "Descartar").length;
+  const negotiateCount = items.filter(
+    (item) => item.decision === "Negociar"
+  ).length;
+  const watchCount = items.filter(
+    (item) => item.decision === "Vigilar"
+  ).length;
+  const discardCount = items.filter(
+    (item) => item.decision === "Descartar"
+  ).length;
 
   return (
     <div style={containerStyle}>
       <h2 style={titleStyle}>⚖️ AI Deal Decisions V2</h2>
 
       <p style={subtitleStyle}>
-        Decisión ejecutiva por operación: comprar, negociar, vigilar o descartar.
+        Decisión ejecutiva por operación: comprar, negociar, vigilar o
+        descartar.
       </p>
 
       <div style={gridStyle}>
-        <MetricCard label="Decision Score" value={`${decisions?.decisionScore || 0}/100`} />
-        <MetricCard label="Decision Level" value={decisions?.decisionLevel || "-"} />
+        <MetricCard
+          label="Decision Score"
+          value={`${decisions?.decisionScore || 0}/100`}
+        />
+
+        <MetricCard
+          label="Decision Level"
+          value={decisions?.decisionLevel || "-"}
+        />
+
         <MetricCard label="Comprar" value={buyCount} />
+
         <MetricCard label="Descartar" value={discardCount} />
       </div>
 
       <div style={statusGridStyle}>
-        <StatusCard title="Comprar" value={buyCount} text="Operaciones claras para priorizar." />
-        <StatusCard title="Negociar" value={negotiateCount} text="Interesantes, pero requieren validación." />
-        <StatusCard title="Vigilar" value={watchCount} text="Seguimiento sin acción inmediata." />
-        <StatusCard title="Descartar" value={discardCount} text="Riesgo o rentabilidad insuficiente." />
+        <StatusCard
+          title="Comprar"
+          value={buyCount}
+          text="Operaciones claras para priorizar."
+        />
+
+        <StatusCard
+          title="Negociar"
+          value={negotiateCount}
+          text="Interesantes, pero requieren validación."
+        />
+
+        <StatusCard
+          title="Vigilar"
+          value={watchCount}
+          text="Seguimiento sin acción inmediata."
+        />
+
+        <StatusCard
+          title="Descartar"
+          value={discardCount}
+          text="Riesgo o rentabilidad insuficiente."
+        />
       </div>
 
       <div style={sectionStyle}>
         <p style={sectionTitleStyle}>🧠 Decision Insights</p>
 
         {!decisions?.insights?.length && (
-          <p style={emptyStyle}>Todavía no hay insights de decisión.</p>
+          <p style={emptyStyle}>
+            Todavía no hay insights de decisión.
+          </p>
         )}
 
         {decisions?.insights?.map((item, index) => (
@@ -56,7 +93,10 @@ export default function DealDecisionPanel({ decisions }) {
         )}
 
         {items.map((item, index) => (
-          <DecisionCard key={item.id || `${item.title}-${index}`} item={item} />
+          <DecisionCard
+            key={item.id || `${item.title}-${index}`}
+            item={item}
+          />
         ))}
       </div>
     </div>
@@ -74,24 +114,72 @@ function DecisionCard({ item }) {
     <div style={getDecisionCardStyle(item.decision)}>
       <div style={topRowStyle}>
         <div>
-          <h3 style={dealTitleStyle}>{item.title || "Vehículo IA"}</h3>
-          <p style={decisionStyle}>{getDecisionEmoji(item.decision)} {item.decision}</p>
+          <h3 style={dealTitleStyle}>
+            {item.title || "Vehículo IA"}
+          </h3>
+
+          <p style={decisionStyle}>
+            {getDecisionEmoji(item.decision)} {item.decision}
+          </p>
         </div>
 
-        <span style={priorityBadgeStyle}>{item.priority || "Media"}</span>
+        <span style={priorityBadgeStyle}>
+          {item.priority || "Media"}
+        </span>
       </div>
 
       <div style={miniGridStyle}>
-        <MiniMetric label="Score" value={`${item.score || 0}/100`} />
-        <MiniMetric label="ROI" value={`${item.roi || 0}%`} />
-        <MiniMetric label="Beneficio" value={`${item.profit || 0} €`} />
-        <MiniMetric label="Decision Score" value={`${item.decisionScore || 0}/100`} />
+        <MiniMetric
+          label="Score"
+          value={`${item.score || 0}/100`}
+        />
+
+        <MiniMetric
+          label="ROI"
+          value={`${item.roi || 0}%`}
+        />
+
+        <MiniMetric
+          label="Beneficio"
+          value={`${item.profit || 0} €`}
+        />
+
+        <MiniMetric
+          label="Decision Score"
+          value={`${item.decisionScore || 0}/100`}
+        />
       </div>
 
       <div style={miniGridStyle}>
-        <MiniMetric label="Riesgo" value={item.riskLevel || "-"} />
-        <MiniMetric label="Liquidez" value={item.liquidityLevel || "-"} />
-        <MiniMetric label="Prioridad" value={item.priority || "-"} />
+        <MiniMetric
+          label="Riesgo"
+          value={item.riskLevel || "-"}
+        />
+
+        <MiniMetric
+          label="Liquidez"
+          value={item.liquidityLevel || "-"}
+        />
+
+        <MiniMetric
+          label="Prioridad"
+          value={item.priority || "-"}
+        />
+      </div>
+
+      <div style={confidenceBoxStyle}>
+        <p style={confidenceTitleStyle}>
+          📚 Confianza histórica
+        </p>
+
+        <p style={confidenceLevelStyle}>
+          {item.historicalConfidenceLevel || "Inicial"}
+        </p>
+
+        <p style={confidenceReasonStyle}>
+          {item.historicalConfidenceReason ||
+            "Todavía no hay suficiente histórico comparable."}
+        </p>
       </div>
 
       <div style={reasonBoxStyle}>
@@ -105,7 +193,9 @@ function DecisionCard({ item }) {
       </div>
 
       <p style={nextActionStyle}>
-        Próxima acción: {item.nextAction || "Revisar operación antes de actuar."}
+        Próxima acción:{" "}
+        {item.nextAction ||
+          "Revisar operación antes de actuar."}
       </p>
     </div>
   );
@@ -115,7 +205,10 @@ function MiniMetric({ label, value }) {
   return (
     <div style={miniMetricStyle}>
       <span style={miniMetricLabelStyle}>{label}</span>
-      <strong style={miniMetricValueStyle}>{value}</strong>
+
+      <strong style={miniMetricValueStyle}>
+        {value}
+      </strong>
     </div>
   );
 }
@@ -124,7 +217,11 @@ function StatusCard({ title, value, text }) {
   return (
     <div style={statusCardStyle}>
       <p style={statusTitleStyle}>{title}</p>
-      <strong style={statusValueStyle}>{value}</strong>
+
+      <strong style={statusValueStyle}>
+        {value}
+      </strong>
+
       <p style={statusTextStyle}>{text}</p>
     </div>
   );
@@ -165,14 +262,16 @@ const subtitleStyle = {
 
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(220px,1fr))",
   gap: "18px",
   marginBottom: "24px",
 };
 
 const statusGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(180px,1fr))",
   gap: "14px",
   marginBottom: "26px",
 };
@@ -294,7 +393,8 @@ const decisionStyle = {
 
 const miniGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(120px,1fr))",
   gap: "10px",
   marginBottom: "12px",
 };
@@ -315,6 +415,34 @@ const miniMetricLabelStyle = {
 const miniMetricValueStyle = {
   color: "#f8fafc",
   fontSize: "14px",
+};
+
+const confidenceBoxStyle = {
+  marginTop: "8px",
+  marginBottom: "12px",
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(37,99,235,0.10)",
+  border: "1px solid rgba(59,130,246,0.18)",
+};
+
+const confidenceTitleStyle = {
+  margin: "0 0 8px 0",
+  color: "#93c5fd",
+  fontWeight: "900",
+};
+
+const confidenceLevelStyle = {
+  margin: "0 0 8px 0",
+  color: "#ffffff",
+  fontWeight: "900",
+  fontSize: "18px",
+};
+
+const confidenceReasonStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  lineHeight: "1.45",
 };
 
 const reasonBoxStyle = {
