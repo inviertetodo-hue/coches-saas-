@@ -4,6 +4,7 @@ import { buildExecutiveBuySignal } from "./executiveBuySignalEngine";
 import { buildSellSpeed } from "./sellSpeedEngine";
 import { buildCapitalEfficiency } from "./capitalEfficiencyEngine";
 import { buildInventoryRisk } from "./inventoryRiskEngine";
+import { buildMarketTiming } from "./marketTimingEngine";
 
 export function buildDecisionPipeline({
   vehicle = {},
@@ -103,6 +104,14 @@ export function buildDecisionPipeline({
     price,
   });
 
+  const marketTiming = buildMarketTiming({
+    successProbability: successProbability.successProbability,
+    sellSpeedScore: sellSpeed.sellSpeedScore,
+    capitalEfficiencyScore: capitalEfficiency.capitalEfficiencyScore,
+    inventoryRiskScore: inventoryRisk.inventoryRiskScore,
+    confidenceScore: learning.confidenceScore,
+  });
+
   return {
     learning,
     priorityScore,
@@ -113,6 +122,7 @@ export function buildDecisionPipeline({
     sellSpeed,
     capitalEfficiency,
     inventoryRisk,
+    marketTiming,
 
     flat: {
       priorityScore,
@@ -162,6 +172,11 @@ export function buildDecisionPipeline({
       inventoryRiskLabel: inventoryRisk.inventoryRiskLabel,
       immobilizedCapitalRisk: inventoryRisk.immobilizedCapitalRisk,
       inventoryRiskSummary: inventoryRisk.summary,
+
+      marketTiming,
+      marketTimingScore: marketTiming.marketTimingScore,
+      marketTimingLabel: marketTiming.marketTimingLabel,
+      marketTimingSummary: marketTiming.summary,
     },
   };
 }
