@@ -1,14 +1,14 @@
 export function parseCarFromUrl(url) {
-  if (!url || typeof url !== "string") {
-    return null;
-  }
+  if (!url || typeof url !== "string") return null;
 
   const cleanUrl = normalizeText(url);
   const tokens = tokenize(cleanUrl);
   const normalizedText = tokens.join(" ");
 
   const detectedBrand = detectBrand(normalizedText, tokens);
-  const detectedModel = detectModel(normalizedText, detectedBrand);
+  const modelDetection = detectModel(normalizedText, detectedBrand);
+
+  const detectedModel = modelDetection.model;
   const detectedYear = detectYear(normalizedText);
   const detectedEngine = detectEngine(normalizedText);
   const detectedTransmission = detectTransmission(normalizedText);
@@ -17,6 +17,7 @@ export function parseCarFromUrl(url) {
   const detectedFuelType = detectFuelType(normalizedText);
   const detectedBodyType = detectBodyType(normalizedText, detectedModel);
   const electrified = detectElectrified(normalizedText);
+
   const premiumConfig = detectPremiumConfig(normalizedText, {
     brand: detectedBrand,
     model: detectedModel,
@@ -48,22 +49,38 @@ export function parseCarFromUrl(url) {
     bodyType: detectedBodyType,
     electrified,
     premiumConfig,
+    modelConfidence: modelDetection.confidence,
+    modelValidation: modelDetection.validation,
     title: finalTitle || buildFallbackTitle(tokens),
   };
 }
 
 function normalizeText(value) {
-  return decodeURIComponent(String(value))
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replaceAll("+", " ")
-    .replaceAll("_", " ")
-    .replaceAll("%20", " ")
-    .replace(/[?&=.#,/|()[\]{}:;]/g, " ")
-    .replace(/[-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  try {
+    return decodeURIComponent(String(value))
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replaceAll("+", " ")
+      .replaceAll("_", " ")
+      .replaceAll("%20", " ")
+      .replace(/[?&=.#,/|()[\]{}:;]/g, " ")
+      .replace(/[-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch {
+    return String(value)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replaceAll("+", " ")
+      .replaceAll("_", " ")
+      .replaceAll("%20", " ")
+      .replace(/[?&=.#,/|()[\]{}:;]/g, " ")
+      .replace(/[-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
 }
 
 function tokenize(text) {
@@ -153,8 +170,7 @@ const MODEL_GROUPS = {
     "730", "740", "745", "750", "760",
     "x1", "x2", "x3", "x4", "x5", "x6", "x7",
     "m2", "m3", "m4", "m5", "m8",
-    "ix", "i3", "i4", "i5", "i7", "i8",
-    "z4",
+    "ix", "i3", "i4", "i5", "i7", "i8", "z4",
   ],
 
   Audi: [
@@ -174,136 +190,42 @@ const MODEL_GROUPS = {
     "e 200", "e 220", "e 300", "e 400", "e 43", "e 53", "e 63",
     "s 350", "s 400", "s 500", "s 580", "s 63",
     "cla", "cls", "gla", "glb", "glc", "gle", "gls", "g class", "g63",
-    "eqc", "eqa", "eqb", "eqe", "eqs",
-    "sl", "slk", "amg gt",
+    "eqc", "eqa", "eqb", "eqe", "eqs", "sl", "slk", "amg gt",
   ],
 
-  Porsche: [
-    "911", "992", "991", "997",
-    "cayenne", "macan", "panamera", "taycan",
-    "boxster", "cayman",
-  ],
-
-  Volvo: [
-    "xc40", "xc60", "xc90",
-    "v60", "v90", "s60", "s90",
-    "ex30", "ex40", "ex90",
-  ],
-
-  "Land Rover": [
-    "range rover", "range rover sport", "range rover velar", "range rover evoque",
-    "defender", "discovery", "discovery sport",
-    "sport", "velar", "evoque",
-  ],
-
-  Tesla: [
-    "model 3", "model y", "model s", "model x",
-  ],
-
-  Cupra: [
-    "formentor", "ateca", "leon", "born", "tavascan", "terramar",
-  ],
-
-  SEAT: [
-    "leon", "ibiza", "arona", "ateca", "tarraco", "alhambra", "toledo",
-  ],
-
-  Skoda: [
-    "fabia", "octavia", "superb", "kodiaq", "karoq", "kamiq", "scala", "enyaq", "citigo",
-  ],
-
-  Volkswagen: [
-    "golf", "polo", "passat", "tiguan", "touareg", "arteon", "t roc", "t cross",
-    "touran", "sharan", "up", "id 3", "id 4", "id 5", "id buzz",
-  ],
-
-  Toyota: [
-    "rav4", "land cruiser", "corolla", "camry", "yaris", "chr", "c hr", "supra",
-    "prius", "aygo", "hilux", "highlander", "proace",
-  ],
-
-  Lexus: [
-    "nx", "rx", "ux", "es", "ls", "lc", "rc", "lbx", "ct",
-  ],
-
-  Jaguar: [
-    "f pace", "e pace", "i pace", "xe", "xf", "xj", "f type",
-  ],
-
-  Renault: [
-    "clio", "megane", "mégane", "captur", "kadjar", "austral", "arkana", "espace",
-    "scenic", "scénic", "koleos", "talisman", "zoe", "rafale",
-  ],
-
-  Peugeot: [
-    "108", "208", "308", "408", "508", "2008", "3008", "5008", "rifter", "traveller",
-  ],
-
-  Ford: [
-    "fiesta", "focus", "mondeo", "puma", "kuga", "mustang", "explorer", "edge",
-    "s max", "galaxy", "ranger", "tourneo", "transit",
-  ],
-
-  Hyundai: [
-    "i10", "i20", "i30", "ioniq", "ioniq 5", "ioniq 6", "kona", "tucson",
-    "santa fe", "bayon", "i40",
-  ],
-
-  Kia: [
-    "ceed", "xceed", "x ceed", "sportage", "sorento", "niro", "stonic", "picanto",
-    "rio", "ev3", "ev6", "ev9", "optima", "proceed",
-  ],
-
-  Mazda: [
-    "mazda 2", "mazda 3", "mazda 6", "cx 3", "cx 30", "cx 5", "cx 60", "cx 80",
-    "mx 5", "mx 30",
-  ],
-
-  Nissan: [
-    "micra", "juke", "qashqai", "x trail", "x-trail", "ariya", "leaf", "navara", "pulsar",
-  ],
-
-  Opel: [
-    "corsa", "astra", "insignia", "mokka", "crossland", "grandland", "zafira",
-    "combo", "vivaro",
-  ],
-
-  Fiat: [
-    "500", "500x", "500l", "600", "panda", "tipo", "doblo", "ducato", "topolino",
-  ],
-
-  Honda: [
-    "civic", "accord", "jazz", "hr v", "hr-v", "cr v", "cr-v", "e", "zr v", "zr-v",
-  ],
-
-  Dacia: [
-    "sandero", "duster", "jogger", "logan", "lodgy", "spring", "dokker",
-  ],
-
-  "Citroën": [
-    "c1", "c2", "c3", "c4", "c5", "c3 aircross", "c5 aircross", "berlingo", "spacetourer",
-  ],
-
-  DS: [
-    "ds 3", "ds 4", "ds 5", "ds 7", "ds 9",
-  ],
-
-  Jeep: [
-    "avenger", "renegade", "compass", "cherokee", "grand cherokee", "wrangler",
-  ],
-
-  Smart: [
-    "fortwo", "forfour", "smart 1", "smart 3", "hashtag 1", "hashtag 3",
-  ],
+  Porsche: ["911", "992", "991", "997", "cayenne", "macan", "panamera", "taycan", "boxster", "cayman"],
+  Volvo: ["xc40", "xc60", "xc90", "v60", "v90", "s60", "s90", "ex30", "ex40", "ex90"],
+  "Land Rover": ["range rover", "range rover sport", "range rover velar", "range rover evoque", "defender", "discovery", "discovery sport", "sport", "velar", "evoque"],
+  Tesla: ["model 3", "model y", "model s", "model x"],
+  Cupra: ["formentor", "ateca", "leon", "born", "tavascan", "terramar"],
+  SEAT: ["leon", "ibiza", "arona", "ateca", "tarraco", "alhambra", "toledo"],
+  Skoda: ["fabia", "octavia", "superb", "kodiaq", "karoq", "kamiq", "scala", "enyaq", "citigo"],
+  Volkswagen: ["golf", "polo", "passat", "tiguan", "touareg", "arteon", "t roc", "t cross", "touran", "sharan", "up", "id 3", "id 4", "id 5", "id buzz"],
+  Toyota: ["rav4", "land cruiser", "corolla", "camry", "yaris", "chr", "c hr", "supra", "prius", "aygo", "hilux", "highlander", "proace"],
+  Lexus: ["nx", "rx", "ux", "es", "ls", "lc", "rc", "lbx", "ct"],
+  Jaguar: ["f pace", "e pace", "i pace", "xe", "xf", "xj", "f type"],
+  Renault: ["clio", "megane", "mégane", "captur", "kadjar", "austral", "arkana", "espace", "scenic", "scénic", "koleos", "talisman", "zoe", "rafale"],
+  Peugeot: ["108", "208", "308", "408", "508", "2008", "3008", "5008", "rifter", "traveller"],
+  Ford: ["fiesta", "focus", "mondeo", "puma", "kuga", "mustang", "explorer", "edge", "s max", "galaxy", "ranger", "tourneo", "transit"],
+  Hyundai: ["i10", "i20", "i30", "ioniq", "ioniq 5", "ioniq 6", "kona", "tucson", "santa fe", "bayon", "i40"],
+  Kia: ["ceed", "xceed", "x ceed", "sportage", "sorento", "niro", "stonic", "picanto", "rio", "ev3", "ev6", "ev9", "optima", "proceed"],
+  Mazda: ["mazda 2", "mazda 3", "mazda 6", "cx 3", "cx 30", "cx 5", "cx 60", "cx 80", "mx 5", "mx 30"],
+  Nissan: ["micra", "juke", "qashqai", "x trail", "x-trail", "ariya", "leaf", "navara", "pulsar"],
+  Opel: ["corsa", "astra", "insignia", "mokka", "crossland", "grandland", "zafira", "combo", "vivaro"],
+  Fiat: ["500", "500x", "500l", "600", "panda", "tipo", "doblo", "ducato", "topolino"],
+  Honda: ["civic", "accord", "jazz", "hr v", "hr-v", "cr v", "cr-v", "e", "zr v", "zr-v"],
+  Dacia: ["sandero", "duster", "jogger", "logan", "lodgy", "spring", "dokker"],
+  "Citroën": ["c1", "c2", "c3", "c4", "c5", "c3 aircross", "c5 aircross", "berlingo", "spacetourer"],
+  DS: ["ds 3", "ds 4", "ds 5", "ds 7", "ds 9"],
+  Jeep: ["avenger", "renegade", "compass", "cherokee", "grand cherokee", "wrangler"],
+  Smart: ["fortwo", "forfour", "smart 1", "smart 3"],
 };
 
 const GENERIC_MODELS = Object.values(MODEL_GROUPS).flat();
 
 function detectBrand(text, tokens) {
   for (const brand of BRAND_ALIASES) {
-    if (brand.keys.some((key) => hasPhrase(text, key))) {
-      return brand.value;
-    }
+    if (brand.keys.some((key) => hasPhrase(text, key))) return brand.value;
   }
 
   for (const token of tokens) {
@@ -315,16 +237,70 @@ function detectBrand(text, tokens) {
 }
 
 function detectModel(text, brand) {
-  const models = brand && MODEL_GROUPS[brand] ? MODEL_GROUPS[brand] : GENERIC_MODELS;
-  const sortedModels = [...models].sort((a, b) => b.length - a.length);
+  const candidateModels = brand && MODEL_GROUPS[brand] ? MODEL_GROUPS[brand] : GENERIC_MODELS;
+  const sortedModels = [...candidateModels].sort((a, b) => b.length - a.length);
 
   for (const model of sortedModels) {
-    if (hasPhrase(text, model)) {
-      return formatModel(model, brand);
+    if (!hasPhrase(text, model)) continue;
+
+    const validation = validateModelForBrand(model, brand);
+
+    if (!validation.valid) {
+      return {
+        model: "",
+        confidence: "low",
+        validation,
+      };
     }
+
+    return {
+      model: formatModel(model, brand || validation.expectedBrands[0] || ""),
+      confidence: brand ? "high" : "medium",
+      validation,
+    };
   }
 
-  return "";
+  return {
+    model: "",
+    confidence: "none",
+    validation: {
+      valid: false,
+      reason: "No se detectó modelo compatible",
+      expectedBrands: [],
+    },
+  };
+}
+
+function validateModelForBrand(model, brand) {
+  const normalizedModel = normalizeText(model);
+
+  if (!brand) {
+    const expectedBrands = Object.entries(MODEL_GROUPS)
+      .filter(([, models]) => models.map(normalizeText).includes(normalizedModel))
+      .map(([brandName]) => brandName);
+
+    return {
+      valid: expectedBrands.length > 0,
+      reason: expectedBrands.length > 0 ? "Modelo detectado sin marca explícita" : "Modelo no registrado",
+      expectedBrands,
+    };
+  }
+
+  const brandModels = MODEL_GROUPS[brand] || [];
+  const normalizedBrandModels = brandModels.map(normalizeText);
+  const valid = normalizedBrandModels.includes(normalizedModel);
+
+  return {
+    valid,
+    reason: valid ? "Modelo compatible con la marca detectada" : "Modelo incompatible con la marca detectada",
+    expectedBrands: valid ? [brand] : findBrandsForModel(normalizedModel),
+  };
+}
+
+function findBrandsForModel(normalizedModel) {
+  return Object.entries(MODEL_GROUPS)
+    .filter(([, models]) => models.map(normalizeText).includes(normalizedModel))
+    .map(([brand]) => brand);
 }
 
 function detectYear(text) {
@@ -369,13 +345,8 @@ function detectTransmission(text) {
     "zf",
   ];
 
-  if (automaticWords.some((word) => hasPhrase(text, word))) {
-    return "Automático";
-  }
-
-  if (hasPhrase(text, "manual")) {
-    return "Manual";
-  }
+  if (automaticWords.some((word) => hasPhrase(text, word))) return "Automático";
+  if (hasPhrase(text, "manual")) return "Manual";
 
   return "";
 }
@@ -414,9 +385,7 @@ function detectPerformancePackage(text) {
   ];
 
   for (const item of packages) {
-    if (item.keys.some((key) => hasPhrase(text, key))) {
-      return item.value;
-    }
+    if (item.keys.some((key) => hasPhrase(text, key))) return item.value;
   }
 
   return "";
@@ -456,19 +425,11 @@ function detectFuelType(text) {
     return "EV";
   }
 
-  if (
-    hasPhrase(text, "diesel") ||
-    /\b(tdi|dci|hdi|cdi|bluetech|300de|350de)\b/.test(text)
-  ) {
+  if (hasPhrase(text, "diesel") || /\b(tdi|dci|hdi|cdi|bluetech|300de|350de)\b/.test(text)) {
     return "Diesel";
   }
 
-  if (
-    hasPhrase(text, "gasolina") ||
-    hasPhrase(text, "petrol") ||
-    hasPhrase(text, "benzina") ||
-    /\b(tfsi|tsi)\b/.test(text)
-  ) {
+  if (hasPhrase(text, "gasolina") || hasPhrase(text, "petrol") || hasPhrase(text, "benzina") || /\b(tfsi|tsi)\b/.test(text)) {
     return "Gasolina";
   }
 
@@ -480,7 +441,7 @@ function detectBodyType(text, model) {
 
   if (
     hasPhrase(combined, "suv") ||
-    /\b(x1|x2|x3|x4|x5|x6|x7|q2|q3|q4|q5|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|touareg|tiguan|formentor|rav4|range rover|defender|discovery|kodiaq|karoq|kamiq|sportage|sorento|tucson|santa fe|qashqai|x trail|x-trail|3008|5008|duster|compass|grand cherokee)\b/.test(combined)
+    /\b(x1|x2|x3|x4|x5|x6|x7|q2|q3|q4|q5|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|touareg|tiguan|formentor|rav4|range rover|defender|discovery|kodiaq|karoq|kamiq|sportage|sorento|tucson|santa fe|qashqai|x trail|3008|5008|duster|compass|grand cherokee|renegade|captur|kadjar|austral|arkana|kuga|puma|mokka|grandland|crossland|juke)\b/.test(combined)
   ) {
     return "SUV";
   }
@@ -496,17 +457,11 @@ function detectBodyType(text, model) {
     return "Wagon";
   }
 
-  if (
-    hasPhrase(combined, "sedan") ||
-    hasPhrase(combined, "berlina") ||
-    hasPhrase(combined, "limousine")
-  ) {
+  if (hasPhrase(combined, "sedan") || hasPhrase(combined, "berlina") || hasPhrase(combined, "limousine")) {
     return "Sedan";
   }
 
-  if (hasPhrase(combined, "coupe")) {
-    return "Coupe";
-  }
+  if (hasPhrase(combined, "coupe")) return "Coupe";
 
   if (
     hasPhrase(combined, "cabrio") ||
@@ -534,55 +489,19 @@ function detectPremiumConfig(text, data) {
   if (data.fuelType === "EV") signals.push("EV premium");
   if (data.bodyType === "SUV") signals.push("SUV alta demanda");
 
-  if (hasPhrase(text, "panoramic") || hasPhrase(text, "panorama")) {
-    signals.push("Techo panorámico");
-  }
-
-  if (hasPhrase(text, "head up") || hasPhrase(text, "hud")) {
-    signals.push("Head-Up Display");
-  }
-
-  if (hasPhrase(text, "matrix") || hasPhrase(text, "laser light")) {
-    signals.push("Iluminación premium");
-  }
-
-  if (hasPhrase(text, "air suspension") || hasPhrase(text, "luftfederung")) {
-    signals.push("Suspensión neumática");
-  }
-
-  if (hasPhrase(text, "soft close")) {
-    signals.push("Soft Close");
-  }
-
-  if (hasPhrase(text, "burmester") || hasPhrase(text, "bowers") || hasPhrase(text, "bang olufsen")) {
-    signals.push("Sonido premium");
-  }
-
-  if (hasPhrase(text, "7 sitzer") || hasPhrase(text, "7 seats") || hasPhrase(text, "7 plazas")) {
-    signals.push("7 plazas");
-  }
+  if (hasPhrase(text, "panoramic") || hasPhrase(text, "panorama")) signals.push("Techo panorámico");
+  if (hasPhrase(text, "head up") || hasPhrase(text, "hud")) signals.push("Head-Up Display");
+  if (hasPhrase(text, "matrix") || hasPhrase(text, "laser light")) signals.push("Iluminación premium");
+  if (hasPhrase(text, "air suspension") || hasPhrase(text, "luftfederung")) signals.push("Suspensión neumática");
+  if (hasPhrase(text, "soft close")) signals.push("Soft Close");
+  if (hasPhrase(text, "burmester") || hasPhrase(text, "bowers") || hasPhrase(text, "bang olufsen")) signals.push("Sonido premium");
+  if (hasPhrase(text, "7 sitzer") || hasPhrase(text, "7 seats") || hasPhrase(text, "7 plazas")) signals.push("7 plazas");
 
   return signals.join(" · ");
 }
 
-function buildTitle({
-  brand,
-  model,
-  year,
-  engine,
-  transmission,
-  drivetrain,
-  performancePackage,
-}) {
-  return [
-    brand,
-    model,
-    year,
-    engine,
-    transmission,
-    drivetrain,
-    performancePackage,
-  ]
+function buildTitle({ brand, model, year, engine, transmission, drivetrain, performancePackage }) {
+  return [brand, model, year, engine, transmission, drivetrain, performancePackage]
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
@@ -631,11 +550,24 @@ function formatModel(model, brand) {
     "e pace": "E-Pace",
     "i pace": "I-Pace",
     "f type": "F-Type",
+    "hr v": "HR-V",
+    "hr-v": "HR-V",
+    "cr v": "CR-V",
+    "cr-v": "CR-V",
+    "zr v": "ZR-V",
+    "zr-v": "ZR-V",
+    "cx 3": "CX-3",
+    "cx 30": "CX-30",
+    "cx 5": "CX-5",
+    "cx 60": "CX-60",
+    "cx 80": "CX-80",
+    "mx 5": "MX-5",
+    "mx 30": "MX-30",
+    "s max": "S-Max",
+    "x ceed": "XCeed",
   };
 
-  if (directFormats[normalized]) {
-    return directFormats[normalized];
-  }
+  if (directFormats[normalized]) return directFormats[normalized];
 
   if (brand === "Mercedes-Benz") {
     return normalized
@@ -677,9 +609,12 @@ function formatModel(model, brand) {
       if (/^s\d$/i.test(word)) return word.toUpperCase();
       if (/^m\d$/i.test(word)) return word.toUpperCase();
       if (/^xc\d+$/i.test(word)) return word.toUpperCase();
+      if (/^ex\d+$/i.test(word)) return word.toUpperCase();
       if (/^v\d+$/i.test(word)) return word.toUpperCase();
-      if (/^nx|rx|ux|es|ls|lc|rc$/i.test(word)) return word.toUpperCase();
-      if (/^cx$/i.test(word)) return word.toUpperCase();
+      if (/^(nx|rx|ux|es|ls|lc|rc|ct|lbx)$/i.test(word)) return word.toUpperCase();
+      if (/^i\d+$/i.test(word)) return word.toLowerCase();
+      if (/^ev\d+$/i.test(word)) return word.toUpperCase();
+      if (/^ds$/i.test(word)) return word.toUpperCase();
       return capitalizeWord(word);
     })
     .join(" ");
