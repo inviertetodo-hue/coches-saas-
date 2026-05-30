@@ -76,7 +76,21 @@ async function fetchSearchText(url) {
 }
 
 function buildReaderUrl(url) {
-  return `https://r.jina.ai/http://r.jina.ai/http://${url}`;
+  const cleanUrl = String(url || "").trim();
+
+  if (!cleanUrl) {
+    throw new Error("URL vacía.");
+  }
+
+  if (cleanUrl.startsWith("https://")) {
+    return `https://r.jina.ai/http://${cleanUrl.replace("https://", "")}`;
+  }
+
+  if (cleanUrl.startsWith("http://")) {
+    return `https://r.jina.ai/http://${cleanUrl.replace("http://", "")}`;
+  }
+
+  return `https://r.jina.ai/http://${cleanUrl}`;
 }
 
 function parseListingsFromText({ text, source, country, query }) {
@@ -182,7 +196,9 @@ function extractMileage(text) {
 }
 
 function extractYear(text) {
-  const match = String(text).match(/\b(2012|2013|2014|2015|2016|2017|2018|2019|2020|2021|2022|2023|2024|2025|2026)\b/);
+  const match = String(text).match(
+    /\b(2012|2013|2014|2015|2016|2017|2018|2019|2020|2021|2022|2023|2024|2025|2026)\b/
+  );
 
   return match?.[1] ? safeNumber(match[1]) : 0;
 }
