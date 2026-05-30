@@ -76,6 +76,8 @@ export default function Scanner() {
         <ScannerResultsSection
           marketFeed={marketFeed}
           searchRadar={searchRadar}
+          scan={scan}
+          searchTriggered={searchTriggered}
         />
       </div>
     </div>
