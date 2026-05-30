@@ -360,7 +360,10 @@ export default function History() {
           <>
             <SystemHealthBanner health={systemHealth} />
 
-            <InstantDecisionPanel decisions={decisions} />
+            <InstantDecisionPanel
+              decisions={decisions}
+              opportunityChampion={opportunityChampion}
+            />
 
             <GlobalStatsPanel
               market={market}
