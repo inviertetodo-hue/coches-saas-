@@ -26,6 +26,7 @@ import { filterValidAnalyses } from "../services/analysisGuard";
 
 import { buildMarketMemory } from "../services/market/marketMemory";
 import { buildIntelligenceEngine } from "../services/intelligence/intelligenceEngine";
+import { calculateHistoricalConfidence } from "../services/intelligence/historicalConfidence";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SystemHealthBanner from "../components/dashboard/SystemHealthBanner";
@@ -175,7 +176,7 @@ export default function History() {
 
   const marketMemory = useMemo(() => {
     return buildMarketMemory(cleanAnalyses);
-  }, [cleanAnalyses]);
+  }, [cleanAnalyses, marketIntelligence]);
 
   const marketIntelligence = useMemo(() => {
     return buildIntelligenceEngine(cleanAnalyses);
@@ -199,7 +200,26 @@ export default function History() {
     const ranking = generateOpportunityRanking(cleanAnalyses);
     const watchlist = generateWatchlist(cleanAnalyses);
     const pipeline = generateDealPipeline(cleanAnalyses);
-    const decisions = generateDealDecisions(cleanAnalyses);
+    const baseDecisions = generateDealDecisions(cleanAnalyses);
+
+    const decisions = {
+      ...baseDecisions,
+      decisions: baseDecisions.decisions.map((decision) => {
+        const historicalConfidence = calculateHistoricalConfidence(
+          decision,
+          marketIntelligence
+        );
+
+        return {
+          ...decision,
+          historicalConfidence,
+          historicalConfidenceLevel: historicalConfidence.confidenceLevel,
+          historicalConfidenceReason: historicalConfidence.confidenceReason,
+          historicalConfidenceBonus: historicalConfidence.confidenceBonus,
+        };
+      }),
+    };
+
     const simulation = simulatePortfolio(cleanAnalyses);
 
     const executive = generateExecutiveSummary({
