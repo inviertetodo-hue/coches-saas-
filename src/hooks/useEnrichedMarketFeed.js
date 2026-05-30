@@ -16,16 +16,28 @@ const MODEL_RULES = {
     fuel: "PHEV",
     minKw: 250,
     maxKw: 330,
+    minYear: 2019,
+    maxMileage: 180000,
+    minPrice: 25000,
+    maxPrice: 90000,
   },
   "audi q7 tfsie": {
     fuel: "PHEV",
     minKw: 250,
     maxKw: 350,
+    minYear: 2019,
+    maxMileage: 190000,
+    minPrice: 30000,
+    maxPrice: 95000,
   },
   "mercedes glc 300de": {
     fuel: "PHEV",
     minKw: 180,
     maxKw: 260,
+    minYear: 2019,
+    maxMileage: 180000,
+    minPrice: 28000,
+    maxPrice: 85000,
   },
 };
 
@@ -69,6 +81,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           };
 
       const modelRule = findModelRule(form.query || scan.query);
+
       const modelFilteredOpportunities = modelRule
         ? rawFeed.opportunities.filter((item) =>
             validateSpecificModelRule(item, modelRule)
@@ -189,6 +202,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             ? {
                 rule: modelRule.key,
                 status: "passed",
+                phase: "6.4",
               }
             : null,
         };
@@ -227,10 +241,20 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           modelSpecificFilter: modelRule
             ? {
                 active: true,
+                phase: "6.4",
                 rule: modelRule.key,
                 before: rawFeed.opportunities.length,
                 after: opportunities.length,
                 discarded: rawFeed.opportunities.length - opportunities.length,
+                checks: {
+                  fuel: modelRule.fuel || null,
+                  minKw: modelRule.minKw || null,
+                  maxKw: modelRule.maxKw || null,
+                  minYear: modelRule.minYear || null,
+                  maxMileage: modelRule.maxMileage || null,
+                  minPrice: modelRule.minPrice || null,
+                  maxPrice: modelRule.maxPrice || null,
+                },
               }
             : {
                 active: false,
@@ -287,11 +311,27 @@ function findModelRule(query) {
 function validateSpecificModelRule(item, rule) {
   const fuel = inferFuelType(item);
   const kw = inferKw(item);
+  const year = inferYear(item);
+  const mileage = inferMileage(item);
+  const price = inferPrice(item);
 
   if (rule.fuel && fuel !== rule.fuel) return false;
+
   if (!Number.isFinite(kw)) return false;
   if (typeof rule.minKw === "number" && kw < rule.minKw) return false;
   if (typeof rule.maxKw === "number" && kw > rule.maxKw) return false;
+
+  if (!Number.isFinite(year)) return false;
+  if (typeof rule.minYear === "number" && year < rule.minYear) return false;
+
+  if (!Number.isFinite(mileage)) return false;
+  if (typeof rule.maxMileage === "number" && mileage > rule.maxMileage) {
+    return false;
+  }
+
+  if (!Number.isFinite(price)) return false;
+  if (typeof rule.minPrice === "number" && price < rule.minPrice) return false;
+  if (typeof rule.maxPrice === "number" && price > rule.maxPrice) return false;
 
   return true;
 }
@@ -326,9 +366,32 @@ function inferFuelType(item) {
   }
 
   if (text.includes("hybrid") || text.includes("hibrido")) return "Hybrid";
-  if (text.includes("electric") || text.includes("electrico") || text.includes("ev")) return "EV";
-  if (text.includes("diesel") || text.includes("tdi") || text.includes("dci") || text.includes("hdi")) return "Diesel";
-  if (text.includes("gasolina") || text.includes("petrol") || text.includes("tfsi") || text.includes("tsi")) return "Gasolina";
+
+  if (
+    text.includes("electric") ||
+    text.includes("electrico") ||
+    text.includes("ev")
+  ) {
+    return "EV";
+  }
+
+  if (
+    text.includes("diesel") ||
+    text.includes("tdi") ||
+    text.includes("dci") ||
+    text.includes("hdi")
+  ) {
+    return "Diesel";
+  }
+
+  if (
+    text.includes("gasolina") ||
+    text.includes("petrol") ||
+    text.includes("tfsi") ||
+    text.includes("tsi")
+  ) {
+    return "Gasolina";
+  }
 
   return "";
 }
@@ -358,6 +421,59 @@ function inferKw(item) {
   if (cvMatch) return Math.round(Number(cvMatch[1]) * 0.7355);
 
   return NaN;
+}
+
+function inferYear(item) {
+  const directYear = Number(item.year || item.registrationYear);
+
+  if (Number.isFinite(directYear) && directYear >= 2000 && directYear <= 2030) {
+    return directYear;
+  }
+
+  const text = normalizeForModelRule([item.title, item.description].join(" "));
+  const yearMatch = text.match(/\b(200[0-9]|201[0-9]|202[0-9])\b/);
+
+  return yearMatch ? Number(yearMatch[1]) : NaN;
+}
+
+function inferMileage(item) {
+  const directMileage = Number(
+    item.km || item.mileage || item.mileageKm || item.mileage_km
+  );
+
+  if (
+    Number.isFinite(directMileage) &&
+    directMileage >= 0 &&
+    directMileage <= 800000
+  ) {
+    return directMileage;
+  }
+
+  const text = normalizeForModelRule(
+    [item.title, item.description, item.mileage].join(" ")
+  );
+
+  const kmMatch = text.match(/\b(\d{1,3}(?:\s?\d{3})|\d{4,6})\s?km\b/);
+  if (!kmMatch) return NaN;
+
+  return Number(String(kmMatch[1]).replace(/\s/g, ""));
+}
+
+function inferPrice(item) {
+  const directPrice = Number(item.price || item.currentPrice || item.amount);
+
+  if (
+    Number.isFinite(directPrice) &&
+    directPrice >= 1000 &&
+    directPrice <= 500000
+  ) {
+    return directPrice;
+  }
+
+  const text = normalizeForModelRule([item.title, item.description].join(" "));
+  const priceMatch = text.match(/\b(\d{4,6})\s?(eur|€|euro|euros)\b/);
+
+  return priceMatch ? Number(priceMatch[1]) : NaN;
 }
 
 async function saveBestRealOpportunityToMarketMemory({
