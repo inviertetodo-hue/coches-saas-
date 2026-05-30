@@ -1,4 +1,10 @@
 import { buildDecisionPipeline } from "./intelligence/decisionPipeline";
+import { buildHistoricalModelMemory } from "./intelligence/historicalMemory";
+import {
+  calculateSemanticQuality,
+  calculateRiskPenalty,
+  calculateLiquidityBonus,
+} from "./intelligence/rankingUtils";
 
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
@@ -88,53 +94,10 @@ export function generateOpportunityRanking(analyses = []) {
         ...decision.flat,
       };
     })
-    .sort((a, b) => {
-      if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
-        return b.executiveBuySignalScore - a.executiveBuySignalScore;
-      }
-
-      if (b.capitalEfficiencyScore !== a.capitalEfficiencyScore) {
-        return b.capitalEfficiencyScore - a.capitalEfficiencyScore;
-      }
-
-      if (b.sellSpeedScore !== a.sellSpeedScore) {
-        return b.sellSpeedScore - a.sellSpeedScore;
-      }
-
-      if (b.successProbability !== a.successProbability) {
-        return b.successProbability - a.successProbability;
-      }
-
-      if (b.executiveScore !== a.executiveScore) {
-        return b.executiveScore - a.executiveScore;
-      }
-
-      if (b.priorityScore !== a.priorityScore) {
-        return b.priorityScore - a.priorityScore;
-      }
-
-      if (b.confidence !== a.confidence) {
-        return b.confidence - a.confidence;
-      }
-
-      return b.profit - a.profit;
-    })
+    .sort(sortOpportunities)
     .slice(0, 5);
 
-  const rankingScore =
-    topOpportunities.length > 0
-      ? Math.round(
-          topOpportunities.reduce(
-            (sum, item) =>
-              sum +
-              Math.round(
-                item.executiveBuySignalScore * 0.65 +
-                  item.capitalEfficiencyScore * 0.35
-              ),
-            0
-          ) / topOpportunities.length
-        )
-      : 0;
+  const rankingScore = calculateRankingScore(topOpportunities);
 
   const rankingInsights = buildRankingInsights(
     topOpportunities,
@@ -147,6 +110,54 @@ export function generateOpportunityRanking(analyses = []) {
     topOpportunities,
     rankingInsights,
   };
+}
+
+function sortOpportunities(a, b) {
+  if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
+    return b.executiveBuySignalScore - a.executiveBuySignalScore;
+  }
+
+  if (b.capitalEfficiencyScore !== a.capitalEfficiencyScore) {
+    return b.capitalEfficiencyScore - a.capitalEfficiencyScore;
+  }
+
+  if (b.sellSpeedScore !== a.sellSpeedScore) {
+    return b.sellSpeedScore - a.sellSpeedScore;
+  }
+
+  if (b.successProbability !== a.successProbability) {
+    return b.successProbability - a.successProbability;
+  }
+
+  if (b.executiveScore !== a.executiveScore) {
+    return b.executiveScore - a.executiveScore;
+  }
+
+  if (b.priorityScore !== a.priorityScore) {
+    return b.priorityScore - a.priorityScore;
+  }
+
+  if (b.confidence !== a.confidence) {
+    return b.confidence - a.confidence;
+  }
+
+  return b.profit - a.profit;
+}
+
+function calculateRankingScore(topOpportunities = []) {
+  if (topOpportunities.length === 0) return 0;
+
+  return Math.round(
+    topOpportunities.reduce((sum, item) => {
+      return (
+        sum +
+        Math.round(
+          safeNumber(item.executiveBuySignalScore) * 0.65 +
+            safeNumber(item.capitalEfficiencyScore) * 0.35
+        )
+      );
+    }, 0) / topOpportunities.length
+  );
 }
 
 function buildRankingInsights(topOpportunities, total, rankingScore) {
@@ -279,222 +290,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   return insights;
 }
 
-function calculateSemanticQuality({
-  title,
-  brand,
-  model,
-  fuelType,
-  drivetrain,
-  performancePackage,
-}) {
-  let quality = 0;
-
-  if (title && title.length >= 12 && !title.includes("Vehículo IA")) {
-    quality += 20;
-  }
-
-  if (brand) quality += 25;
-  if (model) quality += 25;
-  if (fuelType) quality += 12;
-  if (drivetrain) quality += 10;
-  if (performancePackage) quality += 8;
-
-  return clampScore(quality);
-}
-
-function calculateRiskPenalty({
-  title,
-  score,
-  roi,
-  profit,
-  semanticQuality,
-  performancePackage,
-}) {
-  const text = normalize(`${title} ${performancePackage}`);
-
-  let penalty = 0;
-
-  if (semanticQuality < 25) penalty += 24;
-  else if (semanticQuality < 50) penalty += 14;
-
-  if (score >= 90 && semanticQuality < 60) {
-    penalty += 14;
-  }
-
-  if (roi >= 25 && semanticQuality < 50) {
-    penalty += 10;
-  }
-
-  if (profit >= 25000) {
-    penalty += 6;
-  }
-
-  if (
-    text.includes("amg") ||
-    text.includes(" rs") ||
-    text.includes(" m5") ||
-    text.includes("m5") ||
-    text.includes("m4") ||
-    text.includes("m3") ||
-    text.includes("turbo") ||
-    text.includes("performance")
-  ) {
-    penalty += 14;
-  }
-
-  if (
-    text.includes("sl 63") ||
-    text.includes("sl63") ||
-    text.includes("m5 touring") ||
-    text.includes("rs6") ||
-    text.includes("911") ||
-    text.includes("gt")
-  ) {
-    penalty += 10;
-  }
-
-  return penalty;
-}
-
-function calculateLiquidityBonus({
-  title,
-  brand,
-  model,
-  fuelType,
-  drivetrain,
-  performancePackage,
-  semanticQuality,
-}) {
-  const text = normalize(
-    `${title} ${brand} ${model} ${fuelType} ${drivetrain} ${performancePackage}`
-  );
-
-  let bonus = 0;
-
-  if (semanticQuality >= 75) bonus += 6;
-
-  if (
-    text.includes("x5") ||
-    text.includes("x3") ||
-    text.includes("glc") ||
-    text.includes("gle") ||
-    text.includes("q5") ||
-    text.includes("q7") ||
-    text.includes("cayenne") ||
-    text.includes("xc90") ||
-    text.includes("range rover sport")
-  ) {
-    bonus += 12;
-  }
-
-  if (
-    text.includes("phev") ||
-    text.includes("hybrid") ||
-    text.includes("tfsi e") ||
-    text.includes("tfsie") ||
-    text.includes("300de") ||
-    text.includes("350de") ||
-    text.includes("45e")
-  ) {
-    bonus += 8;
-  }
-
-  if (
-    text.includes("xdrive") ||
-    text.includes("quattro") ||
-    text.includes("4matic")
-  ) {
-    bonus += 5;
-  }
-
-  if (
-    text.includes("amg") ||
-    text.includes("rs") ||
-    text.includes("m5") ||
-    text.includes("sl 63") ||
-    text.includes("sl63")
-  ) {
-    bonus -= 10;
-  }
-
-  return bonus;
-}
-
-function buildHistoricalModelMemory(analyses = []) {
-  const groups = {};
-
-  for (const item of analyses) {
-    const brand = String(item.brand || "").trim();
-    const model = String(item.model || "").trim();
-
-    if (!brand || !model) continue;
-
-    const label = `${brand} ${model}`;
-    const key = normalize(label);
-
-    if (!groups[key]) {
-      groups[key] = {
-        model: label,
-        analyses: 0,
-        totalROI: 0,
-        totalProfit: 0,
-        totalScore: 0,
-      };
-    }
-
-    groups[key].analyses += 1;
-    groups[key].totalROI += safeNumber(item.roi);
-    groups[key].totalProfit += safeNumber(item.profit);
-    groups[key].totalScore += safeNumber(item.score);
-  }
-
-  return Object.values(groups).map((group) => {
-    const confidence = getHistoricalConfidence(group.analyses);
-
-    return {
-      model: group.model,
-      analyses: group.analyses,
-      averageROI: Math.round(group.totalROI / group.analyses),
-      averageProfit: Math.round(group.totalProfit / group.analyses),
-      averageScore: Math.round(group.totalScore / group.analyses),
-      confidence: confidence.label,
-      confidenceScore: confidence.score,
-    };
-  });
-}
-
-function getHistoricalConfidence(count) {
-  if (count >= 15) {
-    return {
-      label: "Alta",
-      score: 90,
-    };
-  }
-
-  if (count >= 5) {
-    return {
-      label: "Media",
-      score: 70,
-    };
-  }
-
-  return {
-    label: "Baja",
-    score: 40,
-  };
-}
-
-function normalize(value) {
-  return String(value || "").toLowerCase().trim();
-}
-
 function safeNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
-}
-
-function clampScore(value) {
-  if (value > 100) return 100;
-  if (value < 0) return 0;
-  return Math.round(value);
 }
