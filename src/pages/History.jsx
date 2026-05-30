@@ -27,6 +27,7 @@ import { filterValidAnalyses } from "../services/analysisGuard";
 import { buildMarketMemory } from "../services/market/marketMemory";
 import { buildIntelligenceEngine } from "../services/intelligence/intelligenceEngine";
 import { calculateHistoricalConfidence } from "../services/intelligence/historicalConfidence";
+import { buildOpportunityChampion } from "../services/intelligence/opportunityChampionEngine";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SystemHealthBanner from "../components/dashboard/SystemHealthBanner";
@@ -220,6 +221,13 @@ export default function History() {
       }),
     };
 
+    const opportunityChampion = buildOpportunityChampion(decisions);
+
+    const enhancedDecisions = {
+      ...decisions,
+      opportunityChampion,
+    };
+
     const simulation = simulatePortfolio(cleanAnalyses);
 
     const executive = generateExecutiveSummary({
@@ -249,7 +257,8 @@ export default function History() {
       ranking,
       watchlist,
       pipeline,
-      decisions,
+      decisions: enhancedDecisions,
+      opportunityChampion,
       simulation,
       executive,
     };
@@ -272,6 +281,7 @@ export default function History() {
     watchlist,
     pipeline,
     decisions,
+    opportunityChampion,
     simulation,
     executive,
   } = intelligence;
