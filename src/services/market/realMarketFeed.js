@@ -31,6 +31,8 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         source: link.source,
         country: link.country,
         query: scan.query,
+        maxBudget: scan.maxBudget,
+        semantic: scan.semantic,
       });
 
       diagnostics.push({
@@ -44,8 +46,8 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         durationMs: Date.now() - startedAt,
         message:
           parsedListings.length > 0
-            ? `${parsedListings.length} anuncios detectados.`
-            : "Fetch correcto, pero el parser no encontró anuncios válidos.",
+            ? `${parsedListings.length} anuncios compatibles detectados.`
+            : "Fetch correcto, pero el filtro semántico no encontró anuncios compatibles.",
       });
 
       allListings.push(...parsedListings);
@@ -139,13 +141,22 @@ function safeBuildReaderUrl(url) {
   }
 }
 
-function parseListingsFromText({ text, source, country, query }) {
+function parseListingsFromText({
+  text,
+  source,
+  country,
+  query,
+  maxBudget,
+  semantic,
+}) {
   if (source === "AutoScout24") {
     return parseAutoscoutListingsFromText({
       text,
       source,
       country,
       query,
+      maxBudget,
+      semantic,
     });
   }
 
@@ -154,10 +165,19 @@ function parseListingsFromText({ text, source, country, query }) {
     source,
     country,
     query,
+    maxBudget,
+    semantic,
   });
 }
 
-function parseAutoscoutListingsFromText({ text, source, country, query }) {
+function parseAutoscoutListingsFromText({
+  text,
+  source,
+  country,
+  query,
+  maxBudget,
+  semantic,
+}) {
   const lines = String(text || "")
     .split("\n")
     .map((line) => line.trim())
@@ -178,11 +198,29 @@ function parseAutoscoutListingsFromText({ text, source, country, query }) {
     const price = extractPrice(blockText);
     const mileage = extractMileage(blockText);
     const registration = extractRegistration(blockText);
-    const year = registration?.year || extractYear(blockText) || estimateYearFromPrice(price);
+    const year =
+      registration?.year || extractYear(blockText) || estimateYearFromPrice(price);
     const fuelType = detectFuelType(blockText);
+    const powerKw = extractPowerKw(blockText);
     const power = extractPower(blockText);
 
     if (!price) {
+      continue;
+    }
+
+    const validation = validateVehicleCompatibility({
+      query,
+      semantic,
+      price,
+      mileage,
+      year,
+      fuelType,
+      powerKw,
+      maxBudget,
+      source,
+    });
+
+    if (!validation.isCompatible) {
       continue;
     }
 
@@ -191,6 +229,7 @@ function parseAutoscoutListingsFromText({ text, source, country, query }) {
       fuelType,
       year,
       power,
+      validation,
     });
 
     listings.push({
@@ -199,15 +238,15 @@ function parseAutoscoutListingsFromText({ text, source, country, query }) {
         country,
         line: title,
         price,
-        mileage: mileage || 65000,
+        mileage: mileage || estimateMileageFromVehicle({ query, year }),
         year,
       }),
       title,
       brand: queryBrand,
       model,
       price,
-      km: mileage || 65000,
-      mileage: mileage || 65000,
+      km: mileage || estimateMileageFromVehicle({ query, year }),
+      mileage: mileage || estimateMileageFromVehicle({ query, year }),
       year,
       country,
       fuelType,
@@ -217,16 +256,19 @@ function parseAutoscoutListingsFromText({ text, source, country, query }) {
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({
         price,
-        mileage: mileage || 65000,
+        mileage: mileage || estimateMileageFromVehicle({ query, year }),
         year,
       }),
       source,
       url: "",
       isRealData: true,
+      semanticScore: validation.score,
+      semanticWarnings: validation.warnings,
       dataQuality: {
         hasPrice: Boolean(price),
         hasMileage: Boolean(mileage),
         hasYear: Boolean(year),
+        hasPower: Boolean(powerKw),
         estimatedMileage: !mileage,
         estimatedYear: !registration?.year,
         sourceFormat: "autoscout-r-jina",
@@ -237,7 +279,14 @@ function parseAutoscoutListingsFromText({ text, source, country, query }) {
   return listings;
 }
 
-function parseGenericListingsFromText({ text, source, country, query }) {
+function parseGenericListingsFromText({
+  text,
+  source,
+  country,
+  query,
+  maxBudget,
+  semantic,
+}) {
   const lines = String(text || "")
     .split("\n")
     .map((line) => line.trim())
@@ -262,9 +311,27 @@ function parseGenericListingsFromText({ text, source, country, query }) {
 
     const realMileage = extractMileage(windowText);
     const realYear = extractYear(windowText);
+    const powerKw = extractPowerKw(windowText);
+    const fuelType = detectFuelType(windowText);
 
-    const mileage = realMileage || estimateMileageFromTitle(line);
+    const mileage = realMileage || estimateMileageFromVehicle({ query, year: realYear });
     const year = realYear || estimateYearFromPrice(price);
+
+    const validation = validateVehicleCompatibility({
+      query,
+      semantic,
+      price,
+      mileage,
+      year,
+      fuelType,
+      powerKw,
+      maxBudget,
+      source,
+    });
+
+    if (!validation.isCompatible) {
+      continue;
+    }
 
     listings.push({
       id: buildListingId({ source, country, line, price, mileage, year }),
@@ -276,7 +343,7 @@ function parseGenericListingsFromText({ text, source, country, query }) {
       mileage,
       year,
       country,
-      fuelType: detectFuelType(windowText),
+      fuelType,
       drivetrain: detectDrivetrain(windowText),
       bodyType: detectBodyType(windowText),
       performancePackage: detectPerformancePackage(windowText),
@@ -285,10 +352,13 @@ function parseGenericListingsFromText({ text, source, country, query }) {
       source,
       url: "",
       isRealData: true,
+      semanticScore: validation.score,
+      semanticWarnings: validation.warnings,
       dataQuality: {
         hasPrice: Boolean(price),
         hasMileage: Boolean(realMileage),
         hasYear: Boolean(realYear),
+        hasPower: Boolean(powerKw),
         estimatedMileage: !realMileage,
         estimatedYear: !realYear,
         sourceFormat: "generic-r-jina",
@@ -299,12 +369,104 @@ function parseGenericListingsFromText({ text, source, country, query }) {
   return listings;
 }
 
-function buildAutoscoutTitle({ query, fuelType, year, power }) {
+function validateVehicleCompatibility({
+  query,
+  semantic,
+  price,
+  mileage,
+  year,
+  fuelType,
+  powerKw,
+  maxBudget,
+}) {
+  const text = normalize(query);
+  const warnings = [];
+  let score = 0;
+
+  const budget = Number(maxBudget || 0);
+
+  if (budget > 0 && price > budget) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: [`Precio ${price} por encima del presupuesto ${budget}.`],
+    };
+  }
+
+  if (detectBrand(text)) {
+    score += 35;
+  }
+
+  const targetModel = detectModel(text, text);
+
+  if (targetModel && text.includes(targetModel)) {
+    score += 25;
+  }
+
+  if (semantic?.isPremium) score += 10;
+  if (semantic?.isSuv) score += 10;
+  if (semantic?.isPhev) score += 10;
+
+  if (text.includes("45e") || text.includes("50e") || text.includes("300de")) {
+    if (fuelType === "PHEV") {
+      score += 25;
+    } else {
+      warnings.push(`Motorización no PHEV detectada: ${fuelType || "desconocida"}.`);
+      score -= 35;
+    }
+  }
+
+  if (text.includes("x5")) {
+    if (price < 30000) {
+      warnings.push("Precio demasiado bajo para BMW X5 compatible.");
+      score -= 35;
+    }
+
+    if (year && year < 2019) {
+      warnings.push("Año demasiado antiguo para BMW X5 45e.");
+      score -= 25;
+    }
+
+    if (powerKw && powerKw < 160) {
+      warnings.push(`Potencia demasiado baja para BMW X5 45e: ${powerKw} kW.`);
+      score -= 35;
+    }
+  }
+
+  if (text.includes("q7") && powerKw && powerKw < 160) {
+    warnings.push(`Potencia demasiado baja para Audi Q7 compatible: ${powerKw} kW.`);
+    score -= 30;
+  }
+
+  if (text.includes("gle") && powerKw && powerKw < 140) {
+    warnings.push(`Potencia demasiado baja para Mercedes GLE compatible: ${powerKw} kW.`);
+    score -= 25;
+  }
+
+  if (mileage > 180000) {
+    warnings.push("Kilometraje demasiado alto.");
+    score -= 20;
+  }
+
+  const isCompatible = score >= 55;
+
+  return {
+    isCompatible,
+    score: clamp(score, 0, 100),
+    warnings,
+  };
+}
+
+function buildAutoscoutTitle({ query, fuelType, year, power, validation }) {
   const parts = [cleanText(query)];
 
   if (year) parts.push(String(year));
   if (fuelType) parts.push(fuelType);
   if (power) parts.push(power);
+
+  if (validation?.score) {
+    parts.push(`match ${validation.score}/100`);
+  }
 
   return parts.join(" · ");
 }
@@ -326,6 +488,12 @@ function extractPower(text) {
   if (!match) return "";
 
   return `${safeNumber(match[1])} kW / ${safeNumber(match[2])} hp`;
+}
+
+function extractPowerKw(text) {
+  const match = String(text).match(/(\d{2,4})\s?kW/i);
+
+  return match?.[1] ? safeNumber(match[1]) : 0;
 }
 
 function looksLikeVehicleTitle(line, query) {
@@ -406,14 +574,16 @@ function extractYear(text) {
   return match?.[1] ? safeNumber(match[1]) : 0;
 }
 
-function estimateMileageFromTitle(title) {
-  const text = normalize(title);
+function estimateMileageFromVehicle({ query, year }) {
+  const text = normalize(query);
+  const currentYear = 2026;
+  const age = year ? Math.max(currentYear - year, 0) : 3;
 
-  if (text.includes("new") || text.includes("nuevo") || text.includes("neuf")) {
-    return 5000;
+  if (text.includes("x5") || text.includes("q7") || text.includes("gle")) {
+    return Math.max(15000, age * 22000);
   }
 
-  return 65000;
+  return Math.max(10000, age * 18000);
 }
 
 function estimateYearFromPrice(price) {
@@ -449,8 +619,10 @@ function detectModel(title, query) {
   const models = [
     "x5",
     "x3",
+    "x6",
     "q7",
     "q5",
+    "q8",
     "a6",
     "a4",
     "glc",
@@ -478,6 +650,7 @@ function detectFuelType(text) {
 
   if (value.includes("electric/gasoline")) return "PHEV";
   if (value.includes("electric/diesel")) return "PHEV";
+
   if (value.includes("diesel") || value.includes("tdi") || value.includes("dci")) {
     return "Diesel";
   }
@@ -494,7 +667,12 @@ function detectFuelType(text) {
     return "Electric";
   }
 
-  if (value.includes("petrol") || value.includes("gasoline") || value.includes("gasolina") || value.includes("tsi")) {
+  if (
+    value.includes("petrol") ||
+    value.includes("gasoline") ||
+    value.includes("gasolina") ||
+    value.includes("tsi")
+  ) {
     return "Gasolina";
   }
 
@@ -515,7 +693,12 @@ function detectDrivetrain(text) {
 function detectBodyType(text) {
   const value = normalize(text);
 
-  if (value.includes("suv") || value.includes("x5") || value.includes("q7") || value.includes("xc90")) {
+  if (
+    value.includes("suv") ||
+    value.includes("x5") ||
+    value.includes("q7") ||
+    value.includes("xc90")
+  ) {
     return "SUV";
   }
 
@@ -592,6 +775,10 @@ function safeNumber(value) {
   const number = Number(normalized.replace(/[^\d.]/g, ""));
 
   return Number.isFinite(number) ? number : 0;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(Math.round(Number(value || 0)), min), max);
 }
 
 function cleanText(value) {
