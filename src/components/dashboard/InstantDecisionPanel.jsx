@@ -45,6 +45,19 @@ export default function InstantDecisionPanel({ decisions }) {
           <p style={decisionValueStyle}>{bestDeal.decision}</p>
         </div>
 
+        <div style={confidenceBoxStyle}>
+          <p style={confidenceLabelStyle}>Confianza histórica</p>
+
+          <p style={confidenceValueStyle}>
+            {bestDeal.historicalConfidenceLevel || "Inicial"}
+          </p>
+
+          <p style={confidenceReasonStyle}>
+            {bestDeal.historicalConfidenceReason ||
+              "Todavía no hay suficiente histórico comparable."}
+          </p>
+        </div>
+
         <div style={actionBoxStyle}>
           <p style={actionLabelStyle}>Siguiente acción</p>
 
@@ -234,6 +247,35 @@ const decisionValueStyle = {
   fontSize: "22px",
   fontWeight: "900",
   margin: 0,
+};
+
+const confidenceBoxStyle = {
+  marginTop: "14px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(2,6,23,0.45)",
+  border: "1px solid rgba(59,130,246,0.20)",
+};
+
+const confidenceLabelStyle = {
+  color: "#93c5fd",
+  fontSize: "13px",
+  fontWeight: "800",
+  margin: "0 0 8px 0",
+};
+
+const confidenceValueStyle = {
+  color: "white",
+  fontSize: "20px",
+  fontWeight: "900",
+  margin: "0 0 8px 0",
+};
+
+const confidenceReasonStyle = {
+  color: "#cbd5e1",
+  lineHeight: "1.5",
+  margin: 0,
+  fontSize: "14px",
 };
 
 const actionBoxStyle = {
