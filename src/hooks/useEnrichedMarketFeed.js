@@ -22,6 +22,11 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         return;
       }
 
+      // IMPORTANTE:
+      // Limpia el feed anterior para que aparezca
+      // la pantalla de carga mientras busca.
+      setMarketFeed(null);
+
       const maxBudget = Number(form.maxBudget || scan.maxBudget || 0);
 
       const realResult = await fetchRealMarketListings(scan, {
@@ -70,7 +75,9 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         const netProfit =
           typeof item.netProfit === "number"
             ? item.netProfit
-            : Math.round(Number(analysis.estimatedProfit || 0) - netCosts.total);
+            : Math.round(
+                Number(analysis.estimatedProfit || 0) - netCosts.total
+              );
 
         const netRoi =
           typeof item.netRoi === "number"
@@ -193,7 +200,9 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           total: opportunityEnginePreview.length,
           bestScore: opportunityEnginePreview[0]?.opportunityScore || 0,
           bestLevel: opportunityEnginePreview[0]?.opportunityLevel || "NONE",
-          mode: hasRealListings ? "real-feed-ranking" : "mock-fallback-ranking",
+          mode: hasRealListings
+            ? "real-feed-ranking"
+            : "mock-fallback-ranking",
         },
       };
 
