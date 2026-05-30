@@ -28,6 +28,8 @@ import { buildMarketMemory } from "../services/market/marketMemory";
 import { buildIntelligenceEngine } from "../services/intelligence/intelligenceEngine";
 import { calculateHistoricalConfidence } from "../services/intelligence/historicalConfidence";
 import { buildOpportunityChampion } from "../services/intelligence/opportunityChampionEngine";
+import { buildMarketLearning } from "../services/intelligence/marketLearningEngine";
+import { applyLearningDecisionBonus } from "../services/intelligence/learningDecisionBonusEngine";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SystemHealthBanner from "../components/dashboard/SystemHealthBanner";
@@ -201,6 +203,7 @@ export default function History() {
     const ranking = generateOpportunityRanking(cleanAnalyses);
     const watchlist = generateWatchlist(cleanAnalyses);
     const pipeline = generateDealPipeline(cleanAnalyses);
+    const marketLearning = buildMarketLearning(cleanAnalyses);
     const baseDecisions = generateDealDecisions(cleanAnalyses);
 
     const decisions = {
@@ -211,13 +214,18 @@ export default function History() {
           marketIntelligence
         );
 
-        return {
+        const decisionWithHistoricalConfidence = {
           ...decision,
           historicalConfidence,
           historicalConfidenceLevel: historicalConfidence.confidenceLevel,
           historicalConfidenceReason: historicalConfidence.confidenceReason,
           historicalConfidenceBonus: historicalConfidence.confidenceBonus,
         };
+
+        return applyLearningDecisionBonus(
+          decisionWithHistoricalConfidence,
+          marketLearning
+        );
       }),
     };
 
@@ -257,6 +265,7 @@ export default function History() {
       ranking,
       watchlist,
       pipeline,
+      marketLearning,
       decisions: enhancedDecisions,
       opportunityChampion,
       simulation,
