@@ -2,6 +2,7 @@ import { calculateLearningBonus } from "./intelligence/marketLearningEngine";
 import { buildSuccessProbability } from "./intelligence/successProbabilityEngine";
 import { buildExecutiveBuySignal } from "./intelligence/executiveBuySignalEngine";
 import { buildSellSpeed } from "./intelligence/sellSpeedEngine";
+import { buildCapitalEfficiency } from "./intelligence/capitalEfficiencyEngine";
 
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
@@ -19,6 +20,7 @@ export function generateOpportunityRanking(analyses = []) {
       const score = safeNumber(item.score);
       const roi = safeNumber(item.roi);
       const profit = safeNumber(item.profit);
+      const price = safeNumber(item.price || item.purchasePrice || item.budget);
 
       const title = String(item.title || "");
       const brand = String(item.brand || "");
@@ -127,12 +129,22 @@ export function generateOpportunityRanking(analyses = []) {
         confidenceScore: learning.confidenceScore,
       });
 
+      const capitalEfficiency = buildCapitalEfficiency({
+        price,
+        profit,
+        roi,
+        estimatedSellDays: sellSpeed.estimatedSellDays,
+        successProbability: successEngine.successProbability,
+        executiveBuySignalScore: executiveBuySignal.finalScore,
+      });
+
       return {
         id: item.id,
         title: title || "Vehículo IA",
         score,
         roi,
         profit,
+        price,
         priorityScore,
         executiveScore,
         confidence: semanticQuality,
@@ -165,11 +177,26 @@ export function generateOpportunityRanking(analyses = []) {
         estimatedSellDays: sellSpeed.estimatedSellDays,
         speedLabel: sellSpeed.speedLabel,
         sellSpeedSummary: sellSpeed.summary,
+
+        capitalEfficiency,
+        capitalEfficiencyScore: capitalEfficiency.capitalEfficiencyScore,
+        capitalEfficiencyLabel: capitalEfficiency.capitalEfficiencyLabel,
+        capitalVelocity: capitalEfficiency.capitalVelocity,
+        annualizedProfitPotential:
+          capitalEfficiency.annualizedProfitPotential,
+        capitalRisk: capitalEfficiency.capitalRisk,
+        profitPerDay: capitalEfficiency.profitPerDay,
+        profitPerThousand: capitalEfficiency.profitPerThousand,
+        capitalEfficiencySummary: capitalEfficiency.summary,
       };
     })
     .sort((a, b) => {
       if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
         return b.executiveBuySignalScore - a.executiveBuySignalScore;
+      }
+
+      if (b.capitalEfficiencyScore !== a.capitalEfficiencyScore) {
+        return b.capitalEfficiencyScore - a.capitalEfficiencyScore;
       }
 
       if (b.sellSpeedScore !== a.sellSpeedScore) {
@@ -200,7 +227,12 @@ export function generateOpportunityRanking(analyses = []) {
     topOpportunities.length > 0
       ? Math.round(
           topOpportunities.reduce(
-            (sum, item) => sum + item.executiveBuySignalScore,
+            (sum, item) =>
+              sum +
+              Math.round(
+                item.executiveBuySignalScore * 0.65 +
+                  item.capitalEfficiencyScore * 0.35
+              ),
             0
           ) / topOpportunities.length
         )
@@ -228,11 +260,11 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra alta señal ejecutiva, probabilidad de éxito, velocidad de venta y aprendizaje histórico."
+      "🔥 El top de oportunidades muestra alta señal ejecutiva, buena eficiencia de capital, velocidad de venta y aprendizaje histórico."
     );
   } else if (rankingScore >= 70) {
     insights.push(
-      "🟢 Hay oportunidades interesantes, pero conviene validar liquidez, velocidad de venta y datos reales."
+      "🟢 Hay oportunidades interesantes, pero conviene validar capital inmovilizado, liquidez y datos reales."
     );
   } else if (rankingScore >= 50) {
     insights.push(
@@ -244,71 +276,73 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
     );
   }
 
-  const hasLearning = topOpportunities.some(
-    (item) => Number(item.learningBonus || 0) !== 0
-  );
-
-  if (hasLearning) {
+  if (
+    topOpportunities.some((item) => Number(item.learningBonus || 0) !== 0)
+  ) {
     insights.push(
       "🧠 El ranking ya incorpora aprendizaje histórico por modelo en la prioridad ejecutiva."
     );
   }
 
-  const hasSuccessProbability = topOpportunities.some(
-    (item) => Number(item.successProbability || 0) > 0
-  );
-
-  if (hasSuccessProbability) {
+  if (
+    topOpportunities.some((item) => Number(item.successProbability || 0) > 0)
+  ) {
     insights.push(
       "🔮 El ranking ya utiliza probabilidad de éxito y señal de compra."
     );
   }
 
-  const hasExecutiveSignal = topOpportunities.some(
-    (item) => item.executiveBuySignalLabel
-  );
-
-  if (hasExecutiveSignal) {
+  if (topOpportunities.some((item) => item.executiveBuySignalLabel)) {
     insights.push(
       "🎯 El ranking ya genera señal ejecutiva final: STRONG_BUY, BUY, WATCHLIST, AVOID o REJECT."
     );
   }
 
-  const hasSellSpeed = topOpportunities.some(
-    (item) => item.speedLabel || Number(item.sellSpeedScore || 0) > 0
-  );
-
-  if (hasSellSpeed) {
+  if (
+    topOpportunities.some(
+      (item) => item.speedLabel || Number(item.sellSpeedScore || 0) > 0
+    )
+  ) {
     insights.push(
       "⚡ La velocidad de venta ya tiene propietario único: sellSpeedEngine."
     );
   }
 
-  const slowSellers = topOpportunities.filter(
-    (item) => item.speedLabel === "SLOW_SELLER"
-  );
+  if (
+    topOpportunities.some(
+      (item) => Number(item.capitalEfficiencyScore || 0) > 0
+    )
+  ) {
+    insights.push(
+      "💸 El ranking ya mide eficiencia de capital: beneficio, rotación y capital inmovilizado."
+    );
+  }
 
-  if (slowSellers.length > 0) {
+  if (
+    topOpportunities.some(
+      (item) =>
+        item.capitalEfficiencyLabel === "CAPITAL_STAR" ||
+        item.capitalEfficiencyLabel === "EFFICIENT"
+    )
+  ) {
+    insights.push(
+      "🚀 Hay oportunidades donde el capital trabaja especialmente bien frente al tiempo de venta."
+    );
+  }
+
+  if (topOpportunities.some((item) => item.speedLabel === "SLOW_SELLER")) {
     insights.push(
       "🐢 Hay oportunidades con riesgo de rotación lenta. Revisa capital inmovilizado antes de comprar."
     );
   }
 
-  const hasLowConfidence = topOpportunities.some(
-    (item) => item.confidence < 50
-  );
-
-  if (hasLowConfidence) {
+  if (topOpportunities.some((item) => item.confidence < 50)) {
     insights.push(
       "🧠 Algunas oportunidades del top tienen baja confianza semántica. No conviene decidir solo por ROI."
     );
   }
 
-  const hasHighRisk = topOpportunities.some(
-    (item) => item.riskPenalty >= 18
-  );
-
-  if (hasHighRisk) {
+  if (topOpportunities.some((item) => item.riskPenalty >= 18)) {
     insights.push(
       "⚠️ El ranking detecta coches con riesgo comercial elevado aunque parezcan rentables."
     );
@@ -318,7 +352,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ejecutiva ${strongest.executiveBuySignalLabel} · velocidad ${strongest.speedLabel} · venta estimada ${strongest.estimatedSellDays} días.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ${strongest.executiveBuySignalLabel} · eficiencia capital ${strongest.capitalEfficiencyScore}/100 · venta estimada ${strongest.estimatedSellDays} días.`
     );
   }
 
