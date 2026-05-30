@@ -1,10 +1,62 @@
+const MOBILE_DE_MS_REFERENCE = {
+  "22900": {
+    brand: "SEAT",
+    models: {
+      "10": "Leon",
+    },
+  },
+  "22500": {
+    brand: "SEAT",
+    models: {
+      "10": "Leon",
+    },
+  },
+  "24100": {
+    brand: "Skoda",
+    models: {
+      "5": "Fabia",
+      "9": "Octavia",
+    },
+  },
+  "25200": {
+    brand: "Volkswagen",
+    models: {
+      "14": "Golf",
+    },
+  },
+  "18700": {
+    brand: "Peugeot",
+    models: {
+      "47": "3008",
+    },
+  },
+  "11600": {
+    brand: "Hyundai",
+    models: {
+      "27": "Tucson",
+    },
+  },
+  "13200": {
+    brand: "Kia",
+    models: {
+      "25": "Sportage",
+    },
+  },
+  "19300": {
+    brand: "Nissan",
+    models: {
+      "26": "Qashqai",
+    },
+  },
+};
+
 export function buildImportFlowDraft({ url = "", manual = {} } = {}) {
   const normalizedUrl = cleanText(url);
   const source = detectSource(normalizedUrl);
   const urlSignals = extractSignalsFromUrl(normalizedUrl);
   const manualSignals = normalizeManualFields(manual);
 
-  const draft = {
+  return {
     url: normalizedUrl,
     source,
 
@@ -38,8 +90,6 @@ export function buildImportFlowDraft({ url = "", manual = {} } = {}) {
       manualSignals,
     }),
   };
-
-  return draft;
 }
 
 function detectSource(url) {
@@ -54,9 +104,11 @@ function detectSource(url) {
 
 function extractSignalsFromUrl(url) {
   const decoded = safeDecode(url);
+  const mobileDeMs = extractMobileDeMs(decoded);
   const externalId = extractExternalId(decoded);
-  const brand = detectBrand(decoded);
-  const model = detectModel(decoded, brand);
+
+  const brand = mobileDeMs.brand || detectBrand(decoded);
+  const model = mobileDeMs.model || detectModel(decoded, brand);
   const fuel_type = detectFuel(decoded);
   const title = buildTitle({ brand, model, fuel_type });
 
@@ -66,6 +118,37 @@ function extractSignalsFromUrl(url) {
     model,
     fuel_type,
     title,
+  };
+}
+
+function extractMobileDeMs(url) {
+  const match = url.match(/[?&]ms=([^&]+)/i);
+
+  if (!match?.[1]) {
+    return {
+      brand: "",
+      model: "",
+    };
+  }
+
+  const decodedMs = safeDecode(match[1]);
+  const parts = decodedMs.split(";");
+
+  const brandCode = cleanText(parts[0]);
+  const modelCode = cleanText(parts[1]);
+
+  const reference = MOBILE_DE_MS_REFERENCE[brandCode];
+
+  if (!reference) {
+    return {
+      brand: "",
+      model: "",
+    };
+  }
+
+  return {
+    brand: reference.brand || "",
+    model: reference.models?.[modelCode] || "",
   };
 }
 
@@ -83,8 +166,8 @@ function detectBrand(text) {
     ["mercedes", ["mercedes", "mercedes-benz", "ms=17200"]],
     ["skoda", ["skoda", "ms=24100"]],
     ["volkswagen", ["volkswagen", "vw", "ms=25200"]],
-    ["seat", ["seat", "ms=22500"]],
-    ["toyota", ["toyota", "ms=24100"]],
+    ["seat", ["seat", "ms=22500", "ms=22900"]],
+    ["toyota", ["toyota"]],
     ["peugeot", ["peugeot"]],
     ["renault", ["renault"]],
     ["ford", ["ford"]],
@@ -116,7 +199,7 @@ function detectModel(text, brand) {
     mercedes: ["a180", "a200", "c220", "e220", "cla", "glc", "gle"],
     skoda: ["fabia", "octavia", "superb", "karoq", "kodiaq"],
     volkswagen: ["golf", "passat", "tiguan", "touran", "polo", "arteon"],
-    seat: ["leon", "ateca", "ibiza", "arona", "tarraco"],
+    seat: ["leon", "león", "ateca", "ibiza", "arona", "tarraco"],
     toyota: ["corolla", "rav4", "yaris", "c-hr", "chr"],
     peugeot: ["208", "308", "3008", "5008"],
     renault: ["clio", "megane", "captur", "kadjar"],
@@ -146,11 +229,19 @@ function detectModel(text, brand) {
 function detectFuel(text) {
   const normalized = normalize(text);
 
-  if (normalized.includes("diesel") || normalized.includes("tdi") || normalized.includes("dci")) {
+  if (
+    normalized.includes("diesel") ||
+    normalized.includes("tdi") ||
+    normalized.includes("dci")
+  ) {
     return "Diesel";
   }
 
-  if (normalized.includes("hybrid") || normalized.includes("phev") || normalized.includes("e-hybrid")) {
+  if (
+    normalized.includes("hybrid") ||
+    normalized.includes("phev") ||
+    normalized.includes("e-hybrid")
+  ) {
     return "Hybrid";
   }
 
@@ -158,7 +249,11 @@ function detectFuel(text) {
     return "Electric";
   }
 
-  if (normalized.includes("gasolina") || normalized.includes("petrol") || normalized.includes("tsi")) {
+  if (
+    normalized.includes("gasolina") ||
+    normalized.includes("petrol") ||
+    normalized.includes("tsi")
+  ) {
     return "Gasoline";
   }
 
@@ -213,7 +308,9 @@ function buildUserMessage({ source, urlSignals, manualSignals }) {
   }
 
   const missingCore =
-    !manualSignals.price || !manualSignals.mileage || !manualSignals.year;
+    !manualSignals.price ||
+    !manualSignals.mileage ||
+    !manualSignals.year;
 
   if (missingCore) {
     return `${source} puede bloquear la lectura automática. Añade precio, kilómetros y año para completar el análisis.`;
