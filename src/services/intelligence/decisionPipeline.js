@@ -5,6 +5,7 @@ import { buildSellSpeed } from "./sellSpeedEngine";
 import { buildCapitalEfficiency } from "./capitalEfficiencyEngine";
 import { buildInventoryRisk } from "./inventoryRiskEngine";
 import { buildMarketTiming } from "./marketTimingEngine";
+import { buildPortfolioAllocation } from "./portfolioAllocationEngine";
 
 export function buildDecisionPipeline({
   vehicle = {},
@@ -112,6 +113,21 @@ export function buildDecisionPipeline({
     confidenceScore: learning.confidenceScore,
   });
 
+  const portfolioAllocation = buildPortfolioAllocation({
+    executiveBuySignalScore:
+      executiveBuySignal.finalScore,
+    marketTimingScore:
+      marketTiming.marketTimingScore,
+    capitalEfficiencyScore:
+      capitalEfficiency.capitalEfficiencyScore,
+    inventoryRiskScore:
+      inventoryRisk.inventoryRiskScore,
+    successProbability:
+      successProbability.successProbability,
+    price,
+    profit,
+  });
+
   return {
     learning,
     priorityScore,
@@ -123,6 +139,7 @@ export function buildDecisionPipeline({
     capitalEfficiency,
     inventoryRisk,
     marketTiming,
+    portfolioAllocation,
 
     flat: {
       priorityScore,
@@ -130,60 +147,102 @@ export function buildDecisionPipeline({
 
       learningBonus: learning.learningBonus,
       historicalConfidence: learning.confidence,
-      historicalConfidenceScore: learning.confidenceScore,
+      historicalConfidenceScore:
+        learning.confidenceScore,
       historicalAnalyses: learning.analyses,
-      historicalAverageROI: learning.averageROI,
-      historicalAverageProfit: learning.averageProfit,
+      historicalAverageROI:
+        learning.averageROI,
+      historicalAverageProfit:
+        learning.averageProfit,
       learningSignals: learning.signals,
 
-      successProbability: successProbability.successProbability,
-      buySignal: successProbability.buySignal,
-      expectedROI: successProbability.expectedROI,
-      expectedProfit: successProbability.expectedProfit,
-      successRiskLabel: successProbability.riskLabel,
-      successSummary: successProbability.summary,
-      successEngine: successProbability,
+      successProbability:
+        successProbability.successProbability,
+      buySignal:
+        successProbability.buySignal,
+      expectedROI:
+        successProbability.expectedROI,
+      expectedProfit:
+        successProbability.expectedProfit,
+      successRiskLabel:
+        successProbability.riskLabel,
+      successSummary:
+        successProbability.summary,
+      successEngine:
+        successProbability,
 
       executiveBuySignal,
-      executiveBuySignalScore: executiveBuySignal.finalScore,
-      executiveBuySignalLabel: executiveBuySignal.signal,
-      executiveBuySignalColor: executiveBuySignal.color,
-      executiveBuySignalSummary: executiveBuySignal.summary,
+      executiveBuySignalScore:
+        executiveBuySignal.finalScore,
+      executiveBuySignalLabel:
+        executiveBuySignal.signal,
+      executiveBuySignalColor:
+        executiveBuySignal.color,
+      executiveBuySignalSummary:
+        executiveBuySignal.summary,
 
       sellSpeed,
-      sellSpeedScore: sellSpeed.sellSpeedScore,
-      estimatedSellDays: sellSpeed.estimatedSellDays,
-      speedLabel: sellSpeed.speedLabel,
-      sellSpeedSummary: sellSpeed.summary,
+      sellSpeedScore:
+        sellSpeed.sellSpeedScore,
+      estimatedSellDays:
+        sellSpeed.estimatedSellDays,
+      speedLabel:
+        sellSpeed.speedLabel,
+      sellSpeedSummary:
+        sellSpeed.summary,
 
       capitalEfficiency,
-      capitalEfficiencyScore: capitalEfficiency.capitalEfficiencyScore,
-      capitalEfficiencyLabel: capitalEfficiency.capitalEfficiencyLabel,
-      capitalVelocity: capitalEfficiency.capitalVelocity,
+      capitalEfficiencyScore:
+        capitalEfficiency.capitalEfficiencyScore,
+      capitalEfficiencyLabel:
+        capitalEfficiency.capitalEfficiencyLabel,
+      capitalVelocity:
+        capitalEfficiency.capitalVelocity,
       annualizedProfitPotential:
         capitalEfficiency.annualizedProfitPotential,
-      capitalRisk: capitalEfficiency.capitalRisk,
-      profitPerDay: capitalEfficiency.profitPerDay,
-      profitPerThousand: capitalEfficiency.profitPerThousand,
-      capitalEfficiencySummary: capitalEfficiency.summary,
+      capitalRisk:
+        capitalEfficiency.capitalRisk,
+      profitPerDay:
+        capitalEfficiency.profitPerDay,
+      profitPerThousand:
+        capitalEfficiency.profitPerThousand,
+      capitalEfficiencySummary:
+        capitalEfficiency.summary,
 
       inventoryRisk,
-      inventoryRiskScore: inventoryRisk.inventoryRiskScore,
-      inventoryRiskLabel: inventoryRisk.inventoryRiskLabel,
-      immobilizedCapitalRisk: inventoryRisk.immobilizedCapitalRisk,
-      inventoryRiskSummary: inventoryRisk.summary,
+      inventoryRiskScore:
+        inventoryRisk.inventoryRiskScore,
+      inventoryRiskLabel:
+        inventoryRisk.inventoryRiskLabel,
+      immobilizedCapitalRisk:
+        inventoryRisk.immobilizedCapitalRisk,
+      inventoryRiskSummary:
+        inventoryRisk.summary,
 
       marketTiming,
-      marketTimingScore: marketTiming.marketTimingScore,
-      marketTimingLabel: marketTiming.marketTimingLabel,
-      marketTimingSummary: marketTiming.summary,
+      marketTimingScore:
+        marketTiming.marketTimingScore,
+      marketTimingLabel:
+        marketTiming.marketTimingLabel,
+      marketTimingSummary:
+        marketTiming.summary,
+
+      portfolioAllocation,
+      allocationScore:
+        portfolioAllocation.allocationScore,
+      allocationTier:
+        portfolioAllocation.allocationTier,
+      allocationSummary:
+        portfolioAllocation.summary,
     },
   };
 }
 
 function safeNumber(value) {
   const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
+  return Number.isFinite(number)
+    ? number
+    : 0;
 }
 
 function clampScore(value) {
