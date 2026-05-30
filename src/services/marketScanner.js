@@ -111,7 +111,18 @@ function detectSearchIntent(query) {
 
 function buildCountryTargets(country) {
   if (country === "Europa") {
-    return ["Alemania", "Holanda", "Bélgica", "Francia", "España"];
+    return [
+      "Alemania",
+      "Holanda",
+      "Bélgica",
+      "Francia",
+      "Italia",
+      "Austria",
+      "Luxemburgo",
+      "Suecia",
+      "Dinamarca",
+      "España",
+    ];
   }
 
   return [country || "Alemania"];
@@ -123,21 +134,22 @@ function buildSearchLinks(query, budget, countries) {
 
     const mobileUrl = buildMobileUrl(encoded, budget, country);
     const autoscoutUrl = buildAutoscoutUrl(encoded, budget, country);
+    const priority = getCountryPriority(country);
 
     return [
       {
         source: "mobile.de",
         country,
-        label: `${query} en ${country}`,
+        label: `mobile.de · ${query} · ${country}`,
         url: mobileUrl,
-        priority: country === "Alemania" ? "Alta" : "Media",
+        priority,
       },
       {
         source: "AutoScout24",
         country,
-        label: `${query} en ${country}`,
+        label: `AutoScout24 · ${query} · ${country}`,
         url: autoscoutUrl,
-        priority: country === "Alemania" ? "Alta" : "Media",
+        priority,
       },
     ];
   });
@@ -174,6 +186,13 @@ function buildBuyingLogic({ semantic, budget, useCase }) {
     text:
       "No basta con precio bajo: debe haber margen neto después de transporte, impuestos, matriculación, gestoría y reacondicionamiento.",
     type: "warning",
+  });
+
+  logic.push({
+    title: "Mercados prioritarios",
+    text:
+      "El escaneo europeo prioriza Alemania, Holanda, Bélgica, Francia e Italia, y amplía cobertura hacia Austria, Luxemburgo, Suecia, Dinamarca y España.",
+    type: "positive",
   });
 
   if (semantic.isPremium && semantic.isPhev && semantic.isSuv) {
@@ -230,6 +249,18 @@ function buildScanSummary(query, country, budget, semantic) {
   return `${parts.join(" ")}.`;
 }
 
+function getCountryPriority(country) {
+  const highPriority = [
+    "Alemania",
+    "Holanda",
+    "Bélgica",
+    "Francia",
+    "Italia",
+  ];
+
+  return highPriority.includes(country) ? "Alta" : "Media";
+}
+
 function getMobileCountryCode(country) {
   const map = {
     Alemania: "D",
@@ -237,6 +268,11 @@ function getMobileCountryCode(country) {
     Bélgica: "B",
     Belgica: "B",
     Francia: "F",
+    Italia: "I",
+    Austria: "A",
+    Luxemburgo: "L",
+    Suecia: "S",
+    Dinamarca: "DK",
     España: "E",
     Espana: "E",
   };
@@ -251,6 +287,11 @@ function getAutoscoutCountryCode(country) {
     Bélgica: "B",
     Belgica: "B",
     Francia: "F",
+    Italia: "I",
+    Austria: "A",
+    Luxemburgo: "L",
+    Suecia: "S",
+    Dinamarca: "DK",
     España: "E",
     Espana: "E",
   };
