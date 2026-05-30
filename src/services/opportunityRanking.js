@@ -1,8 +1,4 @@
-import { calculateLearningBonus } from "./intelligence/marketLearningEngine";
-import { buildSuccessProbability } from "./intelligence/successProbabilityEngine";
-import { buildExecutiveBuySignal } from "./intelligence/executiveBuySignalEngine";
-import { buildSellSpeed } from "./intelligence/sellSpeedEngine";
-import { buildCapitalEfficiency } from "./intelligence/capitalEfficiencyEngine";
+import { buildDecisionPipeline } from "./intelligence/decisionPipeline";
 
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
@@ -57,85 +53,26 @@ export function generateOpportunityRanking(analyses = []) {
         semanticQuality,
       });
 
-      const learning = calculateLearningBonus({
-        vehicle: {
-          title,
-          brand,
-          model,
-          fuelType,
-          drivetrain,
-          performancePackage,
-        },
-        historicalModelMemory,
-      });
-
-      const confidenceWeight =
-        semanticQuality >= 75
-          ? 1
-          : semanticQuality >= 50
-          ? 0.88
-          : semanticQuality >= 25
-          ? 0.72
-          : 0.55;
-
-      const rawPriority =
-        score * 0.42 +
-        roi * 0.95 +
-        Math.min(profit / 1000, 28) +
-        liquidityBonus +
-        learning.learningBonus -
-        riskPenalty;
-
-      const priorityScore = clampScore(
-        Math.round(rawPriority * confidenceWeight)
-      );
-
-      const executiveScore = clampScore(
-        Math.round(
-          priorityScore * 0.7 +
-            score * 0.18 +
-            safeNumber(learning.confidenceScore) * 0.12
-        )
-      );
-
-      const successEngine = buildSuccessProbability({
-        opportunity: {
-          score,
-          roi,
-          profit,
-          priorityScore,
-          executiveScore,
-          learningBonus: learning.learningBonus,
-          historicalConfidenceScore: learning.confidenceScore,
-          historicalAverageROI: learning.averageROI,
-          historicalAverageProfit: learning.averageProfit,
-        },
-        learning,
-      });
-
-      const executiveBuySignal = buildExecutiveBuySignal({
-        executiveScore,
-        successProbability: successEngine.successProbability,
-        confidenceScore: learning.confidenceScore,
-        liquidityScore: clampScore(60 + liquidityBonus),
-        riskScore: clampScore(riskPenalty),
-      });
-
-      const sellSpeed = buildSellSpeed({
-        successProbability: successEngine.successProbability,
-        executiveScore,
+      const vehicle = {
+        ...item,
+        score,
         roi,
         profit,
-        confidenceScore: learning.confidenceScore,
-      });
-
-      const capitalEfficiency = buildCapitalEfficiency({
         price,
-        profit,
-        roi,
-        estimatedSellDays: sellSpeed.estimatedSellDays,
-        successProbability: successEngine.successProbability,
-        executiveBuySignalScore: executiveBuySignal.finalScore,
+        title,
+        brand,
+        model,
+        fuelType,
+        drivetrain,
+        performancePackage,
+      };
+
+      const decision = buildDecisionPipeline({
+        vehicle,
+        historicalModelMemory,
+        liquidityBonus,
+        riskPenalty,
+        semanticQuality,
       });
 
       return {
@@ -145,49 +82,10 @@ export function generateOpportunityRanking(analyses = []) {
         roi,
         profit,
         price,
-        priorityScore,
-        executiveScore,
         confidence: semanticQuality,
         riskPenalty,
         liquidityBonus,
-        learningBonus: learning.learningBonus,
-        historicalConfidence: learning.confidence,
-        historicalConfidenceScore: learning.confidenceScore,
-        historicalAnalyses: learning.analyses,
-        historicalAverageROI: learning.averageROI,
-        historicalAverageProfit: learning.averageProfit,
-        learningSignals: learning.signals,
-
-        successProbability: successEngine.successProbability,
-        buySignal: successEngine.buySignal,
-        expectedROI: successEngine.expectedROI,
-        expectedProfit: successEngine.expectedProfit,
-        successRiskLabel: successEngine.riskLabel,
-        successSummary: successEngine.summary,
-        successEngine,
-
-        executiveBuySignal,
-        executiveBuySignalScore: executiveBuySignal.finalScore,
-        executiveBuySignalLabel: executiveBuySignal.signal,
-        executiveBuySignalColor: executiveBuySignal.color,
-        executiveBuySignalSummary: executiveBuySignal.summary,
-
-        sellSpeed,
-        sellSpeedScore: sellSpeed.sellSpeedScore,
-        estimatedSellDays: sellSpeed.estimatedSellDays,
-        speedLabel: sellSpeed.speedLabel,
-        sellSpeedSummary: sellSpeed.summary,
-
-        capitalEfficiency,
-        capitalEfficiencyScore: capitalEfficiency.capitalEfficiencyScore,
-        capitalEfficiencyLabel: capitalEfficiency.capitalEfficiencyLabel,
-        capitalVelocity: capitalEfficiency.capitalVelocity,
-        annualizedProfitPotential:
-          capitalEfficiency.annualizedProfitPotential,
-        capitalRisk: capitalEfficiency.capitalRisk,
-        profitPerDay: capitalEfficiency.profitPerDay,
-        profitPerThousand: capitalEfficiency.profitPerThousand,
-        capitalEfficiencySummary: capitalEfficiency.summary,
+        ...decision.flat,
       };
     })
     .sort((a, b) => {
@@ -320,6 +218,16 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (
     topOpportunities.some(
+      (item) => Number(item.inventoryRiskScore || 0) > 0
+    )
+  ) {
+    insights.push(
+      "📦 El ranking ya mide riesgo de inventario y capital potencialmente atrapado."
+    );
+  }
+
+  if (
+    topOpportunities.some(
       (item) =>
         item.capitalEfficiencyLabel === "CAPITAL_STAR" ||
         item.capitalEfficiencyLabel === "EFFICIENT"
@@ -327,6 +235,18 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   ) {
     insights.push(
       "🚀 Hay oportunidades donde el capital trabaja especialmente bien frente al tiempo de venta."
+    );
+  }
+
+  if (
+    topOpportunities.some(
+      (item) =>
+        item.inventoryRiskLabel === "HIGH_RISK" ||
+        item.inventoryRiskLabel === "CRITICAL_RISK"
+    )
+  ) {
+    insights.push(
+      "📦 Hay oportunidades con riesgo de inventario alto. Revisa rotación y capital inmovilizado."
     );
   }
 
@@ -352,7 +272,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ${strongest.executiveBuySignalLabel} · eficiencia capital ${strongest.capitalEfficiencyScore}/100 · venta estimada ${strongest.estimatedSellDays} días.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ${strongest.executiveBuySignalLabel} · eficiencia capital ${strongest.capitalEfficiencyScore}/100 · inventario ${strongest.inventoryRiskLabel}.`
     );
   }
 
