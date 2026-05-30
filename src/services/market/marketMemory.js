@@ -20,6 +20,7 @@ export function buildMarketMemory(analyses = []) {
   const brandRanking = buildGroupedRanking(cleanAnalyses, "brand");
   const modelRanking = buildModelRanking(cleanAnalyses);
   const configurationRanking = buildConfigurationRanking(cleanAnalyses);
+  const historicalModelMemory = buildHistoricalModelMemory(modelRanking);
 
   return {
     totalAnalyses: cleanAnalyses.length,
@@ -44,6 +45,7 @@ export function buildMarketMemory(analyses = []) {
     brandRanking,
     modelRanking,
     configurationRanking,
+    historicalModelMemory,
 
     liquidityMap: buildLiquidityMap(cleanAnalyses),
     riskMap: buildRiskMap(cleanAnalyses),
@@ -73,6 +75,7 @@ function createEmptyMemory() {
     brandRanking: [],
     modelRanking: [],
     configurationRanking: [],
+    historicalModelMemory: [],
 
     liquidityMap: {},
     riskMap: {},
@@ -271,6 +274,52 @@ function detectTopValue(items, field) {
   const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]);
 
   return sorted[0]?.[0] || "";
+}
+
+function buildHistoricalModelMemory(modelRanking = []) {
+  return modelRanking.map((item) => {
+    const confidence = getHistoricalConfidence(item.count);
+
+    return {
+      model: item.label,
+      brand: item.brand || "",
+      modelName: item.model || "",
+      analyses: item.count,
+      averageROI: item.averageROI,
+      averageProfit: item.averageProfit,
+      averageScore: item.averageScore,
+      bestROI: item.bestROI,
+      bestScore: item.bestScore,
+      confidence: confidence.label,
+      confidenceScore: confidence.score,
+      signal: buildHistoricalModelSignal(item, confidence),
+    };
+  });
+}
+
+function getHistoricalConfidence(count) {
+  if (count >= 15) {
+    return {
+      label: "Alta",
+      score: 90,
+    };
+  }
+
+  if (count >= 5) {
+    return {
+      label: "Media",
+      score: 70,
+    };
+  }
+
+  return {
+    label: "Baja",
+    score: 40,
+  };
+}
+
+function buildHistoricalModelSignal(item, confidence) {
+  return `${item.label}: ${item.count} análisis, ROI medio ${item.averageROI}%, beneficio medio ${item.averageProfit} €, score medio ${item.averageScore}/100 y confianza histórica ${confidence.label.toLowerCase()}.`;
 }
 
 function buildLiquidityMap(items) {
