@@ -3,6 +3,20 @@ export default function ScannerForm({
   updateField,
   handleSearch,
 }) {
+  const markets = [
+    "Europa",
+    "Alemania",
+    "Holanda",
+    "Bélgica",
+    "Francia",
+    "Italia",
+    "Austria",
+    "Luxemburgo",
+    "Suecia",
+    "Dinamarca",
+    "España",
+  ];
+
   return (
     <div style={cardStyle}>
       <label style={labelStyle}>Vehículo objetivo</label>
@@ -32,12 +46,11 @@ export default function ScannerForm({
         onChange={(event) => updateField("country", event.target.value)}
         style={inputStyle}
       >
-        <option>Europa</option>
-        <option>Alemania</option>
-        <option>Holanda</option>
-        <option>Bélgica</option>
-        <option>Francia</option>
-        <option>España</option>
+        {markets.map((market) => (
+          <option key={market} value={market}>
+            {market}
+          </option>
+        ))}
       </select>
 
       <label style={labelStyle}>Objetivo</label>
