@@ -1,3 +1,5 @@
+import { calculateLearningBonus } from "./intelligence/marketLearningEngine";
+
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
     return {
@@ -6,6 +8,8 @@ export function generateOpportunityRanking(analyses = []) {
       rankingInsights: [],
     };
   }
+
+  const historicalModelMemory = buildHistoricalModelMemory(analyses);
 
   const topOpportunities = analyses
     .map((item) => {
@@ -18,9 +22,7 @@ export function generateOpportunityRanking(analyses = []) {
       const model = String(item.model || "");
       const fuelType = String(item.fuel_type || "");
       const drivetrain = String(item.drivetrain || "");
-      const performancePackage = String(
-        item.performance_package || ""
-      );
+      const performancePackage = String(item.performance_package || "");
 
       const semanticQuality = calculateSemanticQuality({
         title,
@@ -50,6 +52,18 @@ export function generateOpportunityRanking(analyses = []) {
         semanticQuality,
       });
 
+      const learning = calculateLearningBonus({
+        vehicle: {
+          title,
+          brand,
+          model,
+          fuelType,
+          drivetrain,
+          performancePackage,
+        },
+        historicalModelMemory,
+      });
+
       const confidenceWeight =
         semanticQuality >= 75
           ? 1
@@ -63,11 +77,20 @@ export function generateOpportunityRanking(analyses = []) {
         score * 0.42 +
         roi * 0.95 +
         Math.min(profit / 1000, 28) +
-        liquidityBonus -
+        liquidityBonus +
+        learning.learningBonus -
         riskPenalty;
 
       const priorityScore = clampScore(
         Math.round(rawPriority * confidenceWeight)
+      );
+
+      const executiveScore = clampScore(
+        Math.round(
+          priorityScore * 0.7 +
+            score * 0.18 +
+            safeNumber(learning.confidenceScore) * 0.12
+        )
       );
 
       return {
@@ -77,12 +100,24 @@ export function generateOpportunityRanking(analyses = []) {
         roi,
         profit,
         priorityScore,
+        executiveScore,
         confidence: semanticQuality,
         riskPenalty,
         liquidityBonus,
+        learningBonus: learning.learningBonus,
+        historicalConfidence: learning.confidence,
+        historicalConfidenceScore: learning.confidenceScore,
+        historicalAnalyses: learning.analyses,
+        historicalAverageROI: learning.averageROI,
+        historicalAverageProfit: learning.averageProfit,
+        learningSignals: learning.signals,
       };
     })
     .sort((a, b) => {
+      if (b.executiveScore !== a.executiveScore) {
+        return b.executiveScore - a.executiveScore;
+      }
+
       if (b.priorityScore !== a.priorityScore) {
         return b.priorityScore - a.priorityScore;
       }
@@ -99,7 +134,7 @@ export function generateOpportunityRanking(analyses = []) {
     topOpportunities.length > 0
       ? Math.round(
           topOpportunities.reduce(
-            (sum, item) => sum + item.priorityScore,
+            (sum, item) => sum + item.executiveScore,
             0
           ) / topOpportunities.length
         )
@@ -122,14 +157,12 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   const insights = [];
 
   if (topOpportunities.length > 0) {
-    insights.push(
-      `🏆 Ranking IA generado sobre ${total} análisis guardados.`
-    );
+    insights.push(`🏆 Ranking IA generado sobre ${total} análisis guardados.`);
   }
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra calidad alta y buena prioridad comercial."
+      "🔥 El top de oportunidades muestra calidad alta, aprendizaje histórico y buena prioridad comercial."
     );
   } else if (rankingScore >= 70) {
     insights.push(
@@ -142,6 +175,16 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   } else {
     insights.push(
       "📊 El ranking aún no tiene suficiente fuerza: faltan mejores datos u oportunidades."
+    );
+  }
+
+  const hasLearning = topOpportunities.some(
+    (item) => Number(item.learningBonus || 0) !== 0
+  );
+
+  if (hasLearning) {
+    insights.push(
+      "🧠 El ranking ya incorpora aprendizaje histórico por modelo en la prioridad ejecutiva."
     );
   }
 
@@ -169,7 +212,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · prioridad ${strongest.priorityScore}/100.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · executive score ${strongest.executiveScore}/100.`
     );
   }
 
@@ -315,6 +358,70 @@ function calculateLiquidityBonus({
   }
 
   return bonus;
+}
+
+function buildHistoricalModelMemory(analyses = []) {
+  const groups = {};
+
+  for (const item of analyses) {
+    const brand = String(item.brand || "").trim();
+    const model = String(item.model || "").trim();
+
+    if (!brand || !model) continue;
+
+    const label = `${brand} ${model}`;
+    const key = normalize(label);
+
+    if (!groups[key]) {
+      groups[key] = {
+        model: label,
+        analyses: 0,
+        totalROI: 0,
+        totalProfit: 0,
+        totalScore: 0,
+      };
+    }
+
+    groups[key].analyses += 1;
+    groups[key].totalROI += safeNumber(item.roi);
+    groups[key].totalProfit += safeNumber(item.profit);
+    groups[key].totalScore += safeNumber(item.score);
+  }
+
+  return Object.values(groups).map((group) => {
+    const confidence = getHistoricalConfidence(group.analyses);
+
+    return {
+      model: group.model,
+      analyses: group.analyses,
+      averageROI: Math.round(group.totalROI / group.analyses),
+      averageProfit: Math.round(group.totalProfit / group.analyses),
+      averageScore: Math.round(group.totalScore / group.analyses),
+      confidence: confidence.label,
+      confidenceScore: confidence.score,
+    };
+  });
+}
+
+function getHistoricalConfidence(count) {
+  if (count >= 15) {
+    return {
+      label: "Alta",
+      score: 90,
+    };
+  }
+
+  if (count >= 5) {
+    return {
+      label: "Media",
+      score: 70,
+    };
+  }
+
+  return {
+    label: "Baja",
+    score: 40,
+  };
 }
 
 function normalize(value) {
