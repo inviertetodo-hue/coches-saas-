@@ -1,12 +1,23 @@
-export default function AIInsightsSection({ insights }) {
-  if (!insights || insights.length === 0) return null;
+export default function AIInsightsSection({ insights, best }) {
+  if ((!insights || insights.length === 0) && !best) return null;
+
+  const cleanInsights = Array.isArray(insights)
+    ? insights.filter(
+        (insight) =>
+          !String(insight || "").includes("Mejor oportunidad detectada")
+      )
+    : [];
+
+  const finalInsights = best
+    ? [`🥇 Mejor oportunidad detectada: ${best.title}.`, ...cleanInsights]
+    : cleanInsights;
 
   return (
     <div style={sectionStyle}>
       <h2 style={sectionTitleStyle}>Inteligencia IA</h2>
 
       <div style={insightGridStyle}>
-        {insights.map((insight, index) => (
+        {finalInsights.map((insight, index) => (
           <div key={index} style={insightCardStyle}>
             {insight}
           </div>
