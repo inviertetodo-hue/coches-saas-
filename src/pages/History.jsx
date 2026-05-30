@@ -176,7 +176,7 @@ export default function History() {
 
   const marketMemory = useMemo(() => {
     return buildMarketMemory(cleanAnalyses);
-  }, [cleanAnalyses, marketIntelligence]);
+  }, [cleanAnalyses]);
 
   const marketIntelligence = useMemo(() => {
     return buildIntelligenceEngine(cleanAnalyses);
