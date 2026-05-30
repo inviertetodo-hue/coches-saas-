@@ -6,19 +6,31 @@ export default function OpportunityRankingPanel({ ranking }) {
     : [];
 
   const bestScore = topOpportunities[0]?.score || 0;
-  const bestROI = Math.max(...topOpportunities.map((item) => Number(item.roi || 0)), 0);
-  const bestProfit = Math.max(...topOpportunities.map((item) => Number(item.profit || 0)), 0);
+  const bestExecutiveScore = topOpportunities[0]?.executiveScore || 0;
+  const bestROI = Math.max(
+    ...topOpportunities.map((item) => Number(item.roi || 0)),
+    0
+  );
+  const bestProfit = Math.max(
+    ...topOpportunities.map((item) => Number(item.profit || 0)),
+    0
+  );
 
   return (
     <div style={containerStyle}>
-      <h2 style={titleStyle}>🏆 Opportunity Ranking V2</h2>
+      <h2 style={titleStyle}>🏆 Opportunity Ranking V3</h2>
 
       <p style={subtitleStyle}>
-        Ranking ejecutivo de las mejores oportunidades históricas según score,
-        ROI, beneficio estimado y prioridad operativa.
+        Ranking ejecutivo con score IA, ROI, beneficio, aprendizaje histórico y
+        prioridad predictiva.
       </p>
 
       <div style={gridStyle}>
+        <MetricCard
+          label="Executive Score"
+          value={`${bestExecutiveScore}/100`}
+        />
+
         <MetricCard
           label="Ranking Score"
           value={`${ranking?.rankingScore || 0}/100`}
@@ -27,11 +39,6 @@ export default function OpportunityRankingPanel({ ranking }) {
         <MetricCard
           label="Top Deals"
           value={topOpportunities.length}
-        />
-
-        <MetricCard
-          label="Mejor Score"
-          value={`${bestScore}/100`}
         />
 
         <MetricCard
@@ -45,6 +52,12 @@ export default function OpportunityRankingPanel({ ranking }) {
           title="Beneficio máximo"
           value={`${bestProfit} €`}
           text="Mayor beneficio estimado entre las mejores oportunidades."
+        />
+
+        <HighlightCard
+          title="Mejor Score IA"
+          value={`${bestScore}/100`}
+          text="Score base antes del ajuste ejecutivo."
         />
 
         <HighlightCard
@@ -64,7 +77,9 @@ export default function OpportunityRankingPanel({ ranking }) {
         <p style={sectionTitleStyle}>🧠 Ranking Insights</p>
 
         {!ranking?.rankingInsights?.length && (
-          <p style={emptyStyle}>Aún no hay insights suficientes para este ranking.</p>
+          <p style={emptyStyle}>
+            Aún no hay insights suficientes para este ranking.
+          </p>
         )}
 
         {ranking?.rankingInsights?.map((item, index) => (
@@ -84,7 +99,11 @@ export default function OpportunityRankingPanel({ ranking }) {
         )}
 
         {topOpportunities.map((item, index) => (
-          <RankingCard key={item.id || `${item.title}-${index}`} item={item} index={index} />
+          <RankingCard
+            key={item.id || `${item.title}-${index}`}
+            item={item}
+            index={index}
+          />
         ))}
       </div>
     </div>
@@ -96,7 +115,19 @@ function RankingCard({ item, index }) {
   const roi = Number(item.roi || 0);
   const profit = Number(item.profit || 0);
   const priorityScore = Number(item.priorityScore || 0);
-  const decision = getDealDecision({ score, roi, profit });
+  const executiveScore = Number(item.executiveScore || priorityScore || score);
+  const learningBonus = Number(item.learningBonus || 0);
+  const historicalConfidence = item.historicalConfidence || "Sin datos";
+  const historicalAverageROI = Number(item.historicalAverageROI || 0);
+  const historicalAverageProfit = Number(item.historicalAverageProfit || 0);
+  const historicalAnalyses = Number(item.historicalAnalyses || 0);
+
+  const decision = getDealDecision({
+    score,
+    roi,
+    profit,
+    executiveScore,
+  });
 
   return (
     <div style={rankingCardStyle}>
@@ -104,28 +135,80 @@ function RankingCard({ item, index }) {
 
       <div style={dealContentStyle}>
         <div style={dealHeaderStyle}>
-          <h3 style={dealTitleStyle}>{item.title || "Oportunidad sin título"}</h3>
+          <h3 style={dealTitleStyle}>
+            {item.title || "Oportunidad sin título"}
+          </h3>
           <span style={decisionPillStyle}>{decision}</span>
         </div>
 
         <div style={miniGridStyle}>
-          <MiniMetric label="Score" value={`${score}/100`} />
+          <MiniMetric label="Executive" value={`${executiveScore}/100`} />
+          <MiniMetric label="Score IA" value={`${score}/100`} />
           <MiniMetric label="ROI" value={`${roi}%`} />
           <MiniMetric label="Beneficio" value={`${profit} €`} />
           <MiniMetric label="Prioridad" value={priorityScore} />
+          <MiniMetric label="Learning" value={formatBonus(learningBonus)} />
         </div>
 
         <div style={barTrackStyle}>
           <div
             style={{
               ...barFillStyle,
-              width: `${Math.min(Math.max(priorityScore, 0), 100)}%`,
+              width: `${Math.min(Math.max(executiveScore, 0), 100)}%`,
             }}
           />
         </div>
 
+        <div style={historicalBoxStyle}>
+          <p style={historicalTitleStyle}>🧠 Memoria histórica del modelo</p>
+
+          <div style={historicalGridStyle}>
+            <MiniMetric
+              label="Confianza"
+              value={historicalConfidence}
+            />
+
+            <MiniMetric
+              label="Análisis"
+              value={historicalAnalyses}
+            />
+
+            <MiniMetric
+              label="ROI histórico"
+              value={`${historicalAverageROI}%`}
+            />
+
+            <MiniMetric
+              label="Beneficio histórico"
+              value={`${historicalAverageProfit} €`}
+            />
+          </div>
+
+          {Array.isArray(item.learningSignals) &&
+            item.learningSignals.length > 0 && (
+              <div style={learningSignalsStyle}>
+                {item.learningSignals.slice(0, 2).map((signal, signalIndex) => (
+                  <p
+                    key={`${signal}-${signalIndex}`}
+                    style={learningSignalStyle}
+                  >
+                    {signal}
+                  </p>
+                ))}
+              </div>
+            )}
+        </div>
+
         <p style={priorityStyle}>
-          {buildDecisionText({ score, roi, profit, priorityScore })}
+          {buildDecisionText({
+            score,
+            roi,
+            profit,
+            priorityScore,
+            executiveScore,
+            learningBonus,
+            historicalConfidence,
+          })}
         </p>
       </div>
     </div>
@@ -151,45 +234,61 @@ function HighlightCard({ title, value, text }) {
   );
 }
 
-function getDealDecision({ score, roi, profit }) {
-  if (score >= 85 && roi >= 25 && profit >= 2500) {
+function getDealDecision({ score, roi, profit, executiveScore }) {
+  if (executiveScore >= 85 && roi >= 15 && profit >= 2500) {
     return "Comprar";
   }
 
-  if (score >= 75 && roi >= 15) {
+  if (executiveScore >= 75 && roi >= 10) {
     return "Analizar";
   }
 
-  if (score >= 65) {
+  if (score >= 65 || executiveScore >= 65) {
     return "Vigilar";
   }
 
   return "Descartar";
 }
 
-function buildDecisionText({ score, roi, profit, priorityScore }) {
-  if (score >= 85 && roi >= 25 && profit >= 2500) {
-    return `Alta prioridad: score ${score}, ROI ${roi}% y beneficio estimado de ${profit} €.`;
+function buildDecisionText({
+  score,
+  roi,
+  profit,
+  priorityScore,
+  executiveScore,
+  learningBonus,
+  historicalConfidence,
+}) {
+  const learningText =
+    learningBonus !== 0
+      ? ` Aprendizaje histórico aplicado: ${formatBonus(learningBonus)}.`
+      : "";
+
+  if (executiveScore >= 85 && roi >= 15 && profit >= 2500) {
+    return `Alta prioridad ejecutiva: executive score ${executiveScore}, score IA ${score}, ROI ${roi}% y beneficio estimado de ${profit} €. Confianza histórica: ${historicalConfidence}.${learningText}`;
   }
 
-  if (score >= 75 && roi >= 15) {
-    return `Buena oportunidad para revisar con calma antes de comprar. Prioridad ${priorityScore}.`;
+  if (executiveScore >= 75 && roi >= 10) {
+    return `Buena oportunidad para revisar con calma. Executive score ${executiveScore}, prioridad ${priorityScore} y confianza histórica ${historicalConfidence}.${learningText}`;
   }
 
-  if (score >= 65) {
-    return `Oportunidad intermedia: conviene vigilar precio, demanda y margen.`;
+  if (score >= 65 || executiveScore >= 65) {
+    return `Oportunidad intermedia: conviene vigilar precio, demanda, margen y señales históricas.${learningText}`;
   }
 
-  return `Oportunidad débil dentro del ranking. No priorizar salvo contexto especial.`;
+  return `Oportunidad débil dentro del ranking. No priorizar salvo contexto especial.${learningText}`;
 }
 
 function getDecisionMode(items = []) {
   const buyCount = items.filter((item) => {
-    return getDealDecision({
-      score: Number(item.score || 0),
-      roi: Number(item.roi || 0),
-      profit: Number(item.profit || 0),
-    }) === "Comprar";
+    return (
+      getDealDecision({
+        score: Number(item.score || 0),
+        roi: Number(item.roi || 0),
+        profit: Number(item.profit || 0),
+        executiveScore: Number(item.executiveScore || 0),
+      }) === "Comprar"
+    );
   }).length;
 
   if (buyCount >= 3) return "Mercado caliente";
@@ -205,6 +304,13 @@ function getRankingQuality(score = 0) {
   if (value >= 65) return "Media";
   if (value > 0) return "Inicial";
   return "Sin datos";
+}
+
+function formatBonus(value) {
+  const number = Number(value || 0);
+
+  if (number > 0) return `+${number}`;
+  return String(number);
 }
 
 const containerStyle = {
@@ -366,12 +472,45 @@ const barTrackStyle = {
   borderRadius: "999px",
   background: "rgba(15,23,42,0.8)",
   overflow: "hidden",
+  marginTop: "4px",
 };
 
 const barFillStyle = {
   height: "100%",
   borderRadius: "999px",
   background: "linear-gradient(135deg,#a855f7,#22c55e)",
+};
+
+const historicalBoxStyle = {
+  marginTop: "14px",
+  padding: "14px",
+  borderRadius: "18px",
+  background: "rgba(15,23,42,0.58)",
+  border: "1px solid rgba(34,197,94,0.16)",
+};
+
+const historicalTitleStyle = {
+  margin: "0 0 12px 0",
+  color: "#bbf7d0",
+  fontWeight: "900",
+  fontSize: "13px",
+};
+
+const historicalGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
+  gap: "10px",
+};
+
+const learningSignalsStyle = {
+  marginTop: "12px",
+};
+
+const learningSignalStyle = {
+  margin: "8px 0 0 0",
+  color: "#dcfce7",
+  fontSize: "12px",
+  lineHeight: "1.45",
 };
 
 const priorityStyle = {
