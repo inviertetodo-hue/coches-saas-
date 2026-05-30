@@ -1,22 +1,34 @@
+import { findModelKnowledge } from "./marketKnowledgeBase";
+
 export function buildFinalDealDecision(item = {}) {
   const opportunityScore = toNumber(item.opportunityScore, 0);
   const netProfit = toNumber(item.netProfit, 0);
   const netRoi = toNumber(item.netRoi, 0);
+
   const riskScore = toNumber(item.dealRisk?.riskScore, 0);
   const riskLevel = item.dealRisk?.level || "Medio";
-  const liquidityScore = toNumber(item.liquidity?.liquidityScore, 60);
+
+  const liquidityScore = toNumber(
+    item.liquidity?.liquidityScore,
+    60
+  );
 
   let finalScore = opportunityScore;
 
-  finalScore += netRoi >= 12 ? 8 : 0;
-  finalScore += netProfit >= 5000 ? 6 : 0;
-  finalScore += liquidityScore >= 80 ? 8 : 0;
+  if (netRoi >= 12) finalScore += 8;
+  if (netProfit >= 5000) finalScore += 6;
+  if (liquidityScore >= 80) finalScore += 8;
 
-  finalScore -= riskScore >= 70 ? 30 : 0;
-  finalScore -= riskScore >= 45 ? 16 : 0;
-  finalScore -= netProfit <= 0 ? 35 : 0;
-  finalScore -= netRoi < 6 ? 12 : 0;
-  finalScore -= liquidityScore < 55 ? 10 : 0;
+  if (riskScore >= 70) finalScore -= 30;
+  else if (riskScore >= 45) finalScore -= 16;
+
+  if (netProfit <= 0) finalScore -= 35;
+  if (netRoi < 6) finalScore -= 12;
+  if (liquidityScore < 55) finalScore -= 10;
+
+  const modelModifier = getModelScoreModifier(item);
+
+  finalScore += modelModifier.finalScoreModifier;
 
   finalScore = clamp(Math.round(finalScore), 0, 100);
 
@@ -31,8 +43,17 @@ export function buildFinalDealDecision(item = {}) {
 
   return {
     finalScore,
+
+    modelScoreModifier: {
+      active: modelModifier.active,
+      model: modelModifier.model,
+      modifier: modelModifier.finalScoreModifier,
+    },
+
     action,
+
     label: getActionLabel(action),
+
     explanation: buildExplanation({
       action,
       finalScore,
@@ -41,7 +62,34 @@ export function buildFinalDealDecision(item = {}) {
       riskLevel,
       riskScore,
       liquidityScore,
+      modelModifier,
     }),
+  };
+}
+
+function getModelScoreModifier(item) {
+  const searchText = [
+    item.title,
+    item.brand,
+    item.model,
+    item.engine,
+  ].join(" ");
+
+  const knowledge = findModelKnowledge(searchText);
+
+  if (!knowledge.score) {
+    return {
+      active: false,
+      model: null,
+      finalScoreModifier: 0,
+    };
+  }
+
+  return {
+    active: true,
+    model: knowledge.model,
+    finalScoreModifier:
+      knowledge.score.finalScoreModifier || 0,
   };
 }
 
@@ -53,15 +101,28 @@ function getFinalAction({
   netRoi,
   liquidityScore,
 }) {
-  if (netProfit <= 0 || riskLevel === "Crítico" || riskScore >= 75) {
+  if (
+    netProfit <= 0 ||
+    riskLevel === "Crítico" ||
+    riskScore >= 75
+  ) {
     return "DESCARTAR";
   }
 
-  if (riskScore >= 55 || liquidityScore < 50 || netRoi < 5) {
+  if (
+    riskScore >= 55 ||
+    liquidityScore < 50 ||
+    netRoi < 5
+  ) {
     return "EVITAR";
   }
 
-  if (finalScore >= 78 && netProfit > 3000 && netRoi >= 8 && riskScore < 45) {
+  if (
+    finalScore >= 78 &&
+    netProfit > 3000 &&
+    netRoi >= 8 &&
+    riskScore < 45
+  ) {
     return "CONTACTAR_PRIMERO";
   }
 
@@ -91,22 +152,28 @@ function buildExplanation({
   riskLevel,
   riskScore,
   liquidityScore,
+  modelModifier,
 }) {
+  const modifierText =
+    modelModifier.active
+      ? ` Ajuste modelo: ${modelModifier.finalScoreModifier > 0 ? "+" : ""}${modelModifier.finalScoreModifier}.`
+      : "";
+
   if (action === "CONTACTAR_PRIMERO") {
     return `Prioridad alta: score final ${finalScore}/100, margen neto ${formatMoney(
       netProfit
-    )}, ROI ${netRoi}% y riesgo ${riskLevel.toLowerCase()}.`;
+    )}, ROI ${netRoi}% y riesgo ${riskLevel.toLowerCase()}.${modifierText}`;
   }
 
   if (action === "VIGILAR") {
-    return `Interesante pero no urgente: score final ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} y liquidez ${liquidityScore}/100. Conviene seguirlo o negociar mejor precio.`;
+    return `Interesante pero no urgente: score final ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} y liquidez ${liquidityScore}/100.${modifierText}`;
   }
 
   if (action === "EVITAR") {
-    return `No priorizar: riesgo ${riskLevel.toLowerCase()} (${riskScore}/100), ROI ${netRoi}% y liquidez ${liquidityScore}/100. Puede consumir tiempo o capital sin suficiente compensación.`;
+    return `No priorizar: riesgo ${riskLevel.toLowerCase()} (${riskScore}/100), ROI ${netRoi}% y liquidez ${liquidityScore}/100.${modifierText}`;
   }
 
-  return `Descartar: el margen, riesgo o retorno no compensan. Score final ${finalScore}/100 y riesgo ${riskLevel.toLowerCase()} (${riskScore}/100).`;
+  return `Descartar: score final ${finalScore}/100 y riesgo ${riskLevel.toLowerCase()} (${riskScore}/100).${modifierText}`;
 }
 
 function formatMoney(value) {
@@ -116,7 +183,9 @@ function formatMoney(value) {
 function toNumber(value, fallback) {
   const parsed = Number(value);
 
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed)
+    ? parsed
+    : fallback;
 }
 
 function clamp(value, min, max) {
