@@ -21,14 +21,43 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         semantic: scan.semantic,
       });
 
+      const normalizedListing = {
+        title: item.title,
+        url: item.url || "",
+        price: item.price,
+        mileage: item.km || item.mileage,
+        year: item.year,
+        location: item.location,
+        source: item.source || "mock-market-feed",
+        isValid: Boolean(
+          item.title &&
+            item.price &&
+            (item.km || item.mileage) &&
+            item.year
+        ),
+      };
+
+      const opportunityPreview =
+        findOpportunities([normalizedListing])[0] || null;
+
+      const opportunityScore =
+        opportunityPreview?.opportunityScore || item.opportunityScore || 0;
+
+      const opportunityLevel =
+        opportunityPreview?.opportunityLevel || "NONE";
+
       const finalDecision = buildFinalDealDecision({
         ...item,
+        opportunityScore,
+        opportunityLevel,
         dealRisk,
         liquidity,
       });
 
       return {
         ...item,
+        opportunityScore,
+        opportunityLevel,
         dealRisk,
         liquidity,
         finalDecision,
@@ -39,7 +68,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       .map(enrichDeal)
       .sort((a, b) => b.finalDecision.finalScore - a.finalDecision.finalScore);
 
-    const normalizedListings = opportunities.map((item) => ({
+    const opportunityEnginePreview = opportunities.map((item) => ({
       title: item.title,
       url: item.url || "",
       price: item.price,
@@ -47,10 +76,12 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       year: item.year,
       location: item.location,
       source: item.source || "mock-market-feed",
-      isValid: Boolean(item.title && item.price && (item.km || item.mileage) && item.year),
+      isValid: Boolean(
+        item.title && item.price && (item.km || item.mileage) && item.year
+      ),
+      opportunityScore: item.opportunityScore,
+      opportunityLevel: item.opportunityLevel,
     }));
-
-    const opportunityEnginePreview = findOpportunities(normalizedListings);
 
     const best = opportunities[0] || null;
 
@@ -63,7 +94,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         total: opportunityEnginePreview.length,
         bestScore: opportunityEnginePreview[0]?.opportunityScore || 0,
         bestLevel: opportunityEnginePreview[0]?.opportunityLevel || "NONE",
-        mode: "preview",
+        mode: "ranking-connected",
       },
     };
   }, [form.query, scan, searchTriggered]);
