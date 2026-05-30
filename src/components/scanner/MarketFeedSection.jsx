@@ -10,7 +10,7 @@ export default function MarketFeedSection({ marketFeed }) {
       <h2 style={sectionTitleStyle}>Feed IA de oportunidades</h2>
 
       <div style={feedGridStyle}>
-        {marketFeed.opportunities.map((item) => (
+        {marketFeed.opportunities.map((item, index) => (
           <div
             key={item.id}
             style={{
@@ -18,6 +18,12 @@ export default function MarketFeedSection({ marketFeed }) {
               border: `1px solid ${getDecisionColor(item.finalDecision.action)}`,
             }}
           >
+            {index === 0 && (
+              <div style={topOpportunityStyle}>
+                🏆 TOP OPPORTUNITY
+              </div>
+            )}
+
             <div>
               <p style={feedSourceStyle}>{item.source}</p>
 
@@ -37,13 +43,34 @@ export default function MarketFeedSection({ marketFeed }) {
               label={item.finalDecision.label}
             />
 
+            <div style={opportunityBoxStyle}>
+              <div style={opportunityHeaderStyle}>
+                🎯 Opportunity Engine
+              </div>
+
+              <div style={marketGridStyle}>
+                <SmallMetric
+                  label="Opportunity Score"
+                  value={`${item.opportunityScore || 0}/100`}
+                />
+
+                <SmallMetric
+                  label="Opportunity Level"
+                  value={item.opportunityLevel || "NONE"}
+                />
+              </div>
+            </div>
+
             <div style={feedMetricsStyle}>
               <FeedMetric
                 label="Score final"
                 value={`${item.finalDecision.finalScore}/100`}
               />
 
-              <FeedMetric label="ROI neto" value={`${item.netRoi}%`} />
+              <FeedMetric
+                label="ROI neto"
+                value={`${item.netRoi}%`}
+              />
 
               <FeedMetric
                 label="Margen"
@@ -51,7 +78,9 @@ export default function MarketFeedSection({ marketFeed }) {
               />
             </div>
 
-            <div style={decisionStyle}>{item.finalDecision.explanation}</div>
+            <div style={decisionStyle}>
+              {item.finalDecision.explanation}
+            </div>
 
             <div style={liquidityBoxStyle}>
               <h4 style={miniTitleStyle}>💧 Liquidez</h4>
@@ -67,7 +96,10 @@ export default function MarketFeedSection({ marketFeed }) {
                   value={`${item.liquidity.expectedDaysToSell} días`}
                 />
 
-                <SmallMetric label="Demanda" value={item.liquidity.demand} />
+                <SmallMetric
+                  label="Demanda"
+                  value={item.liquidity.demand}
+                />
 
                 <SmallMetric
                   label="Compradores"
@@ -75,14 +107,19 @@ export default function MarketFeedSection({ marketFeed }) {
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.liquidity.summary}</p>
+              <p style={marketInsightStyle}>
+                {item.liquidity.summary}
+              </p>
             </div>
 
             <div style={riskBoxStyle}>
               <h4 style={miniTitleStyle}>🛡️ Riesgo de operación</h4>
 
               <div style={marketGridStyle}>
-                <SmallMetric label="Nivel" value={item.dealRisk.level} />
+                <SmallMetric
+                  label="Nivel"
+                  value={item.dealRisk.level}
+                />
 
                 <SmallMetric
                   label="Risk score"
@@ -90,7 +127,9 @@ export default function MarketFeedSection({ marketFeed }) {
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.dealRisk.recommendation}</p>
+              <p style={marketInsightStyle}>
+                {item.dealRisk.recommendation}
+              </p>
             </div>
 
             <div style={marketBoxStyle}>
@@ -120,7 +159,9 @@ export default function MarketFeedSection({ marketFeed }) {
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.comparable.insight}</p>
+              <p style={marketInsightStyle}>
+                {item.comparable.insight}
+              </p>
             </div>
 
             <div style={memoryBoxStyle}>
@@ -132,9 +173,15 @@ export default function MarketFeedSection({ marketFeed }) {
                   value={`${item.memory.resaleSpeed.days} días`}
                 />
 
-                <SmallMetric label="Demanda" value={item.memory.demandLevel} />
+                <SmallMetric
+                  label="Demanda"
+                  value={item.memory.demandLevel}
+                />
 
-                <SmallMetric label="Riesgo" value={item.memory.riskLevel} />
+                <SmallMetric
+                  label="Riesgo"
+                  value={item.memory.riskLevel}
+                />
 
                 <SmallMetric
                   label="Precio máx."
@@ -144,7 +191,9 @@ export default function MarketFeedSection({ marketFeed }) {
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.memory.strategy.reason}</p>
+              <p style={marketInsightStyle}>
+                {item.memory.strategy.reason}
+              </p>
             </div>
           </div>
         ))}
@@ -172,6 +221,29 @@ const feedCardStyle = {
   borderRadius: "24px",
   padding: "24px",
   transition: "0.25s ease",
+};
+
+const topOpportunityStyle = {
+  marginBottom: "14px",
+  padding: "10px",
+  borderRadius: "12px",
+  textAlign: "center",
+  fontWeight: "900",
+  background: "rgba(250,204,21,0.20)",
+  color: "#fde68a",
+};
+
+const opportunityBoxStyle = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "18px",
+  background: "rgba(168,85,247,0.10)",
+  border: "1px solid rgba(168,85,247,0.22)",
+};
+
+const opportunityHeaderStyle = {
+  marginBottom: "12px",
+  fontWeight: "900",
 };
 
 const feedSourceStyle = {
