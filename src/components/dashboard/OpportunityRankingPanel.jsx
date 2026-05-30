@@ -7,6 +7,7 @@ export default function OpportunityRankingPanel({ ranking }) {
 
   const bestScore = topOpportunities[0]?.score || 0;
   const bestExecutiveScore = topOpportunities[0]?.executiveScore || 0;
+  const bestSuccessProbability = topOpportunities[0]?.successProbability || 0;
   const bestROI = Math.max(
     ...topOpportunities.map((item) => Number(item.roi || 0)),
     0
@@ -18,14 +19,19 @@ export default function OpportunityRankingPanel({ ranking }) {
 
   return (
     <div style={containerStyle}>
-      <h2 style={titleStyle}>🏆 Opportunity Ranking V3</h2>
+      <h2 style={titleStyle}>🏆 Opportunity Ranking V4</h2>
 
       <p style={subtitleStyle}>
-        Ranking ejecutivo con score IA, ROI, beneficio, aprendizaje histórico y
-        prioridad predictiva.
+        Ranking ejecutivo con score IA, aprendizaje histórico, probabilidad de
+        éxito, señal de compra y tiempo estimado de venta.
       </p>
 
       <div style={gridStyle}>
+        <MetricCard
+          label="Success Probability"
+          value={`${bestSuccessProbability}/100`}
+        />
+
         <MetricCard
           label="Executive Score"
           value={`${bestExecutiveScore}/100`}
@@ -34,11 +40,6 @@ export default function OpportunityRankingPanel({ ranking }) {
         <MetricCard
           label="Ranking Score"
           value={`${ranking?.rankingScore || 0}/100`}
-        />
-
-        <MetricCard
-          label="Top Deals"
-          value={topOpportunities.length}
         />
 
         <MetricCard
@@ -122,11 +123,20 @@ function RankingCard({ item, index }) {
   const historicalAverageProfit = Number(item.historicalAverageProfit || 0);
   const historicalAnalyses = Number(item.historicalAnalyses || 0);
 
+  const successProbability = Number(item.successProbability || 0);
+  const buySignal = item.buySignal || "Sin señal";
+  const estimatedSellDays = Number(item.estimatedSellDays || 0);
+  const expectedROI = Number(item.expectedROI || 0);
+  const expectedProfit = Number(item.expectedProfit || 0);
+  const successRiskLabel = item.successRiskLabel || "Sin datos";
+
   const decision = getDealDecision({
     score,
     roi,
     profit,
     executiveScore,
+    successProbability,
+    buySignal,
   });
 
   return (
@@ -142,11 +152,11 @@ function RankingCard({ item, index }) {
         </div>
 
         <div style={miniGridStyle}>
+          <MiniMetric label="Success" value={`${successProbability}/100`} />
+          <MiniMetric label="Buy Signal" value={buySignal} />
+          <MiniMetric label="Venta est." value={`${estimatedSellDays} días`} />
           <MiniMetric label="Executive" value={`${executiveScore}/100`} />
           <MiniMetric label="Score IA" value={`${score}/100`} />
-          <MiniMetric label="ROI" value={`${roi}%`} />
-          <MiniMetric label="Beneficio" value={`${profit} €`} />
-          <MiniMetric label="Prioridad" value={priorityScore} />
           <MiniMetric label="Learning" value={formatBonus(learningBonus)} />
         </div>
 
@@ -154,24 +164,36 @@ function RankingCard({ item, index }) {
           <div
             style={{
               ...barFillStyle,
-              width: `${Math.min(Math.max(executiveScore, 0), 100)}%`,
+              width: `${Math.min(Math.max(successProbability, 0), 100)}%`,
             }}
           />
+        </div>
+
+        <div style={predictionBoxStyle}>
+          <p style={predictionTitleStyle}>🔮 Predicción de éxito</p>
+
+          <div style={historicalGridStyle}>
+            <MiniMetric label="ROI esperado" value={`${expectedROI}%`} />
+            <MiniMetric
+              label="Beneficio esperado"
+              value={`${expectedProfit} €`}
+            />
+            <MiniMetric label="Riesgo esperado" value={successRiskLabel} />
+            <MiniMetric label="Prioridad" value={priorityScore} />
+          </div>
+
+          {item.successSummary && (
+            <p style={predictionSummaryStyle}>{item.successSummary}</p>
+          )}
         </div>
 
         <div style={historicalBoxStyle}>
           <p style={historicalTitleStyle}>🧠 Memoria histórica del modelo</p>
 
           <div style={historicalGridStyle}>
-            <MiniMetric
-              label="Confianza"
-              value={historicalConfidence}
-            />
+            <MiniMetric label="Confianza" value={historicalConfidence} />
 
-            <MiniMetric
-              label="Análisis"
-              value={historicalAnalyses}
-            />
+            <MiniMetric label="Análisis" value={historicalAnalyses} />
 
             <MiniMetric
               label="ROI histórico"
@@ -208,6 +230,11 @@ function RankingCard({ item, index }) {
             executiveScore,
             learningBonus,
             historicalConfidence,
+            successProbability,
+            buySignal,
+            estimatedSellDays,
+            expectedROI,
+            expectedProfit,
           })}
         </p>
       </div>
@@ -234,16 +261,29 @@ function HighlightCard({ title, value, text }) {
   );
 }
 
-function getDealDecision({ score, roi, profit, executiveScore }) {
-  if (executiveScore >= 85 && roi >= 15 && profit >= 2500) {
+function getDealDecision({
+  score,
+  roi,
+  profit,
+  executiveScore,
+  successProbability,
+  buySignal,
+}) {
+  if (
+    buySignal === "FUERTE" ||
+    (successProbability >= 85 && executiveScore >= 80 && profit >= 2500)
+  ) {
     return "Comprar";
   }
 
-  if (executiveScore >= 75 && roi >= 10) {
+  if (
+    buySignal === "INTERESANTE" ||
+    (successProbability >= 72 && executiveScore >= 70)
+  ) {
     return "Analizar";
   }
 
-  if (score >= 65 || executiveScore >= 65) {
+  if (score >= 65 || executiveScore >= 65 || successProbability >= 58) {
     return "Vigilar";
   }
 
@@ -258,21 +298,26 @@ function buildDecisionText({
   executiveScore,
   learningBonus,
   historicalConfidence,
+  successProbability,
+  buySignal,
+  estimatedSellDays,
+  expectedROI,
+  expectedProfit,
 }) {
   const learningText =
     learningBonus !== 0
       ? ` Aprendizaje histórico aplicado: ${formatBonus(learningBonus)}.`
       : "";
 
-  if (executiveScore >= 85 && roi >= 15 && profit >= 2500) {
-    return `Alta prioridad ejecutiva: executive score ${executiveScore}, score IA ${score}, ROI ${roi}% y beneficio estimado de ${profit} €. Confianza histórica: ${historicalConfidence}.${learningText}`;
+  if (buySignal === "FUERTE" || successProbability >= 85) {
+    return `Señal fuerte: probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €. Executive score ${executiveScore}, score IA ${score}, confianza histórica ${historicalConfidence}.${learningText}`;
   }
 
-  if (executiveScore >= 75 && roi >= 10) {
-    return `Buena oportunidad para revisar con calma. Executive score ${executiveScore}, prioridad ${priorityScore} y confianza histórica ${historicalConfidence}.${learningText}`;
+  if (buySignal === "INTERESANTE" || successProbability >= 72) {
+    return `Oportunidad interesante: probabilidad de éxito ${successProbability}/100, prioridad ${priorityScore}, ROI ${roi}% y beneficio estimado de ${profit} €.${learningText}`;
   }
 
-  if (score >= 65 || executiveScore >= 65) {
+  if (score >= 65 || executiveScore >= 65 || successProbability >= 58) {
     return `Oportunidad intermedia: conviene vigilar precio, demanda, margen y señales históricas.${learningText}`;
   }
 
@@ -287,6 +332,8 @@ function getDecisionMode(items = []) {
         roi: Number(item.roi || 0),
         profit: Number(item.profit || 0),
         executiveScore: Number(item.executiveScore || 0),
+        successProbability: Number(item.successProbability || 0),
+        buySignal: item.buySignal || "",
       }) === "Comprar"
     );
   }).length;
@@ -479,6 +526,28 @@ const barFillStyle = {
   height: "100%",
   borderRadius: "999px",
   background: "linear-gradient(135deg,#a855f7,#22c55e)",
+};
+
+const predictionBoxStyle = {
+  marginTop: "14px",
+  padding: "14px",
+  borderRadius: "18px",
+  background: "rgba(88,28,135,0.22)",
+  border: "1px solid rgba(168,85,247,0.22)",
+};
+
+const predictionTitleStyle = {
+  margin: "0 0 12px 0",
+  color: "#e9d5ff",
+  fontWeight: "900",
+  fontSize: "13px",
+};
+
+const predictionSummaryStyle = {
+  margin: "12px 0 0 0",
+  color: "#f3e8ff",
+  fontSize: "12px",
+  lineHeight: "1.45",
 };
 
 const historicalBoxStyle = {
