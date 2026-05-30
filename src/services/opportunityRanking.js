@@ -1,6 +1,7 @@
 import { calculateLearningBonus } from "./intelligence/marketLearningEngine";
 import { buildSuccessProbability } from "./intelligence/successProbabilityEngine";
 import { buildExecutiveBuySignal } from "./intelligence/executiveBuySignalEngine";
+import { buildSellSpeed } from "./intelligence/sellSpeedEngine";
 
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
@@ -118,6 +119,14 @@ export function generateOpportunityRanking(analyses = []) {
         riskScore: clampScore(riskPenalty),
       });
 
+      const sellSpeed = buildSellSpeed({
+        successProbability: successEngine.successProbability,
+        executiveScore,
+        roi,
+        profit,
+        confidenceScore: learning.confidenceScore,
+      });
+
       return {
         id: item.id,
         title: title || "Vehículo IA",
@@ -139,7 +148,6 @@ export function generateOpportunityRanking(analyses = []) {
 
         successProbability: successEngine.successProbability,
         buySignal: successEngine.buySignal,
-        estimatedSellDays: successEngine.estimatedSellDays,
         expectedROI: successEngine.expectedROI,
         expectedProfit: successEngine.expectedProfit,
         successRiskLabel: successEngine.riskLabel,
@@ -151,11 +159,21 @@ export function generateOpportunityRanking(analyses = []) {
         executiveBuySignalLabel: executiveBuySignal.signal,
         executiveBuySignalColor: executiveBuySignal.color,
         executiveBuySignalSummary: executiveBuySignal.summary,
+
+        sellSpeed,
+        sellSpeedScore: sellSpeed.sellSpeedScore,
+        estimatedSellDays: sellSpeed.estimatedSellDays,
+        speedLabel: sellSpeed.speedLabel,
+        sellSpeedSummary: sellSpeed.summary,
       };
     })
     .sort((a, b) => {
       if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
         return b.executiveBuySignalScore - a.executiveBuySignalScore;
+      }
+
+      if (b.sellSpeedScore !== a.sellSpeedScore) {
+        return b.sellSpeedScore - a.sellSpeedScore;
       }
 
       if (b.successProbability !== a.successProbability) {
@@ -210,11 +228,11 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra alta señal ejecutiva, probabilidad de éxito y aprendizaje histórico."
+      "🔥 El top de oportunidades muestra alta señal ejecutiva, probabilidad de éxito, velocidad de venta y aprendizaje histórico."
     );
   } else if (rankingScore >= 70) {
     insights.push(
-      "🟢 Hay oportunidades interesantes, pero conviene validar liquidez y datos reales."
+      "🟢 Hay oportunidades interesantes, pero conviene validar liquidez, velocidad de venta y datos reales."
     );
   } else if (rankingScore >= 50) {
     insights.push(
@@ -242,7 +260,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (hasSuccessProbability) {
     insights.push(
-      "🔮 El ranking ya utiliza probabilidad de éxito, señal de compra y días estimados de venta."
+      "🔮 El ranking ya utiliza probabilidad de éxito y señal de compra."
     );
   }
 
@@ -253,6 +271,26 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   if (hasExecutiveSignal) {
     insights.push(
       "🎯 El ranking ya genera señal ejecutiva final: STRONG_BUY, BUY, WATCHLIST, AVOID o REJECT."
+    );
+  }
+
+  const hasSellSpeed = topOpportunities.some(
+    (item) => item.speedLabel || Number(item.sellSpeedScore || 0) > 0
+  );
+
+  if (hasSellSpeed) {
+    insights.push(
+      "⚡ La velocidad de venta ya tiene propietario único: sellSpeedEngine."
+    );
+  }
+
+  const slowSellers = topOpportunities.filter(
+    (item) => item.speedLabel === "SLOW_SELLER"
+  );
+
+  if (slowSellers.length > 0) {
+    insights.push(
+      "🐢 Hay oportunidades con riesgo de rotación lenta. Revisa capital inmovilizado antes de comprar."
     );
   }
 
@@ -280,7 +318,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ejecutiva ${strongest.executiveBuySignalLabel} · score ${strongest.executiveBuySignalScore}/100.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ejecutiva ${strongest.executiveBuySignalLabel} · velocidad ${strongest.speedLabel} · venta estimada ${strongest.estimatedSellDays} días.`
     );
   }
 
