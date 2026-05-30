@@ -27,6 +27,8 @@ export default function ScannerResultsSection({
         best={marketFeed.best}
       />
 
+      <RealFeedDebugPanel marketFeed={marketFeed} />
+
       <SearchRadarSection searchRadar={searchRadar} />
     </>
   );
@@ -64,7 +66,11 @@ function ScannerLoadingSection({ scan }) {
     return () => window.clearInterval(interval);
   }, [scan?.query, scan?.country, scan?.maxBudget]);
 
-  const progress = Math.min(100, Math.max(12, Math.round(((9 - seconds) / 8) * 100)));
+  const progress = Math.min(
+    100,
+    Math.max(12, Math.round(((9 - seconds) / 8) * 100))
+  );
+
   const activeStepIndex = Math.min(
     loadingSteps.length - 1,
     Math.floor((progress / 100) * loadingSteps.length)
@@ -106,10 +112,14 @@ function ScannerLoadingSection({ scan }) {
               key={step}
               style={{
                 ...stepPillStyle,
-                ...(index <= activeStepIndex ? activeStepActiveStyle : {}),
+                ...(index <= activeStepIndex ? stepPillActiveStyle : {}),
               }}
             >
-              {index < activeStepIndex ? "✓" : index === activeStepIndex ? "⏳" : "○"}{" "}
+              {index < activeStepIndex
+                ? "✓"
+                : index === activeStepIndex
+                  ? "⏳"
+                  : "○"}{" "}
               {step}
             </span>
           ))}
@@ -161,6 +171,52 @@ function ScannerCoverageSection({ scan }) {
         <StatCard label="Alta prioridad" value={highPriorityCount} />
       </div>
     </section>
+  );
+}
+
+function RealFeedDebugPanel({ marketFeed }) {
+  const errors = marketFeed?.realFeedErrors || [];
+  const sourceMode = marketFeed?.sourceMode || "unknown";
+
+  if (import.meta.env.PROD) {
+    return null;
+  }
+
+  if (errors.length === 0 && sourceMode !== "real-feed") {
+    return null;
+  }
+
+  return (
+    <section style={debugStyle}>
+      <p style={debugEyebrowStyle}>Modo desarrollo</p>
+
+      <h3 style={debugTitleStyle}>Diagnóstico del feed real</h3>
+
+      <div style={debugGridStyle}>
+        <DebugMetric label="Modo" value={sourceMode} />
+        <DebugMetric label="Errores" value={errors.length} />
+        <DebugMetric label="Resultados" value={marketFeed?.total || 0} />
+      </div>
+
+      {errors.length > 0 && (
+        <div style={debugErrorsStyle}>
+          {errors.map((error, index) => (
+            <div key={`${error}-${index}`} style={debugErrorItemStyle}>
+              {error}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DebugMetric({ label, value }) {
+  return (
+    <div style={debugMetricStyle}>
+      <span style={debugMetricLabelStyle}>{label}</span>
+      <strong style={debugMetricValueStyle}>{value}</strong>
+    </div>
   );
 }
 
@@ -347,4 +403,66 @@ const statLabelStyle = {
   color: "#94a3b8",
   fontSize: "12px",
   fontWeight: "800",
+};
+
+const debugStyle = {
+  marginTop: "24px",
+  padding: "20px",
+  borderRadius: "22px",
+  background: "rgba(127,29,29,0.16)",
+  border: "1px solid rgba(248,113,113,0.24)",
+};
+
+const debugEyebrowStyle = {
+  margin: 0,
+  color: "#fca5a5",
+  fontWeight: "900",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontSize: "12px",
+};
+
+const debugTitleStyle = {
+  margin: "8px 0 16px",
+  color: "#fee2e2",
+};
+
+const debugGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "12px",
+};
+
+const debugMetricStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(2,6,23,0.54)",
+};
+
+const debugMetricLabelStyle = {
+  display: "block",
+  color: "#fecaca",
+  fontSize: "12px",
+  fontWeight: "800",
+};
+
+const debugMetricValueStyle = {
+  display: "block",
+  marginTop: "6px",
+  color: "white",
+};
+
+const debugErrorsStyle = {
+  marginTop: "14px",
+  display: "grid",
+  gap: "8px",
+};
+
+const debugErrorItemStyle = {
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(2,6,23,0.48)",
+  color: "#fecaca",
+  fontSize: "12px",
+  fontWeight: "700",
 };
