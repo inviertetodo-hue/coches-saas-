@@ -381,8 +381,6 @@ function validateVehicleCompatibility({
 }) {
   const text = normalize(query);
   const warnings = [];
-  let score = 0;
-
   const budget = Number(maxBudget || 0);
 
   if (budget > 0 && price > budget) {
@@ -392,6 +390,67 @@ function validateVehicleCompatibility({
       warnings: [`Precio ${price} por encima del presupuesto ${budget}.`],
     };
   }
+
+  const isBmwX545eSearch =
+    text.includes("bmw") && text.includes("x5") && text.includes("45e");
+
+  if (isBmwX545eSearch) {
+    if (fuelType !== "PHEV") {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: [
+          `Descartado: BMW X5 45e debe ser PHEV. Detectado: ${
+            fuelType || "desconocido"
+          }.`,
+        ],
+      };
+    }
+
+    if (year && year < 2019) {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: ["Descartado: BMW X5 45e no debería ser anterior a 2019."],
+      };
+    }
+
+    if (powerKw && powerKw < 180) {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: [
+          `Descartado: potencia demasiado baja para BMW X5 45e (${powerKw} kW).`,
+        ],
+      };
+    }
+
+    if (price && price < 38000) {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: [
+          `Descartado: precio demasiado bajo para BMW X5 45e real (${price} €).`,
+        ],
+      };
+    }
+
+    if (mileage && mileage > 180000) {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: ["Descartado: kilometraje demasiado alto."],
+      };
+    }
+
+    return {
+      isCompatible: true,
+      score: 100,
+      warnings,
+    };
+  }
+
+  let score = 0;
 
   if (detectBrand(text)) {
     score += 35;
@@ -412,43 +471,16 @@ function validateVehicleCompatibility({
       score += 25;
     } else {
       warnings.push(`Motorización no PHEV detectada: ${fuelType || "desconocida"}.`);
-      score -= 35;
+      score -= 40;
     }
-  }
-
-  if (text.includes("x5")) {
-    if (price < 30000) {
-      warnings.push("Precio demasiado bajo para BMW X5 compatible.");
-      score -= 35;
-    }
-
-    if (year && year < 2019) {
-      warnings.push("Año demasiado antiguo para BMW X5 45e.");
-      score -= 25;
-    }
-
-    if (powerKw && powerKw < 160) {
-      warnings.push(`Potencia demasiado baja para BMW X5 45e: ${powerKw} kW.`);
-      score -= 35;
-    }
-  }
-
-  if (text.includes("q7") && powerKw && powerKw < 160) {
-    warnings.push(`Potencia demasiado baja para Audi Q7 compatible: ${powerKw} kW.`);
-    score -= 30;
-  }
-
-  if (text.includes("gle") && powerKw && powerKw < 140) {
-    warnings.push(`Potencia demasiado baja para Mercedes GLE compatible: ${powerKw} kW.`);
-    score -= 25;
   }
 
   if (mileage > 180000) {
     warnings.push("Kilometraje demasiado alto.");
-    score -= 20;
+    score -= 25;
   }
 
-  const isCompatible = score >= 55;
+  const isCompatible = score >= 70;
 
   return {
     isCompatible,

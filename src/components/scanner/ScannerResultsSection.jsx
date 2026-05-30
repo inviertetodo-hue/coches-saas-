@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 import MarketFeedSection from "./MarketFeedSection";
 import AIInsightsSection from "./AIInsightsSection";
@@ -20,6 +21,8 @@ export default function ScannerResultsSection({
     <>
       <ScannerCoverageSection scan={scan} />
 
+      <SaveBestOpportunityPanel marketFeed={marketFeed} scan={scan} />
+
       <MarketFeedSection marketFeed={marketFeed} />
 
       <AIInsightsSection
@@ -31,6 +34,112 @@ export default function ScannerResultsSection({
 
       <SearchRadarSection searchRadar={searchRadar} />
     </>
+  );
+}
+
+function SaveBestOpportunityPanel({ marketFeed, scan }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const candidate = useMemo(() => {
+    const opportunities = marketFeed?.opportunities || [];
+
+    return (
+      opportunities.find((item) => {
+        const semanticScore = Number(item.semanticScore || 0);
+        const finalScore = Number(item.finalDecision?.finalScore || 0);
+        const profit = Number(item.netProfit || 0);
+        const roi = Number(item.netRoi || 0);
+
+        return (
+          semanticScore >= 80 &&
+          finalScore >= 70 &&
+          Number.isFinite(profit) &&
+          Number.isFinite(roi) &&
+          item.brand &&
+          item.model
+        );
+      }) || null
+    );
+  }, [marketFeed]);
+
+  if (marketFeed?.sourceMode !== "real-feed") {
+    return null;
+  }
+
+  if (!candidate) {
+    return (
+      <section style={savePanelStyle}>
+        <p style={saveEyebrowStyle}>Inteligencia Mercado</p>
+        <h3 style={saveTitleStyle}>Aún no hay oportunidad suficientemente limpia para guardar</h3>
+        <p style={saveTextStyle}>
+          El Scanner ha encontrado datos reales, pero todavía no hay una oportunidad con match semántico alto, marca, modelo y score suficiente.
+        </p>
+      </section>
+    );
+  }
+
+  async function saveCandidate() {
+    if (saving || saved) return;
+
+    setSaving(true);
+    setMessage("");
+
+    const payload = {
+      title: candidate.title || scan?.query || "Scanner opportunity",
+      brand: candidate.brand || null,
+      model: candidate.model || null,
+      fuel_type: candidate.fuelType || null,
+      drivetrain: candidate.drivetrain || null,
+      performance_package: candidate.performancePackage || null,
+      country: candidate.country || scan?.country || null,
+      profit: Math.round(Number(candidate.netProfit || 0)),
+      roi: Number(candidate.netRoi || 0),
+      score: Number(candidate.finalDecision?.finalScore || 0),
+      url: candidate.url || null,
+    };
+
+    const { error } = await supabase.from("import_analyses").insert(payload);
+
+    if (error) {
+      console.error("Error saving scanner opportunity:", error);
+      setMessage("No se ha podido guardar en Inteligencia Mercado.");
+      setSaving(false);
+      return;
+    }
+
+    setSaved(true);
+    setSaving(false);
+    setMessage("Oportunidad guardada. Ya alimenta Inteligencia Mercado.");
+  }
+
+  return (
+    <section style={savePanelStyle}>
+      <div>
+        <p style={saveEyebrowStyle}>Inteligencia Mercado</p>
+
+        <h3 style={saveTitleStyle}>Guardar oportunidad seleccionada</h3>
+
+        <p style={saveTextStyle}>
+          {candidate.title} · Score {candidate.finalDecision?.finalScore || 0}/100 · ROI {candidate.netRoi}% · Match {candidate.semanticScore || 0}/100
+        </p>
+      </div>
+
+      <button
+        onClick={saveCandidate}
+        disabled={saving || saved}
+        style={{
+          ...saveButtonStyle,
+          opacity: saving || saved ? 0.7 : 1,
+          cursor: saving || saved ? "not-allowed" : "pointer",
+        }}
+      >
+        {saving ? "Guardando..." : saved ? "✅ Guardado" : "💾 Guardar en Inteligencia Mercado"}
+      </button>
+
+      {message && <p style={saveMessageStyle}>{message}</p>}
+    </section>
   );
 }
 
@@ -225,16 +334,6 @@ function RealFeedDebugPanel({ marketFeed }) {
           ))}
         </div>
       )}
-
-      {diagnostics.length === 0 && errors.length === 0 && (
-        <div style={debugErrorsStyle}>
-          <div style={debugErrorItemStyle}>
-            No hay diagnóstico disponible todavía. Esto indica que el resultado
-            actual probablemente viene del feed demo o que realMarketFeed todavía
-            no ha devuelto información diagnóstica.
-          </div>
-        </div>
-      )}
     </section>
   );
 }
@@ -256,6 +355,52 @@ function StatCard({ label, value }) {
     </div>
   );
 }
+
+const savePanelStyle = {
+  marginTop: "24px",
+  marginBottom: "24px",
+  padding: "22px",
+  borderRadius: "24px",
+  background: "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(37,99,235,0.18))",
+  border: "1px solid rgba(34,197,94,0.28)",
+};
+
+const saveEyebrowStyle = {
+  margin: 0,
+  color: "#86efac",
+  fontWeight: "900",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontSize: "12px",
+};
+
+const saveTitleStyle = {
+  margin: "8px 0",
+  color: "white",
+};
+
+const saveTextStyle = {
+  margin: 0,
+  color: "#dbeafe",
+  lineHeight: 1.6,
+  fontWeight: "800",
+};
+
+const saveButtonStyle = {
+  marginTop: "16px",
+  padding: "14px 18px",
+  borderRadius: "16px",
+  border: "none",
+  background: "linear-gradient(135deg,#16a34a,#2563eb)",
+  color: "white",
+  fontWeight: "900",
+};
+
+const saveMessageStyle = {
+  marginTop: "12px",
+  color: "#bbf7d0",
+  fontWeight: "900",
+};
 
 const loadingStyle = {
   marginTop: "28px",

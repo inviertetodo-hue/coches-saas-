@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { supabase } from "../lib/supabase";
 import { generateMockMarketFeed } from "../services/mockMarketFeed";
 import { analyzeCar } from "../services/profitAnalyzer";
 import { analyzeComparableMarket } from "../services/comparableIntelligence";
@@ -12,6 +13,7 @@ import { fetchRealMarketListings } from "../services/market/realMarketFeed";
 
 export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   const [marketFeed, setMarketFeed] = useState(null);
+  const savedScanRef = useRef("");
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +210,13 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       if (!cancelled) {
         setMarketFeed(nextFeed);
       }
+
+      await saveBestRealOpportunityToMarketMemory({
+        sourceMode: rawFeed.sourceMode,
+        opportunities,
+        scan,
+        savedScanRef,
+      });
     }
 
     buildFeed();
@@ -218,6 +227,72 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   }, [form.query, form.maxBudget, scan, searchTriggered]);
 
   return marketFeed;
+}
+
+async function saveBestRealOpportunityToMarketMemory({
+  sourceMode,
+  opportunities,
+  scan,
+  savedScanRef,
+}) {
+  if (sourceMode !== "real-feed") return;
+  if (!Array.isArray(opportunities) || opportunities.length === 0) return;
+
+  const bestCandidate = opportunities.find((item) => {
+    const semanticScore = Number(item.semanticScore || 0);
+    const finalScore = Number(item.finalDecision?.finalScore || 0);
+    const profit = Number(item.netProfit || 0);
+    const roi = Number(item.netRoi || 0);
+
+    return (
+      semanticScore >= 80 &&
+      finalScore >= 70 &&
+      Number.isFinite(profit) &&
+      Number.isFinite(roi)
+    );
+  });
+
+  if (!bestCandidate) return;
+
+  const saveKey = [
+    normalizeForKey(scan?.query),
+    normalizeForKey(bestCandidate.title),
+    bestCandidate.price,
+    bestCandidate.km || bestCandidate.mileage,
+    bestCandidate.year,
+    bestCandidate.country,
+  ].join("|");
+
+  if (!saveKey || savedScanRef.current === saveKey) return;
+
+  const sessionKey = `scanner-memory:${saveKey}`;
+
+  if (window.sessionStorage.getItem(sessionKey)) return;
+
+  savedScanRef.current = saveKey;
+  window.sessionStorage.setItem(sessionKey, "saved");
+
+  const payload = {
+    title: bestCandidate.title || scan?.query || "Scanner opportunity",
+    brand: bestCandidate.brand || null,
+    model: bestCandidate.model || null,
+    fuel_type: bestCandidate.fuelType || null,
+    drivetrain: bestCandidate.drivetrain || null,
+    performance_package: bestCandidate.performancePackage || null,
+    country: bestCandidate.country || scan?.country || null,
+    profit: Math.round(Number(bestCandidate.netProfit || 0)),
+    roi: Number(bestCandidate.netRoi || 0),
+    score: Number(bestCandidate.finalDecision?.finalScore || 0),
+    url: bestCandidate.url || null,
+  };
+
+  const { error } = await supabase.from("import_analyses").insert(payload);
+
+  if (error) {
+    console.error("Error saving scanner opportunity:", error);
+    window.sessionStorage.removeItem(sessionKey);
+    savedScanRef.current = "";
+  }
 }
 
 function estimateImportCosts(car) {
@@ -268,4 +343,11 @@ function buildRuntimeInsights(opportunities, sourceMode) {
     `🎯 Riesgo estimado: ${best.memory.riskLevel}.`,
     best.memory.strategy.reason,
   ];
+}
+
+function normalizeForKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
 }
