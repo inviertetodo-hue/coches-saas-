@@ -22,9 +22,6 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         return;
       }
 
-      // IMPORTANTE:
-      // Limpia el feed anterior para que aparezca
-      // la pantalla de carga mientras busca.
       setMarketFeed(null);
 
       const maxBudget = Number(form.maxBudget || scan.maxBudget || 0);
@@ -42,11 +39,13 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             insights: [],
             sourceMode: "real-feed",
             realFeedErrors: realResult.errors,
+            realFeedDiagnostics: realResult.diagnostics,
           }
         : {
             ...generateMockMarketFeed(scan),
             sourceMode: "mock-fallback",
             realFeedErrors: realResult.errors,
+            realFeedDiagnostics: realResult.diagnostics,
           };
 
       function enrichDeal(item) {

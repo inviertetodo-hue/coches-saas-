@@ -176,13 +176,10 @@ function ScannerCoverageSection({ scan }) {
 
 function RealFeedDebugPanel({ marketFeed }) {
   const errors = marketFeed?.realFeedErrors || [];
+  const diagnostics = marketFeed?.realFeedDiagnostics || [];
   const sourceMode = marketFeed?.sourceMode || "unknown";
 
   if (import.meta.env.PROD) {
-    return null;
-  }
-
-  if (errors.length === 0 && sourceMode !== "real-feed") {
     return null;
   }
 
@@ -205,6 +202,37 @@ function RealFeedDebugPanel({ marketFeed }) {
               {error}
             </div>
           ))}
+        </div>
+      )}
+
+      {diagnostics.length > 0 && (
+        <div style={debugErrorsStyle}>
+          {diagnostics.map((item, index) => (
+            <div
+              key={`${item.source}-${item.country}-${index}`}
+              style={debugErrorItemStyle}
+            >
+              <strong>
+                {item.source} · {item.country}
+              </strong>
+
+              <div>Status: {item.status}</div>
+              <div>Resultados reales: {item.parsedCount}</div>
+              <div>Texto recibido: {item.textLength}</div>
+              <div>Tiempo: {item.durationMs} ms</div>
+              <div>{item.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {diagnostics.length === 0 && errors.length === 0 && (
+        <div style={debugErrorsStyle}>
+          <div style={debugErrorItemStyle}>
+            No hay diagnóstico disponible todavía. Esto indica que el resultado
+            actual probablemente viene del feed demo o que realMarketFeed todavía
+            no ha devuelto información diagnóstica.
+          </div>
         </div>
       )}
     </section>
