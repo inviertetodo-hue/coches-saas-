@@ -1,5 +1,6 @@
 import { calculateLearningBonus } from "./intelligence/marketLearningEngine";
 import { buildSuccessProbability } from "./intelligence/successProbabilityEngine";
+import { buildExecutiveBuySignal } from "./intelligence/executiveBuySignalEngine";
 
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
@@ -109,6 +110,14 @@ export function generateOpportunityRanking(analyses = []) {
         learning,
       });
 
+      const executiveBuySignal = buildExecutiveBuySignal({
+        executiveScore,
+        successProbability: successEngine.successProbability,
+        confidenceScore: learning.confidenceScore,
+        liquidityScore: clampScore(60 + liquidityBonus),
+        riskScore: clampScore(riskPenalty),
+      });
+
       return {
         id: item.id,
         title: title || "Vehículo IA",
@@ -136,9 +145,19 @@ export function generateOpportunityRanking(analyses = []) {
         successRiskLabel: successEngine.riskLabel,
         successSummary: successEngine.summary,
         successEngine,
+
+        executiveBuySignal,
+        executiveBuySignalScore: executiveBuySignal.finalScore,
+        executiveBuySignalLabel: executiveBuySignal.signal,
+        executiveBuySignalColor: executiveBuySignal.color,
+        executiveBuySignalSummary: executiveBuySignal.summary,
       };
     })
     .sort((a, b) => {
+      if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
+        return b.executiveBuySignalScore - a.executiveBuySignalScore;
+      }
+
       if (b.successProbability !== a.successProbability) {
         return b.successProbability - a.successProbability;
       }
@@ -163,7 +182,7 @@ export function generateOpportunityRanking(analyses = []) {
     topOpportunities.length > 0
       ? Math.round(
           topOpportunities.reduce(
-            (sum, item) => sum + item.successProbability,
+            (sum, item) => sum + item.executiveBuySignalScore,
             0
           ) / topOpportunities.length
         )
@@ -191,7 +210,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra alta probabilidad de éxito, aprendizaje histórico y buena prioridad comercial."
+      "🔥 El top de oportunidades muestra alta señal ejecutiva, probabilidad de éxito y aprendizaje histórico."
     );
   } else if (rankingScore >= 70) {
     insights.push(
@@ -227,6 +246,16 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
     );
   }
 
+  const hasExecutiveSignal = topOpportunities.some(
+    (item) => item.executiveBuySignalLabel
+  );
+
+  if (hasExecutiveSignal) {
+    insights.push(
+      "🎯 El ranking ya genera señal ejecutiva final: STRONG_BUY, BUY, WATCHLIST, AVOID o REJECT."
+    );
+  }
+
   const hasLowConfidence = topOpportunities.some(
     (item) => item.confidence < 50
   );
@@ -251,7 +280,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · probabilidad de éxito ${strongest.successProbability}/100 · señal ${strongest.buySignal}.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ejecutiva ${strongest.executiveBuySignalLabel} · score ${strongest.executiveBuySignalScore}/100.`
     );
   }
 
