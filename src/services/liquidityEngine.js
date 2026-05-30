@@ -1,3 +1,36 @@
+const MODEL_LIQUIDITY = {
+  "bmw x5 45e": {
+    label: "BMW X5 45e",
+    liquidityScore: 86,
+    expectedDaysToSell: 36,
+    demand: "Alta",
+    buyerPool: "Medio-alto",
+    risk: "Medio",
+    reason:
+      "SUV premium PHEV muy buscado por etiqueta, imagen y uso familiar. Tiene buena salida si precio, kilómetros e historial están bien filtrados.",
+  },
+  "audi q7 tfsie": {
+    label: "Audi Q7 TFSIe",
+    liquidityScore: 78,
+    expectedDaysToSell: 52,
+    demand: "Media-alta",
+    buyerPool: "Medio",
+    risk: "Medio-alto",
+    reason:
+      "SUV premium PHEV de alto ticket. Puede dejar margen, pero rota más lento que un X5 45e por precio, tamaño y coste de mantenimiento.",
+  },
+  "mercedes glc 300de": {
+    label: "Mercedes GLC 300de",
+    liquidityScore: 88,
+    expectedDaysToSell: 32,
+    demand: "Alta",
+    buyerPool: "Amplio",
+    risk: "Bajo-medio",
+    reason:
+      "PHEV premium con formato SUV medio, etiqueta favorable y ticket más asumible. Buena rotación si el historial es limpio.",
+  },
+};
+
 const LIQUIDITY_PROFILES = [
   {
     id: "toyota-hybrid",
@@ -79,6 +112,8 @@ export function buildLiquidityProfile(input = {}) {
   const semantic = input.semantic || {};
   const price = toNumber(item.price || input.price, 0);
 
+  const modelProfile = findModelLiquidityProfile(query, item);
+
   const matchedProfiles = LIQUIDITY_PROFILES.filter((profile) =>
     profile.keywords.some((keyword) => query.includes(normalizeText(keyword)))
   );
@@ -96,18 +131,33 @@ export function buildLiquidityProfile(input = {}) {
   }
 
   const cleanProfiles = removeDuplicates(matchedProfiles).filter(Boolean);
+  const fallbackProfile = cleanProfiles[0] || buildDefaultProfile(price);
+  const mainProfile = modelProfile || fallbackProfile;
 
-  const mainProfile = cleanProfiles[0] || buildDefaultProfile(price);
+  const profiles = modelProfile
+    ? removeDuplicates([modelProfile, ...cleanProfiles]).filter(Boolean)
+    : cleanProfiles.length > 0
+      ? cleanProfiles
+      : [mainProfile];
 
   return {
     mainProfile,
-    profiles: cleanProfiles.length > 0 ? cleanProfiles : [mainProfile],
+    profiles,
     liquidityScore: mainProfile.liquidityScore,
     expectedDaysToSell: mainProfile.expectedDaysToSell,
     demand: mainProfile.demand,
     buyerPool: mainProfile.buyerPool,
     risk: mainProfile.risk,
     summary: buildLiquiditySummary(mainProfile),
+    modelSpecificLiquidity: modelProfile
+      ? {
+          active: true,
+          model: modelProfile.modelKey,
+          phase: "6.5",
+        }
+      : {
+          active: false,
+        },
   };
 }
 
@@ -124,6 +174,35 @@ export function enrichDealsWithLiquidity(items = []) {
       }),
     };
   });
+}
+
+function findModelLiquidityProfile(query, item = {}) {
+  const text = normalizeText(
+    [
+      query,
+      item.title,
+      item.brand,
+      item.model,
+      item.engine,
+      item.fuelType,
+      item.performancePackage,
+    ].join(" ")
+  );
+
+  const match = Object.entries(MODEL_LIQUIDITY).find(([modelKey]) =>
+    text.includes(normalizeText(modelKey))
+  );
+
+  if (!match) return null;
+
+  const [modelKey, profile] = match;
+
+  return {
+    id: `model-${normalizeText(modelKey).replace(/\s+/g, "-")}`,
+    modelKey,
+    ...profile,
+    reason: `${profile.reason} Regla específica de liquidez por modelo activada.`,
+  };
 }
 
 function buildDefaultProfile(price) {
@@ -178,6 +257,8 @@ function normalizeText(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/+.]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
