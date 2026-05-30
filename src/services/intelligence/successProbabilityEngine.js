@@ -45,7 +45,6 @@ export function buildSuccessProbability({
   return {
     successProbability,
     buySignal: getBuySignal(successProbability),
-    estimatedSellDays: estimateSellDays(successProbability, confidenceScore),
     expectedROI: roi,
     expectedProfit: profit,
     confidenceScore,
@@ -87,14 +86,6 @@ function getBuySignal(probability) {
   if (probability >= 72) return "INTERESANTE";
   if (probability >= 58) return "VIGILAR";
   return "DÉBIL";
-}
-
-function estimateSellDays(probability, confidenceScore) {
-  if (confidenceScore < 50) return 75;
-  if (probability >= 85) return 28;
-  if (probability >= 72) return 42;
-  if (probability >= 58) return 60;
-  return 90;
 }
 
 function getRiskLabel(probability, confidenceScore) {
