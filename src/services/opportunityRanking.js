@@ -113,6 +113,10 @@ export function generateOpportunityRanking(analyses = []) {
 }
 
 function sortOpportunities(a, b) {
+  if (b.allocationScore !== a.allocationScore) {
+    return b.allocationScore - a.allocationScore;
+  }
+
   if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
     return b.executiveBuySignalScore - a.executiveBuySignalScore;
   }
@@ -156,9 +160,10 @@ function calculateRankingScore(topOpportunities = []) {
       return (
         sum +
         Math.round(
-          safeNumber(item.executiveBuySignalScore) * 0.5 +
-            safeNumber(item.capitalEfficiencyScore) * 0.25 +
-            safeNumber(item.marketTimingScore) * 0.25
+          safeNumber(item.allocationScore) * 0.45 +
+            safeNumber(item.executiveBuySignalScore) * 0.25 +
+            safeNumber(item.marketTimingScore) * 0.15 +
+            safeNumber(item.capitalEfficiencyScore) * 0.15
         )
       );
     }, 0) / topOpportunities.length
@@ -174,19 +179,45 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra alta señal ejecutiva, buen timing de entrada, eficiencia de capital, velocidad de venta y aprendizaje histórico."
+      "🔥 El top de oportunidades muestra alta prioridad de asignación de capital, señal ejecutiva fuerte, buen timing y eficiencia operativa."
     );
   } else if (rankingScore >= 70) {
     insights.push(
-      "🟢 Hay oportunidades interesantes, pero conviene validar timing, capital inmovilizado, liquidez y datos reales."
+      "🟢 Hay oportunidades interesantes, pero conviene validar asignación de capital, timing y riesgo de inventario."
     );
   } else if (rankingScore >= 50) {
     insights.push(
-      "🟡 El ranking tiene potencial, aunque todavía necesita operaciones más claras."
+      "🟡 El ranking tiene potencial, aunque todavía necesita oportunidades más claras para priorizar capital."
     );
   } else {
     insights.push(
-      "📊 El ranking aún no tiene suficiente fuerza: faltan mejores datos u oportunidades."
+      "📊 El ranking aún no tiene suficiente fuerza para una asignación de capital agresiva."
+    );
+  }
+
+  if (
+    topOpportunities.some((item) => Number(item.allocationScore || 0) > 0)
+  ) {
+    insights.push(
+      "💼 El ranking ya prioriza por Portfolio Allocation: dónde poner el dinero primero."
+    );
+  }
+
+  if (
+    topOpportunities.some(
+      (item) => item.allocationTier === "TIER_1" || item.allocationTier === "TIER_2"
+    )
+  ) {
+    insights.push(
+      "🚀 Hay oportunidades con prioridad clara de asignación de capital."
+    );
+  }
+
+  if (
+    topOpportunities.some((item) => item.allocationTier === "AVOID")
+  ) {
+    insights.push(
+      "🛑 Algunas oportunidades no justifican asignar capital ahora mismo."
     );
   }
 
@@ -255,18 +286,6 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   if (
     topOpportunities.some(
       (item) =>
-        item.capitalEfficiencyLabel === "CAPITAL_STAR" ||
-        item.capitalEfficiencyLabel === "EFFICIENT"
-    )
-  ) {
-    insights.push(
-      "🚀 Hay oportunidades donde el capital trabaja especialmente bien frente al tiempo de venta."
-    );
-  }
-
-  if (
-    topOpportunities.some(
-      (item) =>
         item.inventoryRiskLabel === "HIGH_RISK" ||
         item.inventoryRiskLabel === "CRITICAL_RISK"
     )
@@ -310,7 +329,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel} · eficiencia capital ${strongest.capitalEfficiencyScore}/100 · inventario ${strongest.inventoryRiskLabel}.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · allocation ${strongest.allocationTier} · score ${strongest.allocationScore}/100 · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel}.`
     );
   }
 
