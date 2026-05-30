@@ -11,6 +11,24 @@ import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 import { findOpportunities } from "../services/search/opportunityFinder";
 import { fetchRealMarketListings } from "../services/market/realMarketFeed";
 
+const MODEL_RULES = {
+  "bmw x5 45e": {
+    fuel: "PHEV",
+    minKw: 250,
+    maxKw: 330,
+  },
+  "audi q7 tfsie": {
+    fuel: "PHEV",
+    minKw: 250,
+    maxKw: 350,
+  },
+  "mercedes glc 300de": {
+    fuel: "PHEV",
+    minKw: 180,
+    maxKw: 260,
+  },
+};
+
 export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   const [marketFeed, setMarketFeed] = useState(null);
   const savedScanRef = useRef("");
@@ -50,6 +68,13 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             realFeedDiagnostics: realResult.diagnostics,
           };
 
+      const modelRule = findModelRule(form.query || scan.query);
+      const modelFilteredOpportunities = modelRule
+        ? rawFeed.opportunities.filter((item) =>
+            validateSpecificModelRule(item, modelRule)
+          )
+        : rawFeed.opportunities;
+
       function enrichDeal(item) {
         const estimatedMarketPrice =
           item.estimatedMarketPrice ||
@@ -76,9 +101,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         const netProfit =
           typeof item.netProfit === "number"
             ? item.netProfit
-            : Math.round(
-                Number(analysis.estimatedProfit || 0) - netCosts.total
-              );
+            : Math.round(Number(analysis.estimatedProfit || 0) - netCosts.total);
 
         const netRoi =
           typeof item.netRoi === "number"
@@ -120,10 +143,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           location: item.location,
           source: item.source || "market-feed",
           isValid: Boolean(
-            item.title &&
-              item.price &&
-              (item.km || item.mileage) &&
-              item.year
+            item.title && item.price && (item.km || item.mileage) && item.year
           ),
         };
 
@@ -165,10 +185,16 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           dealRisk,
           liquidity,
           finalDecision,
+          modelSpecificValidation: modelRule
+            ? {
+                rule: modelRule.key,
+                status: "passed",
+              }
+            : null,
         };
       }
 
-      const opportunities = rawFeed.opportunities
+      const opportunities = modelFilteredOpportunities
         .map(enrichDeal)
         .sort((a, b) => b.finalDecision.finalScore - a.finalDecision.finalScore);
 
@@ -196,6 +222,20 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         opportunities,
         best,
         insights: buildRuntimeInsights(opportunities, rawFeed.sourceMode),
+        realFeedDiagnostics: {
+          ...(rawFeed.realFeedDiagnostics || {}),
+          modelSpecificFilter: modelRule
+            ? {
+                active: true,
+                rule: modelRule.key,
+                before: rawFeed.opportunities.length,
+                after: opportunities.length,
+                discarded: rawFeed.opportunities.length - opportunities.length,
+              }
+            : {
+                active: false,
+              },
+        },
         opportunityEnginePreview,
         opportunityEngineSummary: {
           total: opportunityEnginePreview.length,
@@ -227,6 +267,97 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   }, [form.query, form.maxBudget, scan, searchTriggered]);
 
   return marketFeed;
+}
+
+function findModelRule(query) {
+  const normalizedQuery = normalizeForModelRule(query);
+
+  const match = Object.entries(MODEL_RULES).find(([key]) =>
+    normalizedQuery.includes(normalizeForModelRule(key))
+  );
+
+  if (!match) return null;
+
+  return {
+    key: match[0],
+    ...match[1],
+  };
+}
+
+function validateSpecificModelRule(item, rule) {
+  const fuel = inferFuelType(item);
+  const kw = inferKw(item);
+
+  if (rule.fuel && fuel !== rule.fuel) return false;
+  if (!Number.isFinite(kw)) return false;
+  if (typeof rule.minKw === "number" && kw < rule.minKw) return false;
+  if (typeof rule.maxKw === "number" && kw > rule.maxKw) return false;
+
+  return true;
+}
+
+function inferFuelType(item) {
+  const text = normalizeForModelRule(
+    [
+      item.title,
+      item.fuelType,
+      item.fuel,
+      item.engine,
+      item.description,
+      item.power,
+    ].join(" ")
+  );
+
+  if (
+    text.includes("phev") ||
+    text.includes("plug in hybrid") ||
+    text.includes("plugin hybrid") ||
+    text.includes("plug in") ||
+    text.includes("tfsie") ||
+    text.includes("tfsi e") ||
+    text.includes("45e") ||
+    text.includes("50e") ||
+    text.includes("300de") ||
+    text.includes("300e") ||
+    text.includes("350de") ||
+    text.includes("350e")
+  ) {
+    return "PHEV";
+  }
+
+  if (text.includes("hybrid") || text.includes("hibrido")) return "Hybrid";
+  if (text.includes("electric") || text.includes("electrico") || text.includes("ev")) return "EV";
+  if (text.includes("diesel") || text.includes("tdi") || text.includes("dci") || text.includes("hdi")) return "Diesel";
+  if (text.includes("gasolina") || text.includes("petrol") || text.includes("tfsi") || text.includes("tsi")) return "Gasolina";
+
+  return "";
+}
+
+function inferKw(item) {
+  const directKw = Number(
+    item.kw ||
+      item.powerKw ||
+      item.power_kw ||
+      item.engineKw ||
+      item.engine_kw ||
+      item.power
+  );
+
+  if (Number.isFinite(directKw) && directKw > 40 && directKw < 600) {
+    return directKw;
+  }
+
+  const text = normalizeForModelRule(
+    [item.title, item.engine, item.description, item.power].join(" ")
+  );
+
+  const kwMatch = text.match(/\b(\d{2,3})\s?kw\b/);
+  if (kwMatch) return Number(kwMatch[1]);
+
+  const cvMatch = text.match(/\b(\d{2,3})\s?(cv|ps|hp)\b/);
+  if (cvMatch) return Math.round(Number(cvMatch[1]) * 0.7355);
+
+  return NaN;
 }
 
 async function saveBestRealOpportunityToMarketMemory({
@@ -304,12 +435,7 @@ function estimateImportCosts(car) {
   const riskBuffer = car.price >= 70000 ? 1800 : 900;
 
   const total =
-    transport +
-    registration +
-    gestor +
-    inspection +
-    detailing +
-    riskBuffer;
+    transport + registration + gestor + inspection + detailing + riskBuffer;
 
   return {
     transport,
@@ -350,4 +476,14 @@ function normalizeForKey(value) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "-");
+}
+
+function normalizeForModelRule(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/+.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
