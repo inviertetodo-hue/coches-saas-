@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from "react";
+
 import MarketFeedSection from "./MarketFeedSection";
 import AIInsightsSection from "./AIInsightsSection";
 import SearchRadarSection from "./SearchRadarSection";
@@ -31,8 +33,42 @@ export default function ScannerResultsSection({
 }
 
 function ScannerLoadingSection({ scan }) {
+  const [seconds, setSeconds] = useState(8);
+
   const searchLinks = scan?.searchLinks || [];
   const countries = [...new Set(searchLinks.map((item) => item.country))];
+
+  const loadingSteps = useMemo(
+    () => [
+      "Consultando mobile.de",
+      "Consultando AutoScout24",
+      "Analizando precios europeos",
+      "Calculando liquidez",
+      "Evaluando riesgo",
+      "Generando ranking IA",
+    ],
+    []
+  );
+
+  useEffect(() => {
+    setSeconds(8);
+
+    const interval = window.setInterval(() => {
+      setSeconds((current) => {
+        if (current <= 1) return 1;
+
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [scan?.query, scan?.country, scan?.maxBudget]);
+
+  const progress = Math.min(100, Math.max(12, Math.round(((9 - seconds) / 8) * 100)));
+  const activeStepIndex = Math.min(
+    loadingSteps.length - 1,
+    Math.floor((progress / 100) * loadingSteps.length)
+  );
 
   return (
     <section style={loadingStyle}>
@@ -50,11 +86,33 @@ function ScannerLoadingSection({ scan }) {
           en los principales mercados europeos.
         </p>
 
+        <div style={progressTrackStyle}>
+          <div
+            style={{
+              ...progressBarStyle,
+              width: `${progress}%`,
+            }}
+          />
+        </div>
+
+        <div style={progressMetaStyle}>
+          <span>{progress}% completado</span>
+          <span>{seconds} segundos</span>
+        </div>
+
         <div style={loadingStepsStyle}>
-          <span>🔎 Consultando fuentes europeas</span>
-          <span>🚗 Analizando anuncios</span>
-          <span>🧠 Preparando ranking IA</span>
-          <span>📊 Calculando rentabilidad</span>
+          {loadingSteps.map((step, index) => (
+            <span
+              key={step}
+              style={{
+                ...stepPillStyle,
+                ...(index <= activeStepIndex ? activeStepActiveStyle : {}),
+              }}
+            >
+              {index < activeStepIndex ? "✓" : index === activeStepIndex ? "⏳" : "○"}{" "}
+              {step}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -155,13 +213,53 @@ const loadingTextStyle = {
   fontWeight: "700",
 };
 
+const progressTrackStyle = {
+  marginTop: "18px",
+  width: "100%",
+  height: "12px",
+  borderRadius: "999px",
+  background: "rgba(15,23,42,0.72)",
+  overflow: "hidden",
+  border: "1px solid rgba(147,197,253,0.18)",
+};
+
+const progressBarStyle = {
+  height: "100%",
+  borderRadius: "999px",
+  background: "linear-gradient(90deg,#38bdf8,#22c55e,#fde047)",
+  transition: "width 0.45s ease",
+};
+
+const progressMetaStyle = {
+  marginTop: "8px",
+  display: "flex",
+  justifyContent: "space-between",
+  color: "#bfdbfe",
+  fontSize: "12px",
+  fontWeight: "900",
+};
+
 const loadingStepsStyle = {
   marginTop: "16px",
   display: "flex",
   flexWrap: "wrap",
   gap: "10px",
-  color: "#bfdbfe",
+};
+
+const stepPillStyle = {
+  padding: "9px 12px",
+  borderRadius: "999px",
+  background: "rgba(15,23,42,0.52)",
+  border: "1px solid rgba(148,163,184,0.18)",
+  color: "#94a3b8",
   fontWeight: "900",
+  fontSize: "12px",
+};
+
+const stepPillActiveStyle = {
+  color: "#dcfce7",
+  background: "rgba(34,197,94,0.16)",
+  border: "1px solid rgba(34,197,94,0.28)",
 };
 
 const loadingStatsStyle = {
