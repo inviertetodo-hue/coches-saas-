@@ -1,5 +1,5 @@
 export function buildMarketLearning(analyses = []) {
-  if (!Array.isArray(analyses)) {
+  if (!Array.isArray(analyses) || analyses.length === 0) {
     return createEmptyLearning();
   }
 
@@ -11,44 +11,303 @@ export function buildMarketLearning(analyses = []) {
     return createEmptyLearning();
   }
 
-  const brandLearning = buildGroupedLearning(cleanAnalyses, "brand");
   const modelLearning = buildModelLearning(cleanAnalyses);
-  const roiRangeLearning = buildRangeLearning(cleanAnalyses, "roi", getROIRange);
-  const scoreRangeLearning = buildRangeLearning(cleanAnalyses, "score", getScoreRange);
-  const profitRangeLearning = buildRangeLearning(cleanAnalyses, "profit", getProfitRange);
-
-  const learningInsights = buildLearningInsights({
-    brandLearning,
-    modelLearning,
-    roiRangeLearning,
-    scoreRangeLearning,
-    profitRangeLearning,
-  });
+  const brandLearning = buildBrandLearning(cleanAnalyses);
+  const globalLearning = buildGlobalLearning(cleanAnalyses);
 
   return {
     totalAnalyses: cleanAnalyses.length,
-    learningLevel: detectLearningLevel(cleanAnalyses.length),
-    brandLearning,
+    globalLearning,
     modelLearning,
-    roiRangeLearning,
-    scoreRangeLearning,
-    profitRangeLearning,
-    learningInsights,
+    brandLearning,
+    historicalModelMemory: modelLearning,
+    strongestModel: modelLearning[0] || null,
+    strongestBrand: brandLearning[0] || null,
+    learningSignals: buildLearningSignals({
+      globalLearning,
+      modelLearning,
+      brandLearning,
+    }),
+  };
+}
+
+export function calculateLearningBonus({
+  vehicle = {},
+  historicalModelMemory = [],
+} = {}) {
+  if (!Array.isArray(historicalModelMemory)) {
+    return buildEmptyLearningResult();
+  }
+
+  const vehicleText = normalize(
+    [vehicle.title, vehicle.brand, vehicle.model, vehicle.engine]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+  const historicalMatch = historicalModelMemory.find((item) => {
+    const modelText = normalize(item.model || item.label || "");
+    return modelText && vehicleText.includes(modelText);
+  });
+
+  if (!historicalMatch) {
+    return buildEmptyLearningResult();
+  }
+
+  let learningBonus = 0;
+  const signals = [];
+
+  if (historicalMatch.averageROI >= 12 && historicalMatch.confidenceScore >= 70) {
+    learningBonus += 6;
+    signals.push("Histórico sólido: ROI medio elevado y confianza suficiente.");
+  }
+
+  if (historicalMatch.averageROI >= 18 && historicalMatch.confidenceScore >= 90) {
+    learningBonus += 4;
+    signals.push("Modelo históricamente muy rentable.");
+  }
+
+  if (historicalMatch.averageROI < 5 && historicalMatch.confidenceScore >= 70) {
+    learningBonus -= 6;
+    signals.push("Histórico débil: ROI medio insuficiente.");
+  }
+
+  if (
+    historicalMatch.averageProfit >= 5000 &&
+    historicalMatch.confidenceScore >= 70
+  ) {
+    learningBonus += 3;
+    signals.push("Beneficio medio histórico atractivo.");
+  }
+
+  if (
+    historicalMatch.averageProfit < 1000 &&
+    historicalMatch.confidenceScore >= 70
+  ) {
+    learningBonus -= 3;
+    signals.push("Beneficio histórico limitado.");
+  }
+
+  return {
+    active: true,
+    model: historicalMatch.model || historicalMatch.label,
+    analyses: historicalMatch.analyses || historicalMatch.count || 0,
+    confidence: historicalMatch.confidence || "Media",
+    confidenceScore: historicalMatch.confidenceScore || 0,
+    averageROI: historicalMatch.averageROI || 0,
+    averageProfit: historicalMatch.averageProfit || 0,
+    learningBonus,
+    signals,
+  };
+}
+
+export function applyLearningBonus({
+  score = 0,
+  vehicle = {},
+  historicalModelMemory = [],
+} = {}) {
+  const learning = calculateLearningBonus({
+    vehicle,
+    historicalModelMemory,
+  });
+
+  const finalScore = clamp(Math.round(score + learning.learningBonus), 0, 100);
+
+  return {
+    finalScore,
+    learning,
+  };
+}
+
+function buildModelLearning(items) {
+  const groups = {};
+
+  for (const item of items) {
+    if (!item.brand || !item.model) continue;
+
+    const key = `${item.brand}|||${item.model}`;
+    const label = `${item.brand} ${item.model}`;
+
+    if (!groups[key]) {
+      groups[key] = createLearningGroup(label, {
+        brand: item.brand,
+        modelName: item.model,
+      });
+    }
+
+    addToLearningGroup(groups[key], item);
+  }
+
+  return finalizeLearningGroups(groups);
+}
+
+function buildBrandLearning(items) {
+  const groups = {};
+
+  for (const item of items) {
+    if (!item.brand) continue;
+
+    if (!groups[item.brand]) {
+      groups[item.brand] = createLearningGroup(item.brand, {
+        brand: item.brand,
+      });
+    }
+
+    addToLearningGroup(groups[item.brand], item);
+  }
+
+  return finalizeLearningGroups(groups);
+}
+
+function buildGlobalLearning(items) {
+  const averageScore = calculateAverage(items, "score");
+  const averageROI = calculateAverage(items, "roi");
+  const averageProfit = calculateAverage(items, "profit");
+
+  return {
+    averageScore,
+    averageROI,
+    averageProfit,
+    confidence:
+      items.length >= 30 ? "Alta" : items.length >= 10 ? "Media" : "Baja",
+    confidenceScore:
+      items.length >= 30 ? 90 : items.length >= 10 ? 70 : 40,
+  };
+}
+
+function createLearningGroup(label, extra = {}) {
+  return {
+    label,
+    model: label,
+    count: 0,
+    analyses: 0,
+    totalScore: 0,
+    totalROI: 0,
+    totalProfit: 0,
+    bestScore: 0,
+    bestROI: 0,
+    ...extra,
+  };
+}
+
+function addToLearningGroup(group, item) {
+  const score = safeNumber(item.score);
+  const roi = safeNumber(item.roi);
+  const profit = safeNumber(item.profit);
+
+  group.count += 1;
+  group.analyses += 1;
+  group.totalScore += score;
+  group.totalROI += roi;
+  group.totalProfit += profit;
+  group.bestScore = Math.max(group.bestScore, score);
+  group.bestROI = Math.max(group.bestROI, roi);
+}
+
+function finalizeLearningGroups(groups) {
+  return Object.values(groups)
+    .map((group) => {
+      const averageScore = Math.round(group.totalScore / group.count);
+      const averageROI = Math.round(group.totalROI / group.count);
+      const averageProfit = Math.round(group.totalProfit / group.count);
+      const confidence = getConfidence(group.count);
+
+      return {
+        ...group,
+        averageScore,
+        averageROI,
+        averageProfit,
+        confidence: confidence.label,
+        confidenceScore: confidence.score,
+        learningBonus: calculateGroupLearningBonus({
+          averageROI,
+          averageProfit,
+          confidenceScore: confidence.score,
+        }),
+      };
+    })
+    .sort((a, b) => {
+      if (b.confidenceScore !== a.confidenceScore) {
+        return b.confidenceScore - a.confidenceScore;
+      }
+
+      if (b.averageROI !== a.averageROI) {
+        return b.averageROI - a.averageROI;
+      }
+
+      return b.averageProfit - a.averageProfit;
+    })
+    .slice(0, 20);
+}
+
+function calculateGroupLearningBonus({
+  averageROI,
+  averageProfit,
+  confidenceScore,
+}) {
+  let bonus = 0;
+
+  if (averageROI >= 12 && confidenceScore >= 70) bonus += 6;
+  if (averageROI >= 18 && confidenceScore >= 90) bonus += 4;
+  if (averageROI < 5 && confidenceScore >= 70) bonus -= 6;
+  if (averageProfit >= 5000 && confidenceScore >= 70) bonus += 3;
+  if (averageProfit < 1000 && confidenceScore >= 70) bonus -= 3;
+
+  return bonus;
+}
+
+function buildLearningSignals({ globalLearning, modelLearning, brandLearning }) {
+  const signals = [];
+
+  signals.push(
+    `Histórico global: ROI medio ${globalLearning.averageROI}%, beneficio medio ${globalLearning.averageProfit} € y confianza ${globalLearning.confidence.toLowerCase()}.`
+  );
+
+  if (modelLearning[0]) {
+    signals.push(
+      `Modelo líder aprendido: ${modelLearning[0].label} con ROI medio ${modelLearning[0].averageROI}% y confianza ${modelLearning[0].confidence.toLowerCase()}.`
+    );
+  }
+
+  if (brandLearning[0]) {
+    signals.push(
+      `Marca líder aprendida: ${brandLearning[0].label} con ROI medio ${brandLearning[0].averageROI}%.`
+    );
+  }
+
+  return signals;
+}
+
+function buildEmptyLearningResult() {
+  return {
+    active: false,
+    model: null,
+    analyses: 0,
+    confidence: "Sin datos",
+    confidenceScore: 0,
+    averageROI: 0,
+    averageProfit: 0,
+    learningBonus: 0,
+    signals: [],
   };
 }
 
 function createEmptyLearning() {
   return {
     totalAnalyses: 0,
-    learningLevel: "Sin datos",
-    brandLearning: [],
+    globalLearning: {
+      averageScore: 0,
+      averageROI: 0,
+      averageProfit: 0,
+      confidence: "Sin datos",
+      confidenceScore: 0,
+    },
     modelLearning: [],
-    roiRangeLearning: [],
-    scoreRangeLearning: [],
-    profitRangeLearning: [],
-    learningInsights: [
-      "Todavía no hay datos suficientes para aprender patrones de mercado.",
-    ],
+    brandLearning: [],
+    historicalModelMemory: [],
+    strongestModel: null,
+    strongestBrand: null,
+    learningSignals: [],
   };
 }
 
@@ -64,217 +323,35 @@ function normalizeAnalysis(item) {
   };
 }
 
-function buildGroupedLearning(items, field) {
-  const groups = {};
+function calculateAverage(items, field) {
+  if (!items.length) return 0;
 
-  for (const item of items) {
-    const key = cleanKnownValue(item[field]);
+  const total = items.reduce((acc, item) => {
+    return acc + safeNumber(item[field]);
+  }, 0);
 
-    if (!key) continue;
-
-    if (!groups[key]) {
-      groups[key] = createLearningGroup(key);
-    }
-
-    addItemToLearningGroup(groups[key], item);
-  }
-
-  return finalizeLearningGroups(groups);
+  return Math.round(total / items.length);
 }
 
-function buildModelLearning(items) {
-  const groups = {};
-
-  for (const item of items) {
-    if (!item.brand || !item.model) continue;
-
-    const key = `${item.brand} ${item.model}`;
-
-    if (!groups[key]) {
-      groups[key] = createLearningGroup(key);
-    }
-
-    addItemToLearningGroup(groups[key], item);
+function getConfidence(count) {
+  if (count >= 15) {
+    return {
+      label: "Alta",
+      score: 90,
+    };
   }
 
-  return finalizeLearningGroups(groups);
-}
-
-function buildRangeLearning(items, field, rangeBuilder) {
-  const groups = {};
-
-  for (const item of items) {
-    const value = safeNumber(item[field]);
-    const key = rangeBuilder(value);
-
-    if (!key) continue;
-
-    if (!groups[key]) {
-      groups[key] = createLearningGroup(key);
-    }
-
-    addItemToLearningGroup(groups[key], item);
+  if (count >= 5) {
+    return {
+      label: "Media",
+      score: 70,
+    };
   }
 
-  return finalizeLearningGroups(groups);
-}
-
-function createLearningGroup(label) {
   return {
-    label,
-    count: 0,
-    totalScore: 0,
-    totalROI: 0,
-    totalProfit: 0,
-    bestScore: 0,
-    bestROI: 0,
-    bestProfit: 0,
+    label: "Baja",
+    score: 40,
   };
-}
-
-function addItemToLearningGroup(group, item) {
-  const score = safeNumber(item.score);
-  const roi = safeNumber(item.roi);
-  const profit = safeNumber(item.profit);
-
-  group.count += 1;
-  group.totalScore += score;
-  group.totalROI += roi;
-  group.totalProfit += profit;
-  group.bestScore = Math.max(group.bestScore, score);
-  group.bestROI = Math.max(group.bestROI, roi);
-  group.bestProfit = Math.max(group.bestProfit, profit);
-}
-
-function finalizeLearningGroups(groups) {
-  return Object.values(groups)
-    .map((group) => {
-      const averageScore = Math.round(group.totalScore / group.count);
-      const averageROI = Math.round(group.totalROI / group.count);
-      const averageProfit = Math.round(group.totalProfit / group.count);
-      const learningScore = calculateLearningScore({
-        count: group.count,
-        averageScore,
-        averageROI,
-        averageProfit,
-      });
-
-      return {
-        ...group,
-        averageScore,
-        averageROI,
-        averageProfit,
-        learningScore,
-        learningSignal: detectLearningSignal(learningScore),
-      };
-    })
-    .sort((a, b) => {
-      if (b.learningScore !== a.learningScore) {
-        return b.learningScore - a.learningScore;
-      }
-
-      if (b.count !== a.count) {
-        return b.count - a.count;
-      }
-
-      return b.averageProfit - a.averageProfit;
-    })
-    .slice(0, 10);
-}
-
-function calculateLearningScore({ count, averageScore, averageROI, averageProfit }) {
-  const volumeBonus = Math.min(count * 4, 20);
-  const profitScore = Math.min(Math.max(averageProfit / 100, 0), 35);
-  const roiScore = Math.min(Math.max(averageROI, 0), 35);
-  const qualityScore = Math.min(Math.max(averageScore / 4, 0), 25);
-
-  return Math.round(volumeBonus + profitScore + roiScore + qualityScore);
-}
-
-function detectLearningSignal(score) {
-  if (score >= 85) return "Muy fuerte";
-  if (score >= 70) return "Fuerte";
-  if (score >= 55) return "Interesante";
-  if (score >= 35) return "Inicial";
-  return "Débil";
-}
-
-function detectLearningLevel(total) {
-  if (total >= 50) return "Avanzado";
-  if (total >= 20) return "Sólido";
-  if (total >= 8) return "Inicial";
-  if (total > 0) return "Aprendiendo";
-  return "Sin datos";
-}
-
-function buildLearningInsights({
-  brandLearning,
-  modelLearning,
-  roiRangeLearning,
-  scoreRangeLearning,
-  profitRangeLearning,
-}) {
-  const insights = [];
-
-  if (brandLearning[0]) {
-    insights.push(
-      `Marca con mejor patrón aprendido: ${brandLearning[0].label} (${brandLearning[0].learningSignal}).`
-    );
-  }
-
-  if (modelLearning[0]) {
-    insights.push(
-      `Modelo con mejor patrón aprendido: ${modelLearning[0].label} (${modelLearning[0].learningSignal}).`
-    );
-  }
-
-  if (roiRangeLearning[0]) {
-    insights.push(
-      `Rango ROI más favorable: ${roiRangeLearning[0].label}.`
-    );
-  }
-
-  if (scoreRangeLearning[0]) {
-    insights.push(
-      `Rango Score más favorable: ${scoreRangeLearning[0].label}.`
-    );
-  }
-
-  if (profitRangeLearning[0]) {
-    insights.push(
-      `Rango de beneficio más favorable: ${profitRangeLearning[0].label}.`
-    );
-  }
-
-  if (!insights.length) {
-    insights.push("Todavía no hay patrones de aprendizaje suficientes.");
-  }
-
-  return insights;
-}
-
-function getROIRange(value) {
-  if (value >= 30) return "ROI 30%+";
-  if (value >= 20) return "ROI 20%-29%";
-  if (value >= 10) return "ROI 10%-19%";
-  if (value >= 0) return "ROI 0%-9%";
-  return "ROI negativo";
-}
-
-function getScoreRange(value) {
-  if (value >= 85) return "Score 85+";
-  if (value >= 70) return "Score 70-84";
-  if (value >= 55) return "Score 55-69";
-  if (value >= 0) return "Score 0-54";
-  return "";
-}
-
-function getProfitRange(value) {
-  if (value >= 5000) return "Beneficio 5000€+";
-  if (value >= 2500) return "Beneficio 2500€-4999€";
-  if (value >= 1000) return "Beneficio 1000€-2499€";
-  if (value >= 0) return "Beneficio 0€-999€";
-  return "Beneficio negativo";
 }
 
 function cleanText(value) {
@@ -284,29 +361,36 @@ function cleanText(value) {
 function cleanKnownValue(value) {
   const cleaned = cleanText(value);
 
-  if (!isUsefulValue(cleaned)) {
+  if (!cleaned) return "";
+
+  const normalized = cleaned.toLowerCase();
+
+  if (
+    ["unknown", "vehicle", "vehículo ia", "sin datos", "null", "undefined"].includes(
+      normalized
+    )
+  ) {
     return "";
   }
 
   return cleaned;
 }
 
-function isUsefulValue(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-
-  if (!normalized) return false;
-
-  return ![
-    "unknown",
-    "vehicle",
-    "vehículo ia",
-    "sin datos",
-    "null",
-    "undefined",
-  ].includes(normalized);
+function normalize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/+.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function safeNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value), max);
 }
