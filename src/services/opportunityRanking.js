@@ -1,4 +1,5 @@
 import { calculateLearningBonus } from "./intelligence/marketLearningEngine";
+import { buildSuccessProbability } from "./intelligence/successProbabilityEngine";
 
 export function generateOpportunityRanking(analyses = []) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
@@ -93,6 +94,21 @@ export function generateOpportunityRanking(analyses = []) {
         )
       );
 
+      const successEngine = buildSuccessProbability({
+        opportunity: {
+          score,
+          roi,
+          profit,
+          priorityScore,
+          executiveScore,
+          learningBonus: learning.learningBonus,
+          historicalConfidenceScore: learning.confidenceScore,
+          historicalAverageROI: learning.averageROI,
+          historicalAverageProfit: learning.averageProfit,
+        },
+        learning,
+      });
+
       return {
         id: item.id,
         title: title || "Vehículo IA",
@@ -111,9 +127,22 @@ export function generateOpportunityRanking(analyses = []) {
         historicalAverageROI: learning.averageROI,
         historicalAverageProfit: learning.averageProfit,
         learningSignals: learning.signals,
+
+        successProbability: successEngine.successProbability,
+        buySignal: successEngine.buySignal,
+        estimatedSellDays: successEngine.estimatedSellDays,
+        expectedROI: successEngine.expectedROI,
+        expectedProfit: successEngine.expectedProfit,
+        successRiskLabel: successEngine.riskLabel,
+        successSummary: successEngine.summary,
+        successEngine,
       };
     })
     .sort((a, b) => {
+      if (b.successProbability !== a.successProbability) {
+        return b.successProbability - a.successProbability;
+      }
+
       if (b.executiveScore !== a.executiveScore) {
         return b.executiveScore - a.executiveScore;
       }
@@ -134,7 +163,7 @@ export function generateOpportunityRanking(analyses = []) {
     topOpportunities.length > 0
       ? Math.round(
           topOpportunities.reduce(
-            (sum, item) => sum + item.executiveScore,
+            (sum, item) => sum + item.successProbability,
             0
           ) / topOpportunities.length
         )
@@ -162,7 +191,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra calidad alta, aprendizaje histórico y buena prioridad comercial."
+      "🔥 El top de oportunidades muestra alta probabilidad de éxito, aprendizaje histórico y buena prioridad comercial."
     );
   } else if (rankingScore >= 70) {
     insights.push(
@@ -185,6 +214,16 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   if (hasLearning) {
     insights.push(
       "🧠 El ranking ya incorpora aprendizaje histórico por modelo en la prioridad ejecutiva."
+    );
+  }
+
+  const hasSuccessProbability = topOpportunities.some(
+    (item) => Number(item.successProbability || 0) > 0
+  );
+
+  if (hasSuccessProbability) {
+    insights.push(
+      "🔮 El ranking ya utiliza probabilidad de éxito, señal de compra y días estimados de venta."
     );
   }
 
@@ -212,7 +251,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · executive score ${strongest.executiveScore}/100.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · probabilidad de éxito ${strongest.successProbability}/100 · señal ${strongest.buySignal}.`
     );
   }
 
