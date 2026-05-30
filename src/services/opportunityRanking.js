@@ -117,6 +117,10 @@ function sortOpportunities(a, b) {
     return b.executiveBuySignalScore - a.executiveBuySignalScore;
   }
 
+  if (b.marketTimingScore !== a.marketTimingScore) {
+    return b.marketTimingScore - a.marketTimingScore;
+  }
+
   if (b.capitalEfficiencyScore !== a.capitalEfficiencyScore) {
     return b.capitalEfficiencyScore - a.capitalEfficiencyScore;
   }
@@ -152,8 +156,9 @@ function calculateRankingScore(topOpportunities = []) {
       return (
         sum +
         Math.round(
-          safeNumber(item.executiveBuySignalScore) * 0.65 +
-            safeNumber(item.capitalEfficiencyScore) * 0.35
+          safeNumber(item.executiveBuySignalScore) * 0.5 +
+            safeNumber(item.capitalEfficiencyScore) * 0.25 +
+            safeNumber(item.marketTimingScore) * 0.25
         )
       );
     }, 0) / topOpportunities.length
@@ -169,11 +174,11 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra alta señal ejecutiva, buena eficiencia de capital, velocidad de venta y aprendizaje histórico."
+      "🔥 El top de oportunidades muestra alta señal ejecutiva, buen timing de entrada, eficiencia de capital, velocidad de venta y aprendizaje histórico."
     );
   } else if (rankingScore >= 70) {
     insights.push(
-      "🟢 Hay oportunidades interesantes, pero conviene validar capital inmovilizado, liquidez y datos reales."
+      "🟢 Hay oportunidades interesantes, pero conviene validar timing, capital inmovilizado, liquidez y datos reales."
     );
   } else if (rankingScore >= 50) {
     insights.push(
@@ -239,6 +244,16 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (
     topOpportunities.some(
+      (item) => Number(item.marketTimingScore || 0) > 0
+    )
+  ) {
+    insights.push(
+      "⏰ El ranking ya incorpora Market Timing para detectar si el momento de entrada es favorable."
+    );
+  }
+
+  if (
+    topOpportunities.some(
       (item) =>
         item.capitalEfficiencyLabel === "CAPITAL_STAR" ||
         item.capitalEfficiencyLabel === "EFFICIENT"
@@ -258,6 +273,18 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   ) {
     insights.push(
       "📦 Hay oportunidades con riesgo de inventario alto. Revisa rotación y capital inmovilizado."
+    );
+  }
+
+  if (
+    topOpportunities.some(
+      (item) =>
+        item.marketTimingLabel === "WAIT" ||
+        item.marketTimingLabel === "AVOID"
+    )
+  ) {
+    insights.push(
+      "⏳ Algunas oportunidades necesitan mejor timing antes de entrar. No todo buen coche es buena compra hoy."
     );
   }
 
@@ -283,7 +310,7 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ${strongest.executiveBuySignalLabel} · eficiencia capital ${strongest.capitalEfficiencyScore}/100 · inventario ${strongest.inventoryRiskLabel}.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel} · eficiencia capital ${strongest.capitalEfficiencyScore}/100 · inventario ${strongest.inventoryRiskLabel}.`
     );
   }
 
