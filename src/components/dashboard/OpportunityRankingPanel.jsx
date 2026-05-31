@@ -8,6 +8,9 @@ export default function OpportunityRankingPanel({ ranking }) {
   const bestScore = topOpportunities[0]?.score || 0;
   const bestExecutiveScore = topOpportunities[0]?.executiveScore || 0;
   const bestSuccessProbability = topOpportunities[0]?.successProbability || 0;
+  const bestAllocationScore = topOpportunities[0]?.allocationScore || 0;
+  const bestAllocationTier = topOpportunities[0]?.allocationTier || "Sin datos";
+
   const bestROI = Math.max(
     ...topOpportunities.map((item) => Number(item.roi || 0)),
     0
@@ -19,22 +22,23 @@ export default function OpportunityRankingPanel({ ranking }) {
 
   return (
     <div style={containerStyle}>
-      <h2 style={titleStyle}>🏆 Opportunity Ranking V4</h2>
+      <h2 style={titleStyle}>🏆 Opportunity Ranking V5</h2>
 
       <p style={subtitleStyle}>
-        Ranking ejecutivo con score IA, aprendizaje histórico, probabilidad de
-        éxito, señal de compra y tiempo estimado de venta.
+        Ranking ejecutivo con asignación de capital, score IA, aprendizaje
+        histórico, probabilidad de éxito, timing, señal de compra y tiempo
+        estimado de venta.
       </p>
 
       <div style={gridStyle}>
         <MetricCard
-          label="Success Probability"
-          value={`${bestSuccessProbability}/100`}
+          label="Allocation Score"
+          value={`${bestAllocationScore}/100`}
         />
 
         <MetricCard
-          label="Executive Score"
-          value={`${bestExecutiveScore}/100`}
+          label="Allocation Tier"
+          value={bestAllocationTier}
         />
 
         <MetricCard
@@ -43,8 +47,8 @@ export default function OpportunityRankingPanel({ ranking }) {
         />
 
         <MetricCard
-          label="Mejor ROI"
-          value={`${bestROI}%`}
+          label="Success Probability"
+          value={`${bestSuccessProbability}/100`}
         />
       </div>
 
@@ -62,15 +66,15 @@ export default function OpportunityRankingPanel({ ranking }) {
         />
 
         <HighlightCard
-          title="Modo decisión"
-          value={getDecisionMode(topOpportunities)}
-          text="Lectura rápida para priorizar compra, análisis o descarte."
+          title="Executive Score"
+          value={`${bestExecutiveScore}/100`}
+          text="Fuerza ejecutiva de la mejor oportunidad."
         />
 
         <HighlightCard
-          title="Calidad del ranking"
-          value={getRankingQuality(ranking?.rankingScore)}
-          text="Confianza interna del ranking según datos disponibles."
+          title="Modo decisión"
+          value={getDecisionMode(topOpportunities)}
+          text="Lectura rápida para priorizar capital, compra, análisis o descarte."
         />
       </div>
 
@@ -130,6 +134,16 @@ function RankingCard({ item, index }) {
   const expectedProfit = Number(item.expectedProfit || 0);
   const successRiskLabel = item.successRiskLabel || "Sin datos";
 
+  const allocationScore = Number(item.allocationScore || 0);
+  const allocationTier = item.allocationTier || "Sin datos";
+  const allocationSummary = item.allocationSummary || "";
+
+  const marketTimingScore = Number(item.marketTimingScore || 0);
+  const marketTimingLabel = item.marketTimingLabel || "Sin datos";
+
+  const capitalEfficiencyScore = Number(item.capitalEfficiencyScore || 0);
+  const inventoryRiskLabel = item.inventoryRiskLabel || "Sin datos";
+
   const decision = getDealDecision({
     score,
     roi,
@@ -137,6 +151,8 @@ function RankingCard({ item, index }) {
     executiveScore,
     successProbability,
     buySignal,
+    allocationScore,
+    allocationTier,
   });
 
   return (
@@ -149,6 +165,32 @@ function RankingCard({ item, index }) {
             {item.title || "Oportunidad sin título"}
           </h3>
           <span style={decisionPillStyle}>{decision}</span>
+        </div>
+
+        <div style={allocationBoxStyle}>
+          <p style={allocationTitleStyle}>💼 Asignación de capital</p>
+
+          <div style={historicalGridStyle}>
+            <MiniMetric
+              label="Allocation"
+              value={`${allocationScore}/100`}
+            />
+            <MiniMetric label="Tier" value={allocationTier} />
+            <MiniMetric
+              label="Timing"
+              value={`${marketTimingScore}/100`}
+            />
+            <MiniMetric label="Timing Label" value={marketTimingLabel} />
+            <MiniMetric
+              label="Capital Efficiency"
+              value={`${capitalEfficiencyScore}/100`}
+            />
+            <MiniMetric label="Inventory Risk" value={inventoryRiskLabel} />
+          </div>
+
+          {allocationSummary && (
+            <p style={allocationSummaryStyle}>{allocationSummary}</p>
+          )}
         </div>
 
         <div style={miniGridStyle}>
@@ -164,7 +206,7 @@ function RankingCard({ item, index }) {
           <div
             style={{
               ...barFillStyle,
-              width: `${Math.min(Math.max(successProbability, 0), 100)}%`,
+              width: `${Math.min(Math.max(allocationScore, 0), 100)}%`,
             }}
           />
         </div>
@@ -235,6 +277,9 @@ function RankingCard({ item, index }) {
             estimatedSellDays,
             expectedROI,
             expectedProfit,
+            allocationScore,
+            allocationTier,
+            marketTimingLabel,
           })}
         </p>
       </div>
@@ -268,22 +313,34 @@ function getDealDecision({
   executiveScore,
   successProbability,
   buySignal,
+  allocationScore,
+  allocationTier,
 }) {
   if (
+    allocationTier === "TIER_1" ||
+    allocationScore >= 85 ||
     buySignal === "FUERTE" ||
     (successProbability >= 85 && executiveScore >= 80 && profit >= 2500)
   ) {
-    return "Comprar";
+    return "Priorizar capital";
   }
 
   if (
+    allocationTier === "TIER_2" ||
+    allocationScore >= 70 ||
     buySignal === "INTERESANTE" ||
     (successProbability >= 72 && executiveScore >= 70)
   ) {
-    return "Analizar";
+    return "Comprar selectivo";
   }
 
-  if (score >= 65 || executiveScore >= 65 || successProbability >= 58) {
+  if (
+    allocationTier === "TIER_3" ||
+    allocationScore >= 55 ||
+    score >= 65 ||
+    executiveScore >= 65 ||
+    successProbability >= 58
+  ) {
     return "Vigilar";
   }
 
@@ -303,11 +360,22 @@ function buildDecisionText({
   estimatedSellDays,
   expectedROI,
   expectedProfit,
+  allocationScore,
+  allocationTier,
+  marketTimingLabel,
 }) {
   const learningText =
     learningBonus !== 0
       ? ` Aprendizaje histórico aplicado: ${formatBonus(learningBonus)}.`
       : "";
+
+  if (allocationTier === "TIER_1" || allocationScore >= 85) {
+    return `Prioridad máxima de capital: allocation score ${allocationScore}/100, tier ${allocationTier}, timing ${marketTimingLabel}, probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €.${learningText}`;
+  }
+
+  if (allocationTier === "TIER_2" || allocationScore >= 70) {
+    return `Buena asignación potencial: allocation score ${allocationScore}/100, tier ${allocationTier}, probabilidad de éxito ${successProbability}/100, ROI ${roi}% y beneficio estimado de ${profit} €.${learningText}`;
+  }
 
   if (buySignal === "FUERTE" || successProbability >= 85) {
     return `Señal fuerte: probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €. Executive score ${executiveScore}, score IA ${score}, confianza histórica ${historicalConfidence}.${learningText}`;
@@ -318,28 +386,24 @@ function buildDecisionText({
   }
 
   if (score >= 65 || executiveScore >= 65 || successProbability >= 58) {
-    return `Oportunidad intermedia: conviene vigilar precio, demanda, margen y señales históricas.${learningText}`;
+    return `Oportunidad intermedia: conviene vigilar precio, demanda, margen, timing y señales históricas.${learningText}`;
   }
 
-  return `Oportunidad débil dentro del ranking. No priorizar salvo contexto especial.${learningText}`;
+  return `Oportunidad débil dentro del ranking. No priorizar capital salvo contexto especial.${learningText}`;
 }
 
 function getDecisionMode(items = []) {
-  const buyCount = items.filter((item) => {
-    return (
-      getDealDecision({
-        score: Number(item.score || 0),
-        roi: Number(item.roi || 0),
-        profit: Number(item.profit || 0),
-        executiveScore: Number(item.executiveScore || 0),
-        successProbability: Number(item.successProbability || 0),
-        buySignal: item.buySignal || "",
-      }) === "Comprar"
-    );
+  const tierOneCount = items.filter((item) => {
+    return item.allocationTier === "TIER_1" || Number(item.allocationScore || 0) >= 85;
   }).length;
 
-  if (buyCount >= 3) return "Mercado caliente";
-  if (buyCount >= 1) return "Comprar selectivo";
+  const tierTwoCount = items.filter((item) => {
+    return item.allocationTier === "TIER_2" || Number(item.allocationScore || 0) >= 70;
+  }).length;
+
+  if (tierOneCount >= 2) return "Asignar capital";
+  if (tierOneCount >= 1) return "Priorizar una";
+  if (tierTwoCount >= 2) return "Comprar selectivo";
   if (items.length >= 5) return "Analizar";
   return "Esperar datos";
 }
@@ -526,6 +590,29 @@ const barFillStyle = {
   height: "100%",
   borderRadius: "999px",
   background: "linear-gradient(135deg,#a855f7,#22c55e)",
+};
+
+const allocationBoxStyle = {
+  marginTop: "8px",
+  marginBottom: "14px",
+  padding: "14px",
+  borderRadius: "18px",
+  background: "rgba(14,165,233,0.16)",
+  border: "1px solid rgba(56,189,248,0.25)",
+};
+
+const allocationTitleStyle = {
+  margin: "0 0 12px 0",
+  color: "#bae6fd",
+  fontWeight: "900",
+  fontSize: "13px",
+};
+
+const allocationSummaryStyle = {
+  margin: "12px 0 0 0",
+  color: "#e0f2fe",
+  fontSize: "12px",
+  lineHeight: "1.45",
 };
 
 const predictionBoxStyle = {
