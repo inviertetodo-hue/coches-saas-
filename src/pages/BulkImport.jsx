@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import BulkImportApprovedCard from "../components/bulk-import/BulkImportApprovedCard";
+import BulkImportMemoryExplorerPanel from "../components/bulk-import/BulkImportMemoryExplorerPanel";
 import BulkImportMemorySimulationPanel from "../components/bulk-import/BulkImportMemorySimulationPanel";
 import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
 import BulkImportProtectedSavePanel from "../components/bulk-import/BulkImportProtectedSavePanel";
@@ -22,6 +23,7 @@ export default function BulkImport() {
   const [memorySimulation, setMemorySimulation] = useState(null);
   const [savePlan, setSavePlan] = useState(null);
   const [saveResult, setSaveResult] = useState(null);
+  const [memoryRecords, setMemoryRecords] = useState([]);
 
   const memoryRepository = useMemo(() => createMemoryRepository(), []);
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
@@ -90,19 +92,22 @@ export default function BulkImport() {
       ...result,
       repositoryTotal: memoryRepository.count(),
     });
+
+    setMemoryRecords(memoryRepository.getAll());
   }
 
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 10.1.5 · Local Memory Insert</p>
+        <p style={eyebrowStyle}>FASE 10.2.1 · Memory Explorer Connected</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
           guarda nada en Supabase: previsualiza, aprueba, simula memoria,
-          prepara un guardado protegido y guarda en memoria local de sesión.
+          prepara un guardado protegido, guarda en memoria local de sesión y
+          permite explorar los registros guardados.
         </p>
       </div>
 
@@ -291,6 +296,8 @@ export default function BulkImport() {
               </p>
             </div>
           )}
+
+          <BulkImportMemoryExplorerPanel records={memoryRecords} />
 
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
