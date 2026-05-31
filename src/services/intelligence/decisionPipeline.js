@@ -6,6 +6,7 @@ import { buildCapitalEfficiency } from "./capitalEfficiencyEngine";
 import { buildInventoryRisk } from "./inventoryRiskEngine";
 import { buildMarketTiming } from "./marketTimingEngine";
 import { buildPortfolioAllocation } from "./portfolioAllocationEngine";
+import { buildDataQualityGate } from "./dataQualityGate";
 
 export function buildDecisionPipeline({
   vehicle = {},
@@ -14,11 +15,6 @@ export function buildDecisionPipeline({
   riskPenalty = 0,
   semanticQuality = 50,
 } = {}) {
-  const learning = calculateLearningBonus({
-    vehicle,
-    historicalModelMemory,
-  });
-
   const score = safeNumber(vehicle.score);
   const roi = safeNumber(vehicle.roi);
   const profit = safeNumber(vehicle.profit);
@@ -28,6 +24,46 @@ export function buildDecisionPipeline({
       vehicle.budget
   );
 
+  const dataQuality = buildDataQualityGate({
+    sourceMode:
+      vehicle.sourceMode ||
+      vehicle.source_mode ||
+      vehicle.feedMode ||
+      vehicle.feed_mode ||
+      vehicle.mode,
+    sourceStatus:
+      vehicle.sourceStatus ||
+      vehicle.source_status ||
+      vehicle.feedStatus ||
+      vehicle.feed_status ||
+      vehicle.status,
+    title: vehicle.title,
+    brand: vehicle.brand,
+    model: vehicle.model,
+    year: vehicle.year,
+    price,
+    mileage:
+      vehicle.mileage ||
+      vehicle.km ||
+      vehicle.kilometers,
+    matchScore:
+      vehicle.matchScore ||
+      vehicle.match_score ||
+      semanticQuality,
+    comparableConfidence:
+      vehicle.comparableConfidence ||
+      vehicle.comparable_confidence ||
+      vehicle.marketConfidence ||
+      vehicle.market_confidence,
+    roi,
+    profit,
+  });
+
+  const learning = calculateLearningBonus({
+    vehicle,
+    historicalModelMemory,
+  });
+
   const confidenceWeight =
     semanticQuality >= 75
       ? 1
@@ -35,6 +71,15 @@ export function buildDecisionPipeline({
       ? 0.88
       : semanticQuality >= 25
       ? 0.72
+      : 0.55;
+
+  const dataQualityWeight =
+    dataQuality.dataQualityScore >= 90
+      ? 1
+      : dataQuality.dataQualityScore >= 75
+      ? 0.94
+      : dataQuality.dataQualityScore >= 55
+      ? 0.78
       : 0.55;
 
   const rawPriority =
@@ -46,7 +91,7 @@ export function buildDecisionPipeline({
     riskPenalty;
 
   const priorityScore = clampScore(
-    Math.round(rawPriority * confidenceWeight)
+    Math.round(rawPriority * confidenceWeight * dataQualityWeight)
   );
 
   const executiveScore = clampScore(
@@ -114,14 +159,11 @@ export function buildDecisionPipeline({
   });
 
   const portfolioAllocation = buildPortfolioAllocation({
-    executiveBuySignalScore:
-      executiveBuySignal.finalScore,
-    marketTimingScore:
-      marketTiming.marketTimingScore,
+    executiveBuySignalScore: executiveBuySignal.finalScore,
+    marketTimingScore: marketTiming.marketTimingScore,
     capitalEfficiencyScore:
       capitalEfficiency.capitalEfficiencyScore,
-    inventoryRiskScore:
-      inventoryRisk.inventoryRiskScore,
+    inventoryRiskScore: inventoryRisk.inventoryRiskScore,
     successProbability:
       successProbability.successProbability,
     price,
@@ -129,6 +171,7 @@ export function buildDecisionPipeline({
   });
 
   return {
+    dataQuality,
     learning,
     priorityScore,
     executiveScore,
@@ -142,6 +185,14 @@ export function buildDecisionPipeline({
     portfolioAllocation,
 
     flat: {
+      dataQuality,
+      dataQualityScore: dataQuality.dataQualityScore,
+      dataQualityLabel: dataQuality.dataQualityLabel,
+      memoryEligible: dataQuality.memoryEligible,
+      canSaveAnalysis: dataQuality.canSaveAnalysis,
+      dataQualityReasons: dataQuality.reasons,
+      dataQualitySummary: dataQuality.summary,
+
       priorityScore,
       executiveScore,
 
