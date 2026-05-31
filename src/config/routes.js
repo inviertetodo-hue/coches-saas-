@@ -4,6 +4,7 @@ import { ROUTE_PATHS } from "./routePaths";
 
 const Scanner = lazy(() => import("../pages/Scanner"));
 const Importer = lazy(() => import("../pages/Importer"));
+const BulkImport = lazy(() => import("../pages/BulkImport"));
 const History = lazy(() => import("../pages/History"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
@@ -22,6 +23,11 @@ export const APP_ROUTES = [
     id: "importer",
     path: ROUTE_PATHS.importer,
     element: Importer,
+  },
+  {
+    id: "bulk-import",
+    path: ROUTE_PATHS.bulkImport,
+    element: BulkImport,
   },
   {
     id: "history",

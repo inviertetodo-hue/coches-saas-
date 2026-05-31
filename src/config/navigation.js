@@ -12,6 +12,11 @@ export const NAVIGATION_ITEMS = [
     path: ROUTE_PATHS.importer,
   },
   {
+    id: "bulk-import",
+    label: "🌍 Bulk Import",
+    path: ROUTE_PATHS.bulkImport,
+  },
+  {
     id: "history",
     label: "📊 Inteligencia Mercado",
     path: ROUTE_PATHS.history,
