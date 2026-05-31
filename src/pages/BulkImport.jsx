@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import BulkImportApprovedCard from "../components/bulk-import/BulkImportApprovedCard";
+import BulkImportMemoryAnalyticsPanel from "../components/bulk-import/BulkImportMemoryAnalyticsPanel";
 import BulkImportMemoryExplorerPanel from "../components/bulk-import/BulkImportMemoryExplorerPanel";
 import BulkImportMemorySimulationPanel from "../components/bulk-import/BulkImportMemorySimulationPanel";
 import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
@@ -99,7 +100,7 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 10.2.1 · Memory Explorer Connected</p>
+        <p style={eyebrowStyle}>FASE 10.3.2 · Memory Analytics Connected</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
@@ -107,7 +108,7 @@ export default function BulkImport() {
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
           guarda nada en Supabase: previsualiza, aprueba, simula memoria,
           prepara un guardado protegido, guarda en memoria local de sesión y
-          permite explorar los registros guardados.
+          muestra analítica de los registros guardados.
         </p>
       </div>
 
@@ -296,6 +297,8 @@ export default function BulkImport() {
               </p>
             </div>
           )}
+
+          <BulkImportMemoryAnalyticsPanel records={memoryRecords} />
 
           <BulkImportMemoryExplorerPanel records={memoryRecords} />
 
