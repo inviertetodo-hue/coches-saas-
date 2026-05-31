@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
+
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
 import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates";
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
@@ -40,7 +42,7 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 9.6.2 · Bulk Import Modularization</p>
+        <p style={eyebrowStyle}>FASE 9.7.3 · Preview Card Connected</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
@@ -179,58 +181,10 @@ export default function BulkImport() {
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
 
             {preview.items.map((item) => (
-              <PreviewCard key={item.id} item={item} />
+              <BulkImportPreviewCard key={item.id} item={item} />
             ))}
           </div>
         </>
-      )}
-    </div>
-  );
-}
-
-function PreviewCard({ item }) {
-  return (
-    <div style={cardStyle}>
-      <div style={cardHeaderStyle}>
-        <div>
-          <h3 style={cardTitleStyle}>{item.title}</h3>
-
-          <p style={cardMetaStyle}>
-            {item.brand || "Marca desconocida"} ·{" "}
-            {item.model || "Modelo desconocido"} · {item.year || "Año sin dato"}
-          </p>
-        </div>
-
-        <span style={qualityPillStyle}>
-          {item.dataQualityLabel} · {item.dataQualityScore}/100
-        </span>
-      </div>
-
-      <div style={miniGridStyle}>
-        <MiniMetric label="Precio" value={`${item.price || 0} €`} />
-        <MiniMetric label="Km" value={item.mileage || "-"} />
-        <MiniMetric label="ROI" value={`${item.roi || 0}%`} />
-        <MiniMetric label="Margen" value={`${item.profit || 0} €`} />
-        <MiniMetric
-          label="Memory"
-          value={item.memoryEligible ? "Eligible" : "No"}
-        />
-        <MiniMetric
-          label="Can Save"
-          value={item.canSaveAnalysis ? "Sí" : "No"}
-        />
-      </div>
-
-      <p style={summaryStyle}>{item.dataQualitySummary}</p>
-
-      {item.dataQualityReasons?.length > 0 && (
-        <div style={reasonsStyle}>
-          {item.dataQualityReasons.slice(0, 3).map((reason, index) => (
-            <p key={`${reason}-${index}`} style={reasonStyle}>
-              ⚠️ {reason}
-            </p>
-          ))}
-        </div>
       )}
     </div>
   );
@@ -468,15 +422,6 @@ const approvedInsightStyle = {
   color: "#bbf7d0",
 };
 
-const cardStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  background:
-    "linear-gradient(135deg, rgba(14,165,233,0.14), rgba(34,197,94,0.10))",
-  border: "1px solid rgba(56,189,248,0.22)",
-  marginBottom: "14px",
-};
-
 const approvedCardStyle = {
   padding: "18px",
   borderRadius: "20px",
@@ -503,16 +448,6 @@ const cardTitleStyle = {
 const cardMetaStyle = {
   margin: "6px 0 0 0",
   color: "#94a3b8",
-};
-
-const qualityPillStyle = {
-  padding: "7px 11px",
-  borderRadius: "999px",
-  background: "rgba(34,197,94,0.16)",
-  border: "1px solid rgba(34,197,94,0.25)",
-  color: "#bbf7d0",
-  fontSize: "12px",
-  fontWeight: "900",
 };
 
 const approvedPillStyle = {
@@ -549,28 +484,11 @@ const miniMetricValueStyle = {
   fontSize: "14px",
 };
 
-const summaryStyle = {
-  color: "#e0f2fe",
-  margin: "12px 0 0 0",
-  lineHeight: "1.45",
-  fontSize: "13px",
-};
-
 const approvedTextStyle = {
   color: "#dcfce7",
   margin: "12px 0 0 0",
   lineHeight: "1.45",
   fontSize: "13px",
-};
-
-const reasonsStyle = {
-  marginTop: "10px",
-};
-
-const reasonStyle = {
-  color: "#fde68a",
-  margin: "6px 0 0 0",
-  fontSize: "12px",
 };
 
 const emptyTextStyle = {
