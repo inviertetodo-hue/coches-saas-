@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
+import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
 
 const DEFAULT_URL =
   "https://www.autoscout24.es/lst/audi/a3?sort=standard&desc=0&ustate=N%2CU&atype=C&cy=E&damaged_listing=exclude&source=homepage_search-mask";
@@ -8,6 +9,7 @@ const DEFAULT_URL =
 export default function BulkImport() {
   const [url, setUrl] = useState(DEFAULT_URL);
   const [preview, setPreview] = useState(null);
+  const [approvedImport, setApprovedImport] = useState(null);
 
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
 
@@ -20,19 +22,31 @@ export default function BulkImport() {
     });
 
     setPreview(result);
+    setApprovedImport(null);
+  }
+
+  function handlePrepareApproved() {
+    if (!preview) return;
+
+    const result = buildApprovedBulkImport({
+      preview,
+      maxItems: 50,
+    });
+
+    setApprovedImport(result);
   }
 
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 9.5 · Bulk URL Preview</p>
+        <p style={eyebrowStyle}>FASE 9.6.1 · Approved Bulk Import UI</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
-          guarda nada: solo previsualiza candidatos, calcula calidad de datos y
-          decide si podrían alimentar memoria histórica sin contaminar la base.
+          guarda nada: primero previsualiza candidatos, después prepara solo los
+          aprobados para memoria histórica.
         </p>
       </div>
 
@@ -47,9 +61,24 @@ export default function BulkImport() {
           placeholder="Pega aquí una URL de AutoScout24, mobile.de u otra fuente..."
         />
 
-        <button type="button" onClick={handlePreview} style={buttonStyle}>
-          Generar preview seguro
-        </button>
+        <div style={buttonRowStyle}>
+          <button type="button" onClick={handlePreview} style={buttonStyle}>
+            Generar preview seguro
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrepareApproved}
+            disabled={!preview}
+            style={{
+              ...secondaryButtonStyle,
+              opacity: preview ? 1 : 0.5,
+              cursor: preview ? "pointer" : "not-allowed",
+            }}
+          >
+            Preparar aprobados
+          </button>
+        </div>
       </div>
 
       {!preview && (
@@ -99,6 +128,51 @@ export default function BulkImport() {
               </div>
             ))}
           </div>
+
+          {approvedImport && (
+            <div style={approvedPanelStyle}>
+              <h2 style={sectionTitleStyle}>✅ Importación aprobada</h2>
+
+              <div style={gridStyle}>
+                <MetricCard
+                  label="Total Previewed"
+                  value={approvedImport.totalPreviewed}
+                />
+                <MetricCard
+                  label="Approved"
+                  value={approvedImport.totalApproved}
+                />
+                <MetricCard
+                  label="Rejected"
+                  value={approvedImport.totalRejected}
+                />
+                <MetricCard
+                  label="Can Save"
+                  value={approvedImport.canSave ? "Sí" : "No"}
+                />
+              </div>
+
+              <p style={approvedSummaryStyle}>{approvedImport.summary}</p>
+
+              {approvedImport.insights.map((item, index) => (
+                <div key={`${item}-${index}`} style={approvedInsightStyle}>
+                  {item}
+                </div>
+              ))}
+
+              <h3 style={subsectionTitleStyle}>Aprobados para memoria</h3>
+
+              {approvedImport.approvedItems.length === 0 && (
+                <p style={emptyTextStyle}>
+                  No hay candidatos aprobados para memoria histórica.
+                </p>
+              )}
+
+              {approvedImport.approvedItems.map((item) => (
+                <ApprovedCard key={item.id} item={item} />
+              ))}
+            </div>
+          )}
 
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
@@ -157,6 +231,42 @@ function PreviewCard({ item }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ApprovedCard({ item }) {
+  return (
+    <div style={approvedCardStyle}>
+      <div style={cardHeaderStyle}>
+        <div>
+          <h3 style={cardTitleStyle}>{item.title}</h3>
+
+          <p style={cardMetaStyle}>
+            {item.brand || "Marca desconocida"} ·{" "}
+            {item.model || "Modelo desconocido"} · {item.year || "Año sin dato"}
+          </p>
+        </div>
+
+        <span style={approvedPillStyle}>
+          {item.dataQualityLabel} · {item.dataQualityScore}/100
+        </span>
+      </div>
+
+      <div style={miniGridStyle}>
+        <MiniMetric label="Precio" value={`${item.price || 0} €`} />
+        <MiniMetric label="Km" value={item.mileage || "-"} />
+        <MiniMetric label="ROI" value={`${item.roi || 0}%`} />
+        <MiniMetric label="Margen" value={`${item.profit || 0} €`} />
+        <MiniMetric label="Estado" value={item.importStatus} />
+        <MiniMetric label="Memoria" value="Aprobado" />
+      </div>
+
+      <p style={approvedTextStyle}>
+        Este candidato puede pasar a memoria histórica porque supera el filtro
+        de calidad. Si tiene ROI negativo, se guarda como dato fiable de mercado,
+        no como oportunidad de compra.
+      </p>
     </div>
   );
 }
@@ -348,6 +458,12 @@ const textareaStyle = {
   marginBottom: "14px",
 };
 
+const buttonRowStyle = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
 const buttonStyle = {
   border: 0,
   borderRadius: "999px",
@@ -356,6 +472,15 @@ const buttonStyle = {
   color: "#ffffff",
   fontWeight: "900",
   cursor: "pointer",
+};
+
+const secondaryButtonStyle = {
+  border: "1px solid rgba(56,189,248,0.35)",
+  borderRadius: "999px",
+  padding: "12px 18px",
+  background: "rgba(14,165,233,0.14)",
+  color: "#bae6fd",
+  fontWeight: "900",
 };
 
 const emptyBoxStyle = {
@@ -404,6 +529,13 @@ const sectionTitleStyle = {
   marginBottom: "14px",
 };
 
+const subsectionTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  margin: "18px 0 12px 0",
+  color: "#dcfce7",
+};
+
 const insightStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
@@ -414,12 +546,44 @@ const insightStyle = {
   fontWeight: "800",
 };
 
+const approvedPanelStyle = {
+  padding: "20px",
+  borderRadius: "22px",
+  background: "rgba(22,101,52,0.18)",
+  border: "1px solid rgba(34,197,94,0.25)",
+  marginBottom: "28px",
+};
+
+const approvedSummaryStyle = {
+  color: "#dcfce7",
+  fontWeight: "800",
+  lineHeight: "1.5",
+};
+
+const approvedInsightStyle = {
+  padding: "12px 14px",
+  borderRadius: "14px",
+  background: "rgba(34,197,94,0.12)",
+  border: "1px solid rgba(34,197,94,0.22)",
+  marginBottom: "10px",
+  color: "#bbf7d0",
+};
+
 const cardStyle = {
   padding: "18px",
   borderRadius: "20px",
   background:
     "linear-gradient(135deg, rgba(14,165,233,0.14), rgba(34,197,94,0.10))",
   border: "1px solid rgba(56,189,248,0.22)",
+  marginBottom: "14px",
+};
+
+const approvedCardStyle = {
+  padding: "18px",
+  borderRadius: "20px",
+  background:
+    "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(14,165,233,0.10))",
+  border: "1px solid rgba(34,197,94,0.28)",
   marginBottom: "14px",
 };
 
@@ -448,6 +612,16 @@ const qualityPillStyle = {
   background: "rgba(34,197,94,0.16)",
   border: "1px solid rgba(34,197,94,0.25)",
   color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "900",
+};
+
+const approvedPillStyle = {
+  padding: "7px 11px",
+  borderRadius: "999px",
+  background: "rgba(34,197,94,0.22)",
+  border: "1px solid rgba(34,197,94,0.32)",
+  color: "#dcfce7",
   fontSize: "12px",
   fontWeight: "900",
 };
@@ -483,6 +657,13 @@ const summaryStyle = {
   fontSize: "13px",
 };
 
+const approvedTextStyle = {
+  color: "#dcfce7",
+  margin: "12px 0 0 0",
+  lineHeight: "1.45",
+  fontSize: "13px",
+};
+
 const reasonsStyle = {
   marginTop: "10px",
 };
@@ -491,4 +672,8 @@ const reasonStyle = {
   color: "#fde68a",
   margin: "6px 0 0 0",
   fontSize: "12px",
+};
+
+const emptyTextStyle = {
+  color: "#94a3b8",
 };
