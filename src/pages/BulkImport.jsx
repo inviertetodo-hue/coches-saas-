@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import BulkImportApprovedCard from "../components/bulk-import/BulkImportApprovedCard";
 import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
 
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
@@ -42,7 +43,7 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 9.7.3 · Preview Card Connected</p>
+        <p style={eyebrowStyle}>FASE 9.7.5 · Approved Card Connected</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
@@ -172,7 +173,7 @@ export default function BulkImport() {
               )}
 
               {approvedImport.approvedItems.map((item) => (
-                <ApprovedCard key={item.id} item={item} />
+                <BulkImportApprovedCard key={item.id} item={item} />
               ))}
             </div>
           )}
@@ -190,56 +191,11 @@ export default function BulkImport() {
   );
 }
 
-function ApprovedCard({ item }) {
-  return (
-    <div style={approvedCardStyle}>
-      <div style={cardHeaderStyle}>
-        <div>
-          <h3 style={cardTitleStyle}>{item.title}</h3>
-
-          <p style={cardMetaStyle}>
-            {item.brand || "Marca desconocida"} ·{" "}
-            {item.model || "Modelo desconocido"} · {item.year || "Año sin dato"}
-          </p>
-        </div>
-
-        <span style={approvedPillStyle}>
-          {item.dataQualityLabel} · {item.dataQualityScore}/100
-        </span>
-      </div>
-
-      <div style={miniGridStyle}>
-        <MiniMetric label="Precio" value={`${item.price || 0} €`} />
-        <MiniMetric label="Km" value={item.mileage || "-"} />
-        <MiniMetric label="ROI" value={`${item.roi || 0}%`} />
-        <MiniMetric label="Margen" value={`${item.profit || 0} €`} />
-        <MiniMetric label="Estado" value={item.importStatus} />
-        <MiniMetric label="Memoria" value="Aprobado" />
-      </div>
-
-      <p style={approvedTextStyle}>
-        Este candidato puede pasar a memoria histórica porque supera el filtro
-        de calidad. Si tiene ROI negativo, se guarda como dato fiable de mercado,
-        no como oportunidad de compra.
-      </p>
-    </div>
-  );
-}
-
 function MetricCard({ label, value }) {
   return (
     <div style={metricCardStyle}>
       <p style={metricLabelStyle}>{label}</p>
       <strong style={metricValueStyle}>{value}</strong>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }) {
-  return (
-    <div style={miniMetricStyle}>
-      <span style={miniMetricLabelStyle}>{label}</span>
-      <strong style={miniMetricValueStyle}>{value}</strong>
     </div>
   );
 }
@@ -420,75 +376,6 @@ const approvedInsightStyle = {
   border: "1px solid rgba(34,197,94,0.22)",
   marginBottom: "10px",
   color: "#bbf7d0",
-};
-
-const approvedCardStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  background:
-    "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(14,165,233,0.10))",
-  border: "1px solid rgba(34,197,94,0.28)",
-  marginBottom: "14px",
-};
-
-const cardHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "14px",
-  flexWrap: "wrap",
-  marginBottom: "14px",
-};
-
-const cardTitleStyle = {
-  margin: 0,
-  fontSize: "19px",
-};
-
-const cardMetaStyle = {
-  margin: "6px 0 0 0",
-  color: "#94a3b8",
-};
-
-const approvedPillStyle = {
-  padding: "7px 11px",
-  borderRadius: "999px",
-  background: "rgba(34,197,94,0.22)",
-  border: "1px solid rgba(34,197,94,0.32)",
-  color: "#dcfce7",
-  fontSize: "12px",
-  fontWeight: "900",
-};
-
-const miniGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
-  gap: "10px",
-};
-
-const miniMetricStyle = {
-  padding: "10px",
-  borderRadius: "14px",
-  background: "rgba(2,6,23,0.48)",
-};
-
-const miniMetricLabelStyle = {
-  display: "block",
-  color: "#94a3b8",
-  fontSize: "11px",
-  marginBottom: "5px",
-};
-
-const miniMetricValueStyle = {
-  color: "#f8fafc",
-  fontSize: "14px",
-};
-
-const approvedTextStyle = {
-  color: "#dcfce7",
-  margin: "12px 0 0 0",
-  lineHeight: "1.45",
-  fontSize: "13px",
 };
 
 const emptyTextStyle = {
