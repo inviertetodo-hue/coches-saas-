@@ -143,17 +143,23 @@ const BRAND_ALIASES = [
   { keys: ["land rover", "range rover"], value: "Land Rover" },
   { keys: ["alfa romeo"], value: "Alfa Romeo" },
   { keys: ["vw", "volkswagen"], value: "Volkswagen" },
+  { keys: ["lynk co", "lynk and co", "lynk"], value: "Lynk & Co" },
   { keys: ["bmw"], value: "BMW" },
   { keys: ["audi"], value: "Audi" },
   { keys: ["porsche"], value: "Porsche" },
   { keys: ["volvo"], value: "Volvo" },
   { keys: ["tesla"], value: "Tesla" },
+  { keys: ["polestar"], value: "Polestar" },
   { keys: ["mini"], value: "MINI" },
   { keys: ["lexus"], value: "Lexus" },
   { keys: ["jaguar"], value: "Jaguar" },
   { keys: ["maserati"], value: "Maserati" },
   { keys: ["ferrari"], value: "Ferrari" },
   { keys: ["lamborghini"], value: "Lamborghini" },
+  { keys: ["bentley"], value: "Bentley" },
+  { keys: ["aston martin", "aston"], value: "Aston Martin" },
+  { keys: ["mclaren"], value: "McLaren" },
+  { keys: ["rolls royce", "rolls"], value: "Rolls-Royce" },
   { keys: ["cupra"], value: "Cupra" },
   { keys: ["seat"], value: "SEAT" },
   { keys: ["skoda", "škoda"], value: "Skoda" },
@@ -173,6 +179,18 @@ const BRAND_ALIASES = [
   { keys: ["ds"], value: "DS" },
   { keys: ["jeep"], value: "Jeep" },
   { keys: ["smart"], value: "Smart" },
+
+  { keys: ["byd"], value: "BYD" },
+  { keys: ["mg"], value: "MG" },
+  { keys: ["omoda"], value: "Omoda" },
+  { keys: ["jaecoo"], value: "Jaecoo" },
+  { keys: ["leapmotor", "leap motor"], value: "Leapmotor" },
+  { keys: ["nio"], value: "NIO" },
+  { keys: ["xpeng", "x peng"], value: "XPeng" },
+  { keys: ["chery"], value: "Chery" },
+  { keys: ["zeekr"], value: "Zeekr" },
+  { keys: ["seres"], value: "Seres" },
+  { keys: ["aiways"], value: "Aiways" },
 ];
 
 const MODEL_GROUPS = {
@@ -214,7 +232,8 @@ const MODEL_GROUPS = {
   Porsche: ["911", "992", "991", "997", "cayenne", "macan", "panamera", "taycan", "boxster", "cayman"],
   Volvo: ["c40", "xc40", "xc60", "xc90", "v40", "v60", "v90", "s60", "s90", "ex30", "ex40", "ex90", "ec40"],
   "Land Rover": ["range rover", "range rover sport", "range rover velar", "range rover evoque", "defender", "discovery", "discovery sport", "sport", "velar", "evoque"],
-  Tesla: ["model 3", "model y", "model s", "model x"],
+  Tesla: ["model 3", "model y", "model s", "model x", "cybertruck"],
+  Polestar: ["polestar 2", "polestar 3", "polestar 4", "polestar 5", "2", "3", "4", "5"],
   Cupra: ["formentor", "ateca", "leon", "born", "tavascan", "terramar", "raval"],
   SEAT: ["leon", "ibiza", "arona", "ateca", "tarraco", "alhambra", "toledo"],
   Skoda: ["fabia", "octavia", "superb", "kodiaq", "karoq", "kamiq", "scala", "enyaq", "elroq", "citigo"],
@@ -237,6 +256,27 @@ const MODEL_GROUPS = {
   DS: ["ds 3", "ds 4", "ds 5", "ds 7", "ds 9", "n 8"],
   Jeep: ["avenger", "renegade", "compass", "cherokee", "grand cherokee", "wrangler"],
   Smart: ["fortwo", "forfour", "smart 1", "smart 3", "smart 5"],
+
+  BYD: ["atto 2", "atto 3", "dolphin", "seal", "seal u", "sealion 7", "tang", "han", "song plus", "yuan plus"],
+  MG: ["mg3", "mg4", "mg5", "zs", "zs ev", "hs", "e hs", "ehs", "marvel r", "cyberster"],
+  Omoda: ["omoda 5", "omoda 7", "omoda 9", "5", "7", "9"],
+  Jaecoo: ["jaecoo 5", "jaecoo 7", "jaecoo 8", "5", "7", "8"],
+  Leapmotor: ["t03", "c10", "c11", "c16", "b10"],
+  NIO: ["et5", "et7", "el6", "el7", "el8", "es6", "es8"],
+  XPeng: ["g6", "g9", "p7", "p5", "x9"],
+  Chery: ["tiggo 7", "tiggo 8", "tiggo 9", "arrizo 8"],
+  "Lynk & Co": ["01", "02", "03", "05", "08", "lynk 01", "lynk 02", "lynk 08"],
+  Zeekr: ["001", "007", "009", "x", "7x"],
+  Seres: ["seres 3", "seres 5", "seres 7", "3", "5", "7"],
+  Aiways: ["u5", "u6"],
+
+  Ferrari: ["roma", "portofino", "california", "296", "296 gtb", "296 gts", "f8", "f8 tributo", "sf90", "812", "purosangue", "488", "458"],
+  Maserati: ["ghibli", "quattroporte", "levante", "grecale", "granturismo", "grancabrio", "mc20"],
+  Lamborghini: ["huracan", "aventador", "urus", "revuelto", "gallardo"],
+  Bentley: ["continental", "continental gt", "flying spur", "bentayga", "mulsanne"],
+  "Aston Martin": ["vantage", "db11", "db12", "dbx", "dbs", "rapide", "vanquish"],
+  McLaren: ["570s", "600lt", "650s", "720s", "750s", "gt", "artura", "senna"],
+  "Rolls-Royce": ["ghost", "phantom", "wraith", "dawn", "cullinan", "spectre"],
 };
 
 const GENERIC_MODELS = Object.values(MODEL_GROUPS).flat();
@@ -438,7 +478,15 @@ function detectFuelType(text) {
     hasPhrase(text, "bev") ||
     hasPhrase(text, "e tron") ||
     hasPhrase(text, "etron") ||
-    hasPhrase(text, "taycan")
+    hasPhrase(text, "taycan") ||
+    hasPhrase(text, "dolphin") ||
+    hasPhrase(text, "seal") ||
+    hasPhrase(text, "atto") ||
+    hasPhrase(text, "mg4") ||
+    hasPhrase(text, "zeekr") ||
+    hasPhrase(text, "xpeng") ||
+    hasPhrase(text, "nio") ||
+    hasPhrase(text, "polestar")
   ) {
     return "EV";
   }
@@ -459,7 +507,7 @@ function detectBodyType(text, model) {
 
   if (
     hasPhrase(combined, "suv") ||
-    /\b(x1|x2|x3|x4|x5|x6|x7|ix1|ix2|ix3|q2|q3|q4|q5|q6|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|c40|ex30|ex40|ex90|ec40|touareg|tiguan|formentor|rav4|yaris cross|range rover|defender|discovery|kodiaq|karoq|kamiq|enyaq|elroq|sportage|sorento|tucson|santa fe|qashqai|x trail|3008|5008|duster|bigster|compass|grand cherokee|renegade|captur|kadjar|austral|arkana|symbioz|kuga|puma|mokka|grandland|crossland|juke)\b/.test(combined)
+    /\b(x1|x2|x3|x4|x5|x6|x7|ix1|ix2|ix3|q2|q3|q4|q5|q6|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|c40|ex30|ex40|ex90|ec40|touareg|tiguan|formentor|rav4|yaris cross|range rover|defender|discovery|kodiaq|karoq|kamiq|enyaq|elroq|sportage|sorento|tucson|santa fe|qashqai|x trail|3008|5008|duster|bigster|compass|grand cherokee|renegade|captur|kadjar|austral|arkana|symbioz|kuga|puma|mokka|grandland|crossland|juke|atto 3|seal u|sealion 7|tang|zs|zs ev|hs|marvel r|omoda 5|omoda 7|jaecoo 7|c10|c11|el6|el7|el8|es6|es8|g6|g9|tiggo 7|tiggo 8|lynk 01|lynk 08|zeekr x|seres 5|u5|u6|purosangue|urus|bentayga|dbx|cullinan)\b/.test(combined)
   ) {
     return "SUV";
   }
@@ -604,6 +652,38 @@ function formatModel(model, brand) {
     "e 3008": "e-3008",
     "e c3": "ë-C3",
     "n 8": "Nº8",
+
+    "atto 2": "Atto 2",
+    "atto 3": "Atto 3",
+    "seal u": "Seal U",
+    "sealion 7": "Sealion 7",
+    "song plus": "Song Plus",
+    "yuan plus": "Yuan Plus",
+    "mg3": "MG3",
+    "mg4": "MG4",
+    "mg5": "MG5",
+    "zs ev": "ZS EV",
+    "e hs": "EHS",
+    ehs: "EHS",
+    "marvel r": "Marvel R",
+    "omoda 5": "Omoda 5",
+    "omoda 7": "Omoda 7",
+    "omoda 9": "Omoda 9",
+    "jaecoo 5": "Jaecoo 5",
+    "jaecoo 7": "Jaecoo 7",
+    "jaecoo 8": "Jaecoo 8",
+    "lynk 01": "01",
+    "lynk 02": "02",
+    "lynk 08": "08",
+    "zeekr x": "X",
+    "seres 3": "3",
+    "seres 5": "5",
+    "seres 7": "7",
+    "296 gtb": "296 GTB",
+    "296 gts": "296 GTS",
+    "f8 tributo": "F8 Tributo",
+    "sf90": "SF90",
+    "continental gt": "Continental GT",
   };
 
   if (directFormats[normalized]) return directFormats[normalized];
@@ -659,6 +739,13 @@ function formatModel(model, brand) {
       if (/^i\d+$/i.test(word)) return word.toLowerCase();
       if (/^ev\d+$/i.test(word)) return word.toUpperCase();
       if (/^ds$/i.test(word)) return word.toUpperCase();
+      if (/^et\d$/i.test(word)) return word.toUpperCase();
+      if (/^el\d$/i.test(word)) return word.toUpperCase();
+      if (/^es\d$/i.test(word)) return word.toUpperCase();
+      if (/^g\d$/i.test(word) && brand === "XPeng") return word.toUpperCase();
+      if (/^p\d$/i.test(word) && brand === "XPeng") return word.toUpperCase();
+      if (/^u\d$/i.test(word) && brand === "Aiways") return word.toUpperCase();
+      if (/^c\d+$/i.test(word) && brand === "Leapmotor") return word.toUpperCase();
       return capitalizeWord(word);
     })
     .join(" ");
