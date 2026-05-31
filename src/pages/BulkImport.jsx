@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 
 import BulkImportApprovedCard from "../components/bulk-import/BulkImportApprovedCard";
+import BulkImportMemorySimulationPanel from "../components/bulk-import/BulkImportMemorySimulationPanel";
 import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
 
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
 import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates";
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
+import { buildMemorySimulation } from "../services/intelligence/memorySimulationEngine";
 
 const DEFAULT_URL =
   "https://www.autoscout24.es/lst/audi/a3?sort=standard&desc=0&ustate=N%2CU&atype=C&cy=E&damaged_listing=exclude&source=homepage_search-mask";
@@ -14,6 +16,7 @@ export default function BulkImport() {
   const [url, setUrl] = useState(DEFAULT_URL);
   const [preview, setPreview] = useState(null);
   const [approvedImport, setApprovedImport] = useState(null);
+  const [memorySimulation, setMemorySimulation] = useState(null);
 
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
 
@@ -27,6 +30,7 @@ export default function BulkImport() {
 
     setPreview(result);
     setApprovedImport(null);
+    setMemorySimulation(null);
   }
 
   function handlePrepareApproved() {
@@ -38,19 +42,31 @@ export default function BulkImport() {
     });
 
     setApprovedImport(result);
+    setMemorySimulation(null);
+  }
+
+  function handleSimulateMemory() {
+    if (!approvedImport) return;
+
+    const result = buildMemorySimulation({
+      approvedImport,
+      maxRecords: 50,
+    });
+
+    setMemorySimulation(result);
   }
 
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 9.7.5 · Approved Card Connected</p>
+        <p style={eyebrowStyle}>FASE 9.8.1 · Memory Simulation UI</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
-          guarda nada: primero previsualiza candidatos, después prepara solo los
-          aprobados para memoria histórica.
+          guarda nada: primero previsualiza candidatos, después prepara aprobados
+          y finalmente simula qué entraría en memoria histórica.
         </p>
       </div>
 
@@ -81,6 +97,19 @@ export default function BulkImport() {
             }}
           >
             Preparar aprobados
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSimulateMemory}
+            disabled={!approvedImport}
+            style={{
+              ...blueButtonStyle,
+              opacity: approvedImport ? 1 : 0.5,
+              cursor: approvedImport ? "pointer" : "not-allowed",
+            }}
+          >
+            Simular memoria
           </button>
         </div>
       </div>
@@ -177,6 +206,8 @@ export default function BulkImport() {
               ))}
             </div>
           )}
+
+          <BulkImportMemorySimulationPanel simulation={memorySimulation} />
 
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
@@ -289,6 +320,15 @@ const secondaryButtonStyle = {
   padding: "12px 18px",
   background: "rgba(14,165,233,0.14)",
   color: "#bae6fd",
+  fontWeight: "900",
+};
+
+const blueButtonStyle = {
+  border: "1px solid rgba(96,165,250,0.35)",
+  borderRadius: "999px",
+  padding: "12px 18px",
+  background: "rgba(59,130,246,0.18)",
+  color: "#bfdbfe",
   fontWeight: "900",
 };
 
