@@ -90,19 +90,35 @@ function tokenize(text) {
     "www",
     "mobile",
     "autoscout24",
-    "auto",
+    "autoscout",
+    "coches",
     "autos",
+    "auto",
     "cars",
     "vehicle",
+    "vehicles",
     "details",
+    "detail",
     "search",
+    "lst",
+    "listing",
+    "list",
     "campaign",
     "ref",
     "ad",
+    "ads",
     "offer",
+    "offers",
     "angebote",
     "gebrauchtwagen",
     "neuwagen",
+    "fahrzeuge",
+    "suchen",
+    "comprar",
+    "venta",
+    "segunda",
+    "mano",
+    "ocasion",
     "de",
     "com",
     "es",
@@ -169,13 +185,15 @@ const MODEL_GROUPS = {
     "520", "525", "530", "535", "540", "545", "550",
     "730", "740", "745", "750", "760",
     "x1", "x2", "x3", "x4", "x5", "x6", "x7",
+    "ix1", "ix2", "ix3", "ix",
     "m2", "m3", "m4", "m5", "m8",
-    "ix", "i3", "i4", "i5", "i7", "i8", "z4",
+    "i3", "i4", "i5", "i7", "i8", "z4",
   ],
 
   Audi: [
     "a1", "a3", "a4", "a5", "a6", "a7", "a8",
-    "q2", "q3", "q4", "q5", "q7", "q8",
+    "q2", "q3", "q4", "q5", "q6", "q7", "q8",
+    "q4 e tron", "q4 etron", "q6 e tron", "q6 etron", "q8 e tron", "q8 etron",
     "rs3", "rs4", "rs5", "rs6", "rs7", "rsq3", "rsq8",
     "s3", "s4", "s5", "s6", "s7", "s8",
     "e tron", "etron", "tt", "r8",
@@ -190,35 +208,35 @@ const MODEL_GROUPS = {
     "e 200", "e 220", "e 300", "e 400", "e 43", "e 53", "e 63",
     "s 350", "s 400", "s 500", "s 580", "s 63",
     "cla", "cls", "gla", "glb", "glc", "gle", "gls", "g class", "g63",
-    "eqc", "eqa", "eqb", "eqe", "eqs", "sl", "slk", "amg gt",
+    "eqc", "eqa", "eqb", "eqe", "eqs", "eqt", "eqv", "cle", "sl", "slk", "amg gt",
   ],
 
   Porsche: ["911", "992", "991", "997", "cayenne", "macan", "panamera", "taycan", "boxster", "cayman"],
-  Volvo: ["xc40", "xc60", "xc90", "v60", "v90", "s60", "s90", "ex30", "ex40", "ex90"],
+  Volvo: ["c40", "xc40", "xc60", "xc90", "v40", "v60", "v90", "s60", "s90", "ex30", "ex40", "ex90", "ec40"],
   "Land Rover": ["range rover", "range rover sport", "range rover velar", "range rover evoque", "defender", "discovery", "discovery sport", "sport", "velar", "evoque"],
   Tesla: ["model 3", "model y", "model s", "model x"],
-  Cupra: ["formentor", "ateca", "leon", "born", "tavascan", "terramar"],
+  Cupra: ["formentor", "ateca", "leon", "born", "tavascan", "terramar", "raval"],
   SEAT: ["leon", "ibiza", "arona", "ateca", "tarraco", "alhambra", "toledo"],
-  Skoda: ["fabia", "octavia", "superb", "kodiaq", "karoq", "kamiq", "scala", "enyaq", "citigo"],
-  Volkswagen: ["golf", "polo", "passat", "tiguan", "touareg", "arteon", "t roc", "t cross", "touran", "sharan", "up", "id 3", "id 4", "id 5", "id buzz"],
-  Toyota: ["rav4", "land cruiser", "corolla", "camry", "yaris", "chr", "c hr", "supra", "prius", "aygo", "hilux", "highlander", "proace"],
-  Lexus: ["nx", "rx", "ux", "es", "ls", "lc", "rc", "lbx", "ct"],
+  Skoda: ["fabia", "octavia", "superb", "kodiaq", "karoq", "kamiq", "scala", "enyaq", "elroq", "citigo"],
+  Volkswagen: ["golf", "polo", "passat", "tiguan", "touareg", "arteon", "t roc", "t cross", "touran", "sharan", "up", "id 2", "id 3", "id 4", "id 5", "id 7", "id buzz"],
+  Toyota: ["rav4", "land cruiser", "corolla", "camry", "yaris", "yaris cross", "chr", "c hr", "supra", "prius", "aygo", "aygo x", "hilux", "highlander", "proace", "b z4x", "bz4x"],
+  Lexus: ["nx", "rx", "ux", "es", "ls", "lc", "rc", "lbx", "ct", "rz"],
   Jaguar: ["f pace", "e pace", "i pace", "xe", "xf", "xj", "f type"],
-  Renault: ["clio", "megane", "mégane", "captur", "kadjar", "austral", "arkana", "espace", "scenic", "scénic", "koleos", "talisman", "zoe", "rafale"],
-  Peugeot: ["108", "208", "308", "408", "508", "2008", "3008", "5008", "rifter", "traveller"],
-  Ford: ["fiesta", "focus", "mondeo", "puma", "kuga", "mustang", "explorer", "edge", "s max", "galaxy", "ranger", "tourneo", "transit"],
+  Renault: ["clio", "megane", "mégane", "captur", "kadjar", "austral", "arkana", "espace", "scenic", "scénic", "koleos", "talisman", "zoe", "rafale", "symbioz", "renault 5", "5 e tech"],
+  Peugeot: ["108", "208", "308", "408", "508", "2008", "3008", "5008", "rifter", "traveller", "e 208", "e 2008", "e 3008"],
+  Ford: ["fiesta", "focus", "mondeo", "puma", "kuga", "mustang", "mustang mach e", "explorer", "capri", "edge", "s max", "galaxy", "ranger", "tourneo", "transit"],
   Hyundai: ["i10", "i20", "i30", "ioniq", "ioniq 5", "ioniq 6", "kona", "tucson", "santa fe", "bayon", "i40"],
-  Kia: ["ceed", "xceed", "x ceed", "sportage", "sorento", "niro", "stonic", "picanto", "rio", "ev3", "ev6", "ev9", "optima", "proceed"],
+  Kia: ["ceed", "xceed", "x ceed", "sportage", "sorento", "niro", "stonic", "picanto", "rio", "ev3", "ev4", "ev5", "ev6", "ev9", "optima", "proceed"],
   Mazda: ["mazda 2", "mazda 3", "mazda 6", "cx 3", "cx 30", "cx 5", "cx 60", "cx 80", "mx 5", "mx 30"],
-  Nissan: ["micra", "juke", "qashqai", "x trail", "x-trail", "ariya", "leaf", "navara", "pulsar"],
-  Opel: ["corsa", "astra", "insignia", "mokka", "crossland", "grandland", "zafira", "combo", "vivaro"],
-  Fiat: ["500", "500x", "500l", "600", "panda", "tipo", "doblo", "ducato", "topolino"],
-  Honda: ["civic", "accord", "jazz", "hr v", "hr-v", "cr v", "cr-v", "e", "zr v", "zr-v"],
-  Dacia: ["sandero", "duster", "jogger", "logan", "lodgy", "spring", "dokker"],
-  "Citroën": ["c1", "c2", "c3", "c4", "c5", "c3 aircross", "c5 aircross", "berlingo", "spacetourer"],
-  DS: ["ds 3", "ds 4", "ds 5", "ds 7", "ds 9"],
+  Nissan: ["micra", "juke", "qashqai", "x trail", "x-trail", "ariya", "leaf", "navara", "pulsar", "townstar"],
+  Opel: ["corsa", "astra", "insignia", "mokka", "crossland", "grandland", "frontera", "zafira", "combo", "vivaro"],
+  Fiat: ["500", "500e", "500x", "500l", "600", "600e", "panda", "tipo", "doblo", "ducato", "topolino"],
+  Honda: ["civic", "accord", "jazz", "hr v", "hr-v", "cr v", "cr-v", "e", "e ny1", "zr v", "zr-v"],
+  Dacia: ["sandero", "duster", "jogger", "logan", "lodgy", "spring", "dokker", "bigster"],
+  "Citroën": ["c1", "c2", "c3", "c4", "c5", "c3 aircross", "c5 aircross", "berlingo", "spacetourer", "ami", "e c3"],
+  DS: ["ds 3", "ds 4", "ds 5", "ds 7", "ds 9", "n 8"],
   Jeep: ["avenger", "renegade", "compass", "cherokee", "grand cherokee", "wrangler"],
-  Smart: ["fortwo", "forfour", "smart 1", "smart 3"],
+  Smart: ["fortwo", "forfour", "smart 1", "smart 3", "smart 5"],
 };
 
 const GENERIC_MODELS = Object.values(MODEL_GROUPS).flat();
@@ -441,7 +459,7 @@ function detectBodyType(text, model) {
 
   if (
     hasPhrase(combined, "suv") ||
-    /\b(x1|x2|x3|x4|x5|x6|x7|q2|q3|q4|q5|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|touareg|tiguan|formentor|rav4|range rover|defender|discovery|kodiaq|karoq|kamiq|sportage|sorento|tucson|santa fe|qashqai|x trail|3008|5008|duster|compass|grand cherokee|renegade|captur|kadjar|austral|arkana|kuga|puma|mokka|grandland|crossland|juke)\b/.test(combined)
+    /\b(x1|x2|x3|x4|x5|x6|x7|ix1|ix2|ix3|q2|q3|q4|q5|q6|q7|q8|glc|gle|gls|gla|glb|cayenne|macan|xc40|xc60|xc90|c40|ex30|ex40|ex90|ec40|touareg|tiguan|formentor|rav4|yaris cross|range rover|defender|discovery|kodiaq|karoq|kamiq|enyaq|elroq|sportage|sorento|tucson|santa fe|qashqai|x trail|3008|5008|duster|bigster|compass|grand cherokee|renegade|captur|kadjar|austral|arkana|symbioz|kuga|puma|mokka|grandland|crossland|juke)\b/.test(combined)
   ) {
     return "SUV";
   }
@@ -528,6 +546,9 @@ function formatModel(model, brand) {
 
   const directFormats = {
     ix: "iX",
+    ix1: "iX1",
+    ix2: "iX2",
+    ix3: "iX3",
     i3: "i3",
     i4: "i4",
     i5: "i5",
@@ -535,15 +556,26 @@ function formatModel(model, brand) {
     i8: "i8",
     "e tron": "e-tron",
     etron: "e-tron",
+    "q4 e tron": "Q4 e-tron",
+    "q4 etron": "Q4 e-tron",
+    "q6 e tron": "Q6 e-tron",
+    "q6 etron": "Q6 e-tron",
+    "q8 e tron": "Q8 e-tron",
+    "q8 etron": "Q8 e-tron",
     rsq3: "RS Q3",
     rsq8: "RS Q8",
     "amg gt": "AMG GT",
     "g class": "G-Class",
+    "id 2": "ID.2",
     "id 3": "ID.3",
     "id 4": "ID.4",
     "id 5": "ID.5",
+    "id 7": "ID.7",
     "id buzz": "ID. Buzz",
     "c hr": "C-HR",
+    chr: "C-HR",
+    bz4x: "bZ4X",
+    "b z4x": "bZ4X",
     "x trail": "X-Trail",
     "x-trail": "X-Trail",
     "f pace": "F-Pace",
@@ -556,6 +588,7 @@ function formatModel(model, brand) {
     "cr-v": "CR-V",
     "zr v": "ZR-V",
     "zr-v": "ZR-V",
+    "e ny1": "e:Ny1",
     "cx 3": "CX-3",
     "cx 30": "CX-30",
     "cx 5": "CX-5",
@@ -565,6 +598,12 @@ function formatModel(model, brand) {
     "mx 30": "MX-30",
     "s max": "S-Max",
     "x ceed": "XCeed",
+    "mustang mach e": "Mustang Mach-E",
+    "e 208": "e-208",
+    "e 2008": "e-2008",
+    "e 3008": "e-3008",
+    "e c3": "ë-C3",
+    "n 8": "Nº8",
   };
 
   if (directFormats[normalized]) return directFormats[normalized];
@@ -586,6 +625,9 @@ function formatModel(model, brand) {
       .replace(/\beqc\b/, "EQC")
       .replace(/\beqe\b/, "EQE")
       .replace(/\beqs\b/, "EQS")
+      .replace(/\beqt\b/, "EQT")
+      .replace(/\beqv\b/, "EQV")
+      .replace(/\bcle\b/, "CLE")
       .replace(/\bslk\b/, "SLK")
       .replace(/\bsl\b/, "SL")
       .replace(/\bg63\b/, "G63")
@@ -610,8 +652,10 @@ function formatModel(model, brand) {
       if (/^m\d$/i.test(word)) return word.toUpperCase();
       if (/^xc\d+$/i.test(word)) return word.toUpperCase();
       if (/^ex\d+$/i.test(word)) return word.toUpperCase();
+      if (/^ec\d+$/i.test(word)) return word.toUpperCase();
       if (/^v\d+$/i.test(word)) return word.toUpperCase();
-      if (/^(nx|rx|ux|es|ls|lc|rc|ct|lbx)$/i.test(word)) return word.toUpperCase();
+      if (/^c\d+$/i.test(word) && brand === "Volvo") return word.toUpperCase();
+      if (/^(nx|rx|ux|es|ls|lc|rc|ct|lbx|rz)$/i.test(word)) return word.toUpperCase();
       if (/^i\d+$/i.test(word)) return word.toLowerCase();
       if (/^ev\d+$/i.test(word)) return word.toUpperCase();
       if (/^ds$/i.test(word)) return word.toUpperCase();
