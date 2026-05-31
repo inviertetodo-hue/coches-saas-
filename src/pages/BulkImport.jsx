@@ -10,6 +10,7 @@ import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
 import { buildMemorySimulation } from "../services/intelligence/memorySimulationEngine";
 import { buildProtectedMemorySave } from "../services/intelligence/protectedMemorySaveEngine";
+import { createMemoryRepository } from "../services/intelligence/memoryRepository";
 
 const DEFAULT_URL =
   "https://www.autoscout24.es/lst/audi/a3?sort=standard&desc=0&ustate=N%2CU&atype=C&cy=E&damaged_listing=exclude&source=homepage_search-mask";
@@ -20,7 +21,9 @@ export default function BulkImport() {
   const [approvedImport, setApprovedImport] = useState(null);
   const [memorySimulation, setMemorySimulation] = useState(null);
   const [savePlan, setSavePlan] = useState(null);
+  const [saveResult, setSaveResult] = useState(null);
 
+  const memoryRepository = useMemo(() => createMemoryRepository(), []);
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
 
   function handlePreview() {
@@ -35,6 +38,7 @@ export default function BulkImport() {
     setApprovedImport(null);
     setMemorySimulation(null);
     setSavePlan(null);
+    setSaveResult(null);
   }
 
   function handlePrepareApproved() {
@@ -48,6 +52,7 @@ export default function BulkImport() {
     setApprovedImport(result);
     setMemorySimulation(null);
     setSavePlan(null);
+    setSaveResult(null);
   }
 
   function handleSimulateMemory() {
@@ -60,6 +65,7 @@ export default function BulkImport() {
 
     setMemorySimulation(result);
     setSavePlan(null);
+    setSaveResult(null);
   }
 
   function handlePrepareProtectedSave() {
@@ -72,19 +78,31 @@ export default function BulkImport() {
     });
 
     setSavePlan(result);
+    setSaveResult(null);
+  }
+
+  function handleSaveToLocalMemory() {
+    if (!savePlan?.canSave) return;
+
+    const result = memoryRepository.saveMany(savePlan.acceptedRecords);
+
+    setSaveResult({
+      ...result,
+      repositoryTotal: memoryRepository.count(),
+    });
   }
 
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 10.1.2 · Protected Save Connected</p>
+        <p style={eyebrowStyle}>FASE 10.1.5 · Local Memory Insert</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
-          guarda nada en Supabase: previsualiza, aprueba, simula memoria y prepara
-          un guardado protegido.
+          guarda nada en Supabase: previsualiza, aprueba, simula memoria,
+          prepara un guardado protegido y guarda en memoria local de sesión.
         </p>
       </div>
 
@@ -141,6 +159,19 @@ export default function BulkImport() {
             }}
           >
             Preparar guardado protegido
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveToLocalMemory}
+            disabled={!savePlan?.canSave}
+            style={{
+              ...localSaveButtonStyle,
+              opacity: savePlan?.canSave ? 1 : 0.5,
+              cursor: savePlan?.canSave ? "pointer" : "not-allowed",
+            }}
+          >
+            Guardar en memoria local
           </button>
         </div>
       </div>
@@ -241,6 +272,25 @@ export default function BulkImport() {
           <BulkImportMemorySimulationPanel simulation={memorySimulation} />
 
           <BulkImportProtectedSavePanel savePlan={savePlan} />
+
+          {saveResult && (
+            <div style={saveResultPanelStyle}>
+              <h2 style={sectionTitleStyle}>💾 Memoria local actualizada</h2>
+
+              <div style={gridStyle}>
+                <MetricCard label="Insertados" value={saveResult.inserted} />
+                <MetricCard
+                  label="Total memoria"
+                  value={saveResult.repositoryTotal}
+                />
+              </div>
+
+              <p style={saveResultTextStyle}>
+                Se han guardado {saveResult.inserted} registros en memoria local
+                de sesión. Todavía no se ha escrito nada en Supabase.
+              </p>
+            </div>
+          )}
 
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
@@ -374,6 +424,15 @@ const protectedButtonStyle = {
   fontWeight: "900",
 };
 
+const localSaveButtonStyle = {
+  border: "1px solid rgba(250,204,21,0.42)",
+  borderRadius: "999px",
+  padding: "12px 18px",
+  background: "rgba(250,204,21,0.16)",
+  color: "#fef9c3",
+  fontWeight: "900",
+};
+
 const emptyBoxStyle = {
   padding: "18px",
   borderRadius: "18px",
@@ -458,6 +517,20 @@ const approvedInsightStyle = {
   border: "1px solid rgba(34,197,94,0.22)",
   marginBottom: "10px",
   color: "#bbf7d0",
+};
+
+const saveResultPanelStyle = {
+  padding: "20px",
+  borderRadius: "22px",
+  background: "rgba(250,204,21,0.12)",
+  border: "1px solid rgba(250,204,21,0.25)",
+  marginBottom: "28px",
+};
+
+const saveResultTextStyle = {
+  color: "#fef9c3",
+  fontWeight: "800",
+  lineHeight: "1.5",
 };
 
 const emptyTextStyle = {
