@@ -1,15 +1,84 @@
-export function buildDemoCandidates(url) {
-  const normalized = String(url || "").toLowerCase();
+import { parseCarFromUrl } from "../urlParser";
 
-  if (normalized.includes("audi") && normalized.includes("a3")) {
+export function buildDemoCandidates(url) {
+  const parsed = parseCarFromUrl(url);
+  const brand = parsed?.brand || "";
+  const model = parsed?.model || "";
+
+  if (brand === "Audi" && model === "A3") {
     return buildAudiA3Candidates();
   }
 
-  if (normalized.includes("bmw")) {
+  if (brand === "BMW") {
     return buildBmwCandidates();
   }
 
+  if (brand && model) {
+    return buildSemanticCandidates({
+      brand,
+      model,
+      title: parsed.title,
+      bodyType: parsed.bodyType,
+      fuelType: parsed.fuelType,
+      electrified: parsed.electrified,
+    });
+  }
+
   return buildUnknownCandidates();
+}
+
+function buildSemanticCandidates({ brand, model, title, bodyType, fuelType, electrified }) {
+  const baseTitle = [brand, model].filter(Boolean).join(" ");
+  const isSuv = bodyType === "SUV";
+  const isElectric = fuelType === "EV" || electrified;
+
+  return [
+    {
+      id: buildCandidateId(brand, model, 1),
+      sourceMode: "semantic-url-feed",
+      sourceStatus: "ok",
+      title: title || `${baseTitle} oportunidad mercado`,
+      brand,
+      model,
+      year: 2022,
+      price: isElectric ? 28900 : isSuv ? 31900 : 18900,
+      mileage: isElectric ? 42000 : isSuv ? 58500 : 39500,
+      roi: isElectric ? 7 : isSuv ? 6 : 5,
+      profit: isElectric ? 2100 : isSuv ? 2400 : 1150,
+      matchScore: 82,
+      comparableConfidence: 84,
+    },
+    {
+      id: buildCandidateId(brand, model, 2),
+      sourceMode: "semantic-url-feed",
+      sourceStatus: "ok",
+      title: `${baseTitle} comparable mercado`,
+      brand,
+      model,
+      year: 2021,
+      price: isElectric ? 26900 : isSuv ? 29400 : 16950,
+      mileage: isElectric ? 61000 : isSuv ? 73500 : 54800,
+      roi: 3,
+      profit: isElectric ? 950 : isSuv ? 1300 : 620,
+      matchScore: 76,
+      comparableConfidence: 78,
+    },
+    {
+      id: buildCandidateId(brand, model, 3),
+      sourceMode: "mock-fallback",
+      sourceStatus: "ok",
+      title: `${baseTitle} Demo Candidate`,
+      brand,
+      model,
+      year: 2025,
+      price: isElectric ? 30900 : isSuv ? 33900 : 19900,
+      mileage: 15000,
+      roi: -2,
+      profit: -420,
+      matchScore: 70,
+      comparableConfidence: 60,
+    },
+  ];
 }
 
 function buildAudiA3Candidates() {
@@ -160,4 +229,22 @@ function buildUnknownCandidates() {
       comparableConfidence: 20,
     },
   ];
+}
+
+function buildCandidateId(brand, model, index) {
+  return [
+    "preview",
+    normalizeIdPart(brand),
+    normalizeIdPart(model),
+    index,
+  ].join("-");
+}
+
+function normalizeIdPart(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
