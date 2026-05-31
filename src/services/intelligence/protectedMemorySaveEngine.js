@@ -3,15 +3,24 @@ export function buildProtectedMemorySave({
   simulation,
   minQuality = 70,
 }) {
-  const approvedItems = approvedImport?.approvedItems || [];
+  const approvedItems = Array.isArray(approvedImport?.approvedItems)
+    ? approvedImport.approvedItems
+    : [];
 
   const acceptedRecords = approvedItems.filter((item) => {
-    const quality = Number(item.qualityScore || item.score || 0);
+    const quality = Number(
+      item.dataQualityScore ??
+        item.qualityScore ??
+        item.score ??
+        0
+    );
+
+    const status = item.importStatus || item.status || "";
 
     return (
       item &&
       item.memoryEligible !== false &&
-      item.status === "approved" &&
+      status === "approved" &&
       quality >= minQuality
     );
   });
@@ -27,21 +36,14 @@ export function buildProtectedMemorySave({
 
   return {
     canSave,
-
     totalCandidates: approvedItems.length,
-
     acceptedCount: acceptedRecords.length,
-
     rejectedCount: rejectedRecords.length,
-
     acceptedRecords,
-
     rejectedRecords,
-
     summary: canSave
       ? `${acceptedRecords.length} registros pueden guardarse de forma segura en memoria histórica.`
       : "No existen registros suficientemente fiables para guardar.",
-
     insights: [
       `${acceptedRecords.length} registros superan el filtro de calidad.`,
       `${rejectedRecords.length} registros quedan bloqueados.`,

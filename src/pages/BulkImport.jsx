@@ -3,11 +3,13 @@ import { useMemo, useState } from "react";
 import BulkImportApprovedCard from "../components/bulk-import/BulkImportApprovedCard";
 import BulkImportMemorySimulationPanel from "../components/bulk-import/BulkImportMemorySimulationPanel";
 import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
+import BulkImportProtectedSavePanel from "../components/bulk-import/BulkImportProtectedSavePanel";
 
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
 import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates";
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
 import { buildMemorySimulation } from "../services/intelligence/memorySimulationEngine";
+import { buildProtectedMemorySave } from "../services/intelligence/protectedMemorySaveEngine";
 
 const DEFAULT_URL =
   "https://www.autoscout24.es/lst/audi/a3?sort=standard&desc=0&ustate=N%2CU&atype=C&cy=E&damaged_listing=exclude&source=homepage_search-mask";
@@ -17,6 +19,7 @@ export default function BulkImport() {
   const [preview, setPreview] = useState(null);
   const [approvedImport, setApprovedImport] = useState(null);
   const [memorySimulation, setMemorySimulation] = useState(null);
+  const [savePlan, setSavePlan] = useState(null);
 
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
 
@@ -31,6 +34,7 @@ export default function BulkImport() {
     setPreview(result);
     setApprovedImport(null);
     setMemorySimulation(null);
+    setSavePlan(null);
   }
 
   function handlePrepareApproved() {
@@ -43,6 +47,7 @@ export default function BulkImport() {
 
     setApprovedImport(result);
     setMemorySimulation(null);
+    setSavePlan(null);
   }
 
   function handleSimulateMemory() {
@@ -54,19 +59,32 @@ export default function BulkImport() {
     });
 
     setMemorySimulation(result);
+    setSavePlan(null);
+  }
+
+  function handlePrepareProtectedSave() {
+    if (!approvedImport || !memorySimulation) return;
+
+    const result = buildProtectedMemorySave({
+      approvedImport,
+      simulation: memorySimulation,
+      minQuality: 70,
+    });
+
+    setSavePlan(result);
   }
 
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 9.8.1 · Memory Simulation UI</p>
+        <p style={eyebrowStyle}>FASE 10.1.2 · Protected Save Connected</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
-          guarda nada: primero previsualiza candidatos, después prepara aprobados
-          y finalmente simula qué entraría en memoria histórica.
+          guarda nada en Supabase: previsualiza, aprueba, simula memoria y prepara
+          un guardado protegido.
         </p>
       </div>
 
@@ -110,6 +128,19 @@ export default function BulkImport() {
             }}
           >
             Simular memoria
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrepareProtectedSave}
+            disabled={!memorySimulation}
+            style={{
+              ...protectedButtonStyle,
+              opacity: memorySimulation ? 1 : 0.5,
+              cursor: memorySimulation ? "pointer" : "not-allowed",
+            }}
+          >
+            Preparar guardado protegido
           </button>
         </div>
       </div>
@@ -208,6 +239,8 @@ export default function BulkImport() {
           )}
 
           <BulkImportMemorySimulationPanel simulation={memorySimulation} />
+
+          <BulkImportProtectedSavePanel savePlan={savePlan} />
 
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
@@ -329,6 +362,15 @@ const blueButtonStyle = {
   padding: "12px 18px",
   background: "rgba(59,130,246,0.18)",
   color: "#bfdbfe",
+  fontWeight: "900",
+};
+
+const protectedButtonStyle = {
+  border: "1px solid rgba(34,197,94,0.4)",
+  borderRadius: "999px",
+  padding: "12px 18px",
+  background: "rgba(34,197,94,0.18)",
+  color: "#bbf7d0",
   fontWeight: "900",
 };
 
