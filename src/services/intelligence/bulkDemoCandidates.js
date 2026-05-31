@@ -24,13 +24,78 @@ export function buildDemoCandidates(url) {
     });
   }
 
+  if (brand) {
+    return buildBrandOnlyCandidates(brand);
+  }
+
   return buildUnknownCandidates();
+}
+
+function buildBrandOnlyCandidates(brand) {
+  const defaults = {
+    BYD: ["Seal", "Atto 3"],
+    MG: ["MG4", "ZS EV"],
+    Omoda: ["Omoda 5", "Omoda 7"],
+    Jaecoo: ["Jaecoo 7", "Jaecoo 5"],
+    Leapmotor: ["C10", "T03"],
+    NIO: ["EL6", "ET5"],
+    XPeng: ["G6", "G9"],
+    Chery: ["Tiggo 7", "Tiggo 8"],
+    "Lynk & Co": ["01", "08"],
+    Zeekr: ["001", "X"],
+    Polestar: ["Polestar 2", "Polestar 3"],
+    Ferrari: ["Roma", "296 GTB"],
+    Maserati: ["Grecale", "Levante"],
+    Lamborghini: ["Urus", "Huracan"],
+    Bentley: ["Continental GT", "Bentayga"],
+    "Aston Martin": ["DBX", "Vantage"],
+    McLaren: ["Artura", "720S"],
+    "Rolls-Royce": ["Cullinan", "Ghost"],
+  };
+
+  const models = defaults[brand] || ["Gama"];
+
+  return [
+    buildBrandCandidate({ brand, model: models[0], index: 1, signal: "primary" }),
+    buildBrandCandidate({ brand, model: models[1] || models[0], index: 2, signal: "secondary" }),
+    buildBrandCandidate({ brand, model: models[0], index: 3, signal: "fallback" }),
+  ];
+}
+
+function buildBrandCandidate({ brand, model, index, signal }) {
+  const isFallback = signal === "fallback";
+  const baseTitle = [brand, model].filter(Boolean).join(" ");
+  const isLuxury = isLuxuryBrand(brand);
+  const isEvBrand = isEvFocusedBrand(brand);
+
+  return {
+    id: buildCandidateId(brand, model, index),
+    sourceMode: isFallback ? "mock-fallback" : "semantic-brand-feed",
+    sourceStatus: "ok",
+    title: isFallback ? `${baseTitle} Demo Candidate` : `${baseTitle} mercado europeo`,
+    brand,
+    model,
+    year: isFallback ? 2025 : index === 1 ? 2022 : 2021,
+    price: buildEstimatedPrice({ isLuxury, isEvBrand, index, isFallback }),
+    mileage: isFallback ? 15000 : index === 1 ? 48500 : 68500,
+    roi: isFallback ? -2 : index === 1 ? 6 : 3,
+    profit: isFallback
+      ? -420
+      : isLuxury
+        ? 8500 - index * 1200
+        : isEvBrand
+          ? 2300 - index * 600
+          : 1600 - index * 400,
+    matchScore: isFallback ? 70 : index === 1 ? 82 : 76,
+    comparableConfidence: isFallback ? 60 : index === 1 ? 84 : 78,
+  };
 }
 
 function buildSemanticCandidates({ brand, model, title, bodyType, fuelType, electrified }) {
   const baseTitle = [brand, model].filter(Boolean).join(" ");
   const isSuv = bodyType === "SUV";
-  const isElectric = fuelType === "EV" || electrified;
+  const isElectric = fuelType === "EV" || electrified || isEvFocusedBrand(brand);
+  const isLuxury = isLuxuryBrand(brand);
 
   return [
     {
@@ -41,10 +106,10 @@ function buildSemanticCandidates({ brand, model, title, bodyType, fuelType, elec
       brand,
       model,
       year: 2022,
-      price: isElectric ? 28900 : isSuv ? 31900 : 18900,
-      mileage: isElectric ? 42000 : isSuv ? 58500 : 39500,
-      roi: isElectric ? 7 : isSuv ? 6 : 5,
-      profit: isElectric ? 2100 : isSuv ? 2400 : 1150,
+      price: isLuxury ? 119900 : isElectric ? 28900 : isSuv ? 31900 : 18900,
+      mileage: isLuxury ? 28500 : isElectric ? 42000 : isSuv ? 58500 : 39500,
+      roi: isLuxury ? 5 : isElectric ? 7 : isSuv ? 6 : 5,
+      profit: isLuxury ? 7200 : isElectric ? 2100 : isSuv ? 2400 : 1150,
       matchScore: 82,
       comparableConfidence: 84,
     },
@@ -56,10 +121,10 @@ function buildSemanticCandidates({ brand, model, title, bodyType, fuelType, elec
       brand,
       model,
       year: 2021,
-      price: isElectric ? 26900 : isSuv ? 29400 : 16950,
-      mileage: isElectric ? 61000 : isSuv ? 73500 : 54800,
+      price: isLuxury ? 104900 : isElectric ? 26900 : isSuv ? 29400 : 16950,
+      mileage: isLuxury ? 42000 : isElectric ? 61000 : isSuv ? 73500 : 54800,
       roi: 3,
-      profit: isElectric ? 950 : isSuv ? 1300 : 620,
+      profit: isLuxury ? 4800 : isElectric ? 950 : isSuv ? 1300 : 620,
       matchScore: 76,
       comparableConfidence: 78,
     },
@@ -71,7 +136,7 @@ function buildSemanticCandidates({ brand, model, title, bodyType, fuelType, elec
       brand,
       model,
       year: 2025,
-      price: isElectric ? 30900 : isSuv ? 33900 : 19900,
+      price: isLuxury ? 139900 : isElectric ? 30900 : isSuv ? 33900 : 19900,
       mileage: 15000,
       roi: -2,
       profit: -420,
@@ -229,6 +294,54 @@ function buildUnknownCandidates() {
       comparableConfidence: 20,
     },
   ];
+}
+
+function isEvFocusedBrand(brand) {
+  return [
+    "BYD",
+    "MG",
+    "Omoda",
+    "Jaecoo",
+    "Leapmotor",
+    "NIO",
+    "XPeng",
+    "Chery",
+    "Lynk & Co",
+    "Zeekr",
+    "Polestar",
+    "Seres",
+    "Aiways",
+    "Tesla",
+    "Smart",
+  ].includes(brand);
+}
+
+function isLuxuryBrand(brand) {
+  return [
+    "Ferrari",
+    "Maserati",
+    "Lamborghini",
+    "Bentley",
+    "Aston Martin",
+    "McLaren",
+    "Rolls-Royce",
+  ].includes(brand);
+}
+
+function buildEstimatedPrice({ isLuxury, isEvBrand, index, isFallback }) {
+  if (isLuxury) {
+    if (isFallback) return 139900;
+    return index === 1 ? 119900 : 104900;
+  }
+
+  if (isEvBrand) {
+    if (isFallback) return 33900;
+    return index === 1 ? 31900 : 28400;
+  }
+
+  if (isFallback) return 24900;
+
+  return index === 1 ? 22900 : 20400;
 }
 
 function buildCandidateId(brand, model, index) {
