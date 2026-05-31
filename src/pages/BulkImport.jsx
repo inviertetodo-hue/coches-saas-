@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 
-import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
+import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates";
+import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
 
 const DEFAULT_URL =
   "https://www.autoscout24.es/lst/audi/a3?sort=standard&desc=0&ustate=N%2CU&atype=C&cy=E&damaged_listing=exclude&source=homepage_search-mask";
@@ -39,7 +40,7 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 9.6.1 · Approved Bulk Import UI</p>
+        <p style={eyebrowStyle}>FASE 9.6.2 · Bulk Import Modularization</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
@@ -295,108 +296,6 @@ function detectSource(url) {
   if (normalized.includes("autoscout24")) return "autoscout24";
   if (normalized.includes("mobile.de")) return "mobile";
   return "unknown";
-}
-
-function buildDemoCandidates(url) {
-  const normalized = String(url || "").toLowerCase();
-
-  if (normalized.includes("audi") && normalized.includes("a3")) {
-    return [
-      {
-        id: "preview-audi-a3-1",
-        sourceMode: "real-feed",
-        sourceStatus: "ok",
-        title: "Audi A3 Sportback 35 TFSI S tronic",
-        brand: "Audi",
-        model: "A3",
-        year: 2023,
-        price: 24890,
-        mileage: 31500,
-        roi: 8,
-        profit: 2200,
-        matchScore: 88,
-        comparableConfidence: 91,
-      },
-      {
-        id: "preview-audi-a3-2",
-        sourceMode: "real-feed",
-        sourceStatus: "ok",
-        title: "Audi A3 40 TFSIe Advanced",
-        brand: "Audi",
-        model: "A3",
-        year: 2022,
-        price: 26900,
-        mileage: 27821,
-        roi: 6,
-        profit: 1630,
-        matchScore: 82,
-        comparableConfidence: 88,
-      },
-      {
-        id: "preview-audi-a3-3",
-        sourceMode: "real-feed",
-        sourceStatus: "ok",
-        title: "Audi A3 30 TDI S tronic",
-        brand: "Audi",
-        model: "A3",
-        year: 2021,
-        price: 16950,
-        mileage: 37212,
-        roi: -7,
-        profit: -1207,
-        matchScore: 78,
-        comparableConfidence: 84,
-      },
-      {
-        id: "preview-audi-a3-4",
-        sourceMode: "mock-fallback",
-        sourceStatus: "ok",
-        title: "Audi A3 Demo Candidate",
-        brand: "Audi",
-        model: "A3",
-        year: 2025,
-        price: 16995,
-        mileage: 15000,
-        roi: -2,
-        profit: -351,
-        matchScore: 70,
-        comparableConfidence: 60,
-      },
-    ];
-  }
-
-  return [
-    {
-      id: "preview-generic-1",
-      sourceMode: "real-feed",
-      sourceStatus: "ok",
-      title: "Candidato real de ejemplo",
-      brand: "Audi",
-      model: "A3",
-      year: 2023,
-      price: 24500,
-      mileage: 42000,
-      roi: 7,
-      profit: 1800,
-      matchScore: 82,
-      comparableConfidence: 86,
-    },
-    {
-      id: "preview-generic-2",
-      sourceMode: "mock-fallback",
-      sourceStatus: "ok",
-      title: "Candidato fallback de ejemplo",
-      brand: "",
-      model: "",
-      year: 0,
-      price: 0,
-      mileage: null,
-      roi: 0,
-      profit: 0,
-      matchScore: 40,
-      comparableConfidence: 30,
-    },
-  ];
 }
 
 const containerStyle = {
