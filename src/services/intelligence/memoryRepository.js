@@ -1,24 +1,50 @@
 const STORAGE_KEY = "coches_saas_memory_records_v1";
 
-let records = loadRecordsFromStorage();
+let records = normalizeStoredRecords(loadRecordsFromStorage());
 
 export function createMemoryRepository() {
   function saveMany(items = []) {
     const validItems = items.filter(Boolean);
+    const existingFingerprints = new Set(
+      records.map((item) => item.fingerprint).filter(Boolean)
+    );
 
-    const saved = validItems.map((item) => ({
-      id: buildId(),
-      savedAt: new Date().toISOString(),
-      ...item,
-    }));
+    const insertedRecords = [];
+    const skippedRecords = [];
 
-    records.push(...saved);
+    validItems.forEach((item) => {
+      const fingerprint = buildFingerprint(item);
+
+      if (existingFingerprints.has(fingerprint)) {
+        skippedRecords.push({
+          ...item,
+          fingerprint,
+          skippedReason: "duplicate",
+        });
+
+        return;
+      }
+
+      const savedRecord = {
+        id: buildId(),
+        savedAt: new Date().toISOString(),
+        fingerprint,
+        ...item,
+      };
+
+      records.push(savedRecord);
+      existingFingerprints.add(fingerprint);
+      insertedRecords.push(savedRecord);
+    });
+
     persistRecords();
 
     return {
-      inserted: saved.length,
+      inserted: insertedRecords.length,
+      skipped: skippedRecords.length,
       totalRecords: records.length,
-      records: saved,
+      records: insertedRecords,
+      skippedRecords,
     };
   }
 
@@ -89,6 +115,15 @@ function loadRecordsFromStorage() {
   }
 }
 
+function normalizeStoredRecords(storedRecords = []) {
+  return storedRecords
+    .filter(Boolean)
+    .map((item) => ({
+      ...item,
+      fingerprint: item.fingerprint || buildFingerprint(item),
+    }));
+}
+
 function persistRecords() {
   if (!isBrowserStorageAvailable()) {
     return;
@@ -106,6 +141,28 @@ function isBrowserStorageAvailable() {
     typeof window !== "undefined" &&
     typeof window.localStorage !== "undefined"
   );
+}
+
+function buildFingerprint(item = {}) {
+  return [
+    normalize(item.brand),
+    normalize(item.model),
+    normalize(item.year),
+    normalizeNumber(item.price),
+    normalizeNumber(item.km),
+  ]
+    .filter(Boolean)
+    .join("|");
+}
+
+function normalizeNumber(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return "";
+  }
+
+  return String(Math.round(numericValue));
 }
 
 function buildId() {
