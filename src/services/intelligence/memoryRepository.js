@@ -1,4 +1,6 @@
-const records = [];
+const STORAGE_KEY = "coches_saas_memory_records_v1";
+
+let records = loadRecordsFromStorage();
 
 export function createMemoryRepository() {
   function saveMany(items = []) {
@@ -11,6 +13,7 @@ export function createMemoryRepository() {
     }));
 
     records.push(...saved);
+    persistRecords();
 
     return {
       inserted: saved.length,
@@ -48,6 +51,7 @@ export function createMemoryRepository() {
 
   function clear() {
     records.length = 0;
+    persistRecords();
   }
 
   return {
@@ -58,6 +62,50 @@ export function createMemoryRepository() {
     count,
     clear,
   };
+}
+
+function loadRecordsFromStorage() {
+  if (!isBrowserStorageAvailable()) {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(Boolean);
+  } catch (error) {
+    console.warn("[memoryRepository] Could not load memory records", error);
+    return [];
+  }
+}
+
+function persistRecords() {
+  if (!isBrowserStorageAvailable()) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  } catch (error) {
+    console.warn("[memoryRepository] Could not persist memory records", error);
+  }
+}
+
+function isBrowserStorageAvailable() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.localStorage !== "undefined"
+  );
 }
 
 function buildId() {
