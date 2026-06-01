@@ -2,7 +2,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
   if (!pipeline || pipeline.totalRecords === 0) {
     return (
       <div style={panelStyle}>
-        <p style={eyebrowStyle}>FASE 10.6.0 · Opportunity Intelligence</p>
+        <p style={eyebrowStyle}>FASE 10.8.4 · Opportunity Explanation Layer</p>
         <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         <p style={emptyTextStyle}>
           Todavía no hay suficientes registros para construir un ranking de oportunidades.
@@ -18,7 +18,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
     <div style={panelStyle}>
       <div style={headerStyle}>
         <div>
-          <p style={eyebrowStyle}>FASE 10.6.0 · Opportunity Intelligence</p>
+          <p style={eyebrowStyle}>FASE 10.8.4 · Opportunity Explanation Layer</p>
           <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         </div>
 
@@ -33,6 +33,8 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
         <MetricCard label="Capital requerido" value={`${formatNumber(summary.requiredCapital)} €`} />
         <MetricCard label="Beneficio potencial" value={`${formatNumber(summary.expectedProfit)} €`} />
         <MetricCard label="ROI medio" value={`${formatNumber(summary.averageROI)}%`} />
+        <MetricCard label="Score V2 medio" value={`${formatNumber(summary.averageOpportunityScoreV2)}/100`} />
+        <MetricCard label="Comparables" value={summary.totalComparables || 0} />
       </div>
 
       {topItems.length === 0 ? (
@@ -56,6 +58,24 @@ function OpportunityRow({ item, index }) {
   const decision = item.decision || {};
   const valuation = item.valuation || {};
   const opportunity = item.opportunity || {};
+  const vehicleValuation = item.vehicleValuation || {};
+  const comparables = item.comparables || {};
+
+  const scoreV2 =
+    opportunity.scoreV2 ||
+    opportunity.opportunityScoreV2 ||
+    decision.decisionScore ||
+    opportunity.opportunityScore ||
+    0;
+
+  const levelV2 =
+    opportunity.opportunityLevelV2 ||
+    decision.label ||
+    "Sin decisión";
+
+  const reasons = Array.isArray(opportunity.opportunityReasonsV2)
+    ? opportunity.opportunityReasonsV2
+    : [];
 
   return (
     <div style={rowStyle}>
@@ -68,23 +88,44 @@ function OpportunityRow({ item, index }) {
         </strong>
 
         <p style={summaryStyle}>
-          {decision.summary || "Sin resumen de decisión disponible."}
+          {decision.summary || vehicleValuation.summary || "Sin resumen de decisión disponible."}
         </p>
 
         <div style={tagsStyle}>
           <span style={tagStyle}>ROI {formatNumber(item.roi)}%</span>
           <span style={tagStyle}>Margen {formatNumber(item.profit)} €</span>
           <span style={tagStyle}>
+            Valor estimado {formatNumber(vehicleValuation.estimatedMarketValue)} €
+          </span>
+          <span style={tagStyle}>
+            Descuento {formatNumber(vehicleValuation.discountPercent)}%
+          </span>
+          <span style={tagStyle}>
+            Confianza {vehicleValuation.confidence || 0}/100
+          </span>
+          <span style={tagStyle}>
+            Comparables {comparables.totalComparables || 0}
+          </span>
+          <span style={tagStyle}>
             Valoración {valuation.valuationLabel || "sin dato"}
           </span>
         </div>
+
+        {reasons.length > 0 && (
+          <div style={reasonsStyle}>
+            {reasons.slice(0, 5).map((reason, reasonIndex) => (
+              <div key={`${reason}-${reasonIndex}`} style={reasonStyle}>
+                ✓ {reason}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={scoreBoxStyle}>
-        <strong style={actionStyle}>{decision.label || "Sin decisión"}</strong>
-        <span style={scoreStyle}>
-          {decision.decisionScore || opportunity.opportunityScore || 0}/100
-        </span>
+        <strong style={actionStyle}>{levelV2}</strong>
+        <span style={scoreStyle}>{scoreV2}/100</span>
+        <small style={scoreLabelStyle}>Score V2</small>
       </div>
     </div>
   );
@@ -242,9 +283,21 @@ const tagStyle = {
   fontWeight: "800",
 };
 
+const reasonsStyle = {
+  display: "grid",
+  gap: "6px",
+  marginTop: "12px",
+};
+
+const reasonStyle = {
+  color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "800",
+};
+
 const scoreBoxStyle = {
   textAlign: "right",
-  minWidth: "105px",
+  minWidth: "115px",
 };
 
 const actionStyle = {
@@ -255,8 +308,16 @@ const actionStyle = {
 };
 
 const scoreStyle = {
+  display: "block",
   color: "#fef3c7",
   fontWeight: "900",
+  fontSize: "18px",
+};
+
+const scoreLabelStyle = {
+  color: "#94a3b8",
+  fontSize: "11px",
+  fontWeight: "800",
 };
 
 const emptyTextStyle = {
