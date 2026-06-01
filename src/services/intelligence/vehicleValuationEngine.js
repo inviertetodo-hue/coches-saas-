@@ -45,9 +45,9 @@ export function buildVehicleValuation(vehicle = {}, memoryRecords = []) {
 }
 
 export function buildVehicleValuationBatch(vehicles = [], memoryRecords = []) {
-  const valuations = vehicles.filter(Boolean).map((vehicle) =>
-    buildVehicleValuation(vehicle, memoryRecords)
-  );
+  const valuations = vehicles
+    .filter(Boolean)
+    .map((vehicle) => buildVehicleValuation(vehicle, memoryRecords));
 
   const highOpportunities = valuations.filter(
     (item) => item.opportunityLevel === "HIGH"
@@ -88,7 +88,10 @@ function findComparableRecords(vehicle = {}, memoryRecords = []) {
         return yearDistanceA - yearDistanceB;
       }
 
-      return toNumber(b.savedAt || b.created_at) - toNumber(a.savedAt || a.created_at);
+      return (
+        toTimestamp(b.savedAt || b.created_at || b.updated_at) -
+        toTimestamp(a.savedAt || a.created_at || a.updated_at)
+      );
     });
 }
 
@@ -96,13 +99,10 @@ function isComparable(record = {}, target = {}) {
   if (!record) return false;
 
   const status = String(record.status || "ACTIVE").toUpperCase();
-  const sourceMode = String(record.sourceMode || "").toLowerCase();
-  const model = normalize(record.model);
 
   if (status !== "ACTIVE") return false;
-  if (sourceMode === "mock-fallback") return false;
-  if (!record.brand || !record.model) return false;
-  if (model === "gama") return false;
+
+  if (!isRealValuationRecord(record)) return false;
 
   if (normalize(record.brand) !== target.brand) return false;
   if (normalize(record.model) !== target.model) return false;
@@ -112,6 +112,38 @@ function isComparable(record = {}, target = {}) {
   if (target.year > 0 && recordYear > 0) {
     return Math.abs(recordYear - target.year) <= 2;
   }
+
+  return true;
+}
+
+function isRealValuationRecord(record = {}) {
+  const sourceMode = normalize(record.sourceMode);
+
+  const blockedSourceModes = new Set([
+    "mock-fallback",
+    "mock-fallback-ranking",
+    "review",
+    "unresolved-url-query",
+    "brand-url-query",
+    "semantic-url-query",
+    "ready_for_live_feed",
+    "missing_model",
+    "insufficient_query",
+  ]);
+
+  if (blockedSourceModes.has(sourceMode)) return false;
+  if (record.needsLiveMarketFeed) return false;
+  if (record.isRealMarketData === false) return false;
+
+  const brand = normalize(record.brand);
+  const model = normalize(record.model);
+  const year = toNumber(record.year);
+  const price = toNumber(record.price);
+  const km = toNumber(record.km ?? record.mileage);
+
+  if (!brand || !model) return false;
+  if (model === "gama") return false;
+  if (year <= 0 || price <= 0 || km <= 0) return false;
 
   return true;
 }
@@ -160,7 +192,10 @@ function calculateEstimatedMarketValue(vehicle = {}, comparableRecords = []) {
     const maximumReasonableValue = price * 1.35;
 
     return Math.round(
-      Math.max(minimumReasonableValue, Math.min(maximumReasonableValue, weightedAverage))
+      Math.max(
+        minimumReasonableValue,
+        Math.min(maximumReasonableValue, weightedAverage)
+      )
     );
   }
 
@@ -300,6 +335,16 @@ function formatNumber(value) {
   return numericValue.toLocaleString("es-ES", {
     maximumFractionDigits: 0,
   });
+}
+
+function toTimestamp(value) {
+  const timestamp = new Date(value).getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return 0;
+  }
+
+  return timestamp;
 }
 
 function toNumber(value) {
