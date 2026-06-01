@@ -1,70 +1,36 @@
 import { parseCarFromUrl } from "../urlParser";
+import { buildLiveMarketFeedPreview } from "./liveMarketFeedAdapter";
 
 export function buildDemoCandidates(url) {
   const parsed = parseCarFromUrl(url);
   const brand = parsed?.brand || detectBrandFromUrl(url);
   const model = parsed?.model || detectModelFromUrl(url, brand);
 
-  if (brand && model) {
-    return [
-      buildMarketQueryCandidate({
-        url,
-        parsed,
-        brand,
-        model,
-        sourceMode: "semantic-url-query",
-        sourceStatus: "needs-live-market-feed",
-        title: parsed?.title || [brand, model].filter(Boolean).join(" "),
-        qualityHint: "brand_model_detected",
-      }),
-    ];
-  }
-
-  if (brand) {
-    return [
-      buildMarketQueryCandidate({
-        url,
-        parsed,
-        brand,
-        model: "",
-        sourceMode: "brand-url-query",
-        sourceStatus: "needs-model-detection",
-        title: `${brand} pendiente de modelo`,
-        qualityHint: "brand_detected_model_missing",
-      }),
-    ];
-  }
+  const feedPreview = buildLiveMarketFeedPreview({
+    url,
+    parsed,
+    brand,
+    model,
+  });
 
   return [
     buildMarketQueryCandidate({
       url,
       parsed,
-      brand: "",
-      model: "",
-      sourceMode: "unresolved-url-query",
-      sourceStatus: "insufficient-url-data",
-      title: "Búsqueda pendiente de identificación",
-      qualityHint: "brand_model_missing",
+      brand,
+      model,
+      feedPreview,
     }),
   ];
 }
 
-function buildMarketQueryCandidate({
-  url,
-  parsed,
-  brand,
-  model,
-  sourceMode,
-  sourceStatus,
-  title,
-  qualityHint,
-}) {
+function buildMarketQueryCandidate({ url, parsed, brand, model, feedPreview }) {
   return {
-    id: buildCandidateId(brand, model, sourceMode),
-    sourceMode,
-    sourceStatus,
+    id: buildCandidateId(brand, model, feedPreview.status),
+    sourceMode: feedPreview.status,
+    sourceStatus: "needs-live-market-feed",
     sourceUrl: url || "",
-    title: title || "Búsqueda pendiente de identificación",
+    title: buildTitle({ brand, model }),
     brand: brand || "",
     model: model || "",
     year: 0,
@@ -77,48 +43,31 @@ function buildMarketQueryCandidate({
     comparableConfidence: 0,
     memoryEligible: false,
     canSave: false,
-    qualityHint,
+    qualityHint: feedPreview.status,
     bodyType: parsed?.bodyType || "",
     fuelType: parsed?.fuelType || "",
     electrified: Boolean(parsed?.electrified),
     needsLiveMarketFeed: true,
-    explanation: buildExplanation({ brand, model, sourceStatus }),
+    feedPreview,
+    explanation: feedPreview.message,
   };
 }
 
-function buildExplanation({ brand, model, sourceStatus }) {
+function buildTitle({ brand, model }) {
   if (brand && model) {
-    return [
-      "La URL permite detectar marca y modelo.",
-      "No se generan precios, años ni kilómetros simulados.",
-      "Este candidato necesita datos reales de mercado antes de entrar en memoria.",
-    ].join(" ");
+    return [brand, model].join(" ");
   }
 
   if (brand) {
-    return [
-      "La URL permite detectar marca, pero no modelo.",
-      "No se genera ningún candidato artificial.",
-      "Debe revisarse o conectarse a un feed real antes de guardar.",
-    ].join(" ");
+    return `${brand} pendiente de modelo`;
   }
 
-  return [
-    "La URL no permite detectar marca ni modelo.",
-    "No se generan candidatos demo ni fallback.",
-    "La importación queda bloqueada para proteger la memoria.",
-  ].join(" ");
+  return "Búsqueda pendiente de identificación";
 }
 
 function buildMatchScore({ brand, model }) {
-  if (brand && model) {
-    return 55;
-  }
-
-  if (brand) {
-    return 35;
-  }
-
+  if (brand && model) return 55;
+  if (brand) return 35;
   return 15;
 }
 
@@ -210,14 +159,13 @@ function detectModelFromUrl(url, brand) {
   };
 
   const models = modelGroups[brand] || [];
-
   return models.find((model) => normalized.includes(normalizeUrl(model))) || "";
 }
 
-function buildCandidateId(brand, model, sourceMode) {
+function buildCandidateId(brand, model, status) {
   return [
     "query",
-    normalizeIdPart(sourceMode),
+    normalizeIdPart(status),
     normalizeIdPart(brand || "unknown"),
     normalizeIdPart(model || "unknown"),
   ].join("-");
