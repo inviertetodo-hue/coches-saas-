@@ -2,31 +2,67 @@ import { buildOpportunityScore } from "./opportunityScoreEngine";
 import { buildMarketValuation } from "./marketValuationEngine";
 
 export function buildOpportunityDecision(vehicle = {}) {
-  const opportunity = buildOpportunityScore(vehicle);
-  const marketValuation = buildMarketValuation(vehicle);
+  const opportunity = vehicle.opportunity || buildOpportunityScore(vehicle);
+  const marketValuation =
+    vehicle.valuation?.memoryValuation ||
+    vehicle.marketValuation ||
+    buildMarketValuation(vehicle);
+
+  const vehicleValuation = vehicle.vehicleValuation || vehicle.valuation?.memoryValuation || null;
+  const comparables = vehicle.comparables || vehicle.valuation?.comparables || null;
+  const sellSpeed = vehicle.sellSpeed || null;
+
+  const opportunityScoreV2 = normalizeNumber(
+    opportunity.scoreV2 ??
+      opportunity.opportunityScoreV2 ??
+      opportunity.opportunityScore
+  );
 
   const opportunityScore = normalizeNumber(opportunity.opportunityScore);
-  const valuationScore = normalizeNumber(marketValuation.valuationScore);
+  const valuationScore = normalizeNumber(
+    vehicle.valuation?.valuationScore ??
+      marketValuation.valuationScore
+  );
+
   const qualityScore = normalizeNumber(vehicle.qualityScore ?? vehicle.quality);
-  const comparableConfidence = normalizeNumber(vehicle.comparableConfidence);
+  const comparableConfidence = normalizeNumber(
+    vehicleValuation?.confidence ??
+      vehicle.comparableConfidence
+  );
+
   const roi = normalizeNumber(vehicle.roi);
   const profit = normalizeNumber(vehicle.profit);
+  const comparableCount = normalizeNumber(
+    comparables?.totalComparables ??
+      vehicleValuation?.comparableCount
+  );
 
-  const decisionScore = calculateDecisionScore({
-    opportunityScore,
+  const sellSpeedScore = normalizeNumber(sellSpeed?.sellSpeedScore);
+  const estimatedSellDays = normalizeNumber(sellSpeed?.estimatedSellDays);
+  const discountPercent = normalizeNumber(
+    vehicleValuation?.discountPercent ??
+      vehicle.valuation?.discountPercent ??
+      marketValuation.discountPercent
+  );
+
+  const decisionScore = calculateDecisionScoreV2({
+    opportunityScoreV2,
     valuationScore,
     qualityScore,
     comparableConfidence,
+    comparableCount,
+    sellSpeedScore,
     roi,
     profit,
+    discountPercent,
   });
 
-  const action = buildAction({
+  const action = buildActionV2({
     decisionScore,
-    opportunityScore,
-    valuationScore,
+    opportunityScoreV2,
     qualityScore,
     comparableConfidence,
+    comparableCount,
     roi,
     profit,
   });
@@ -35,38 +71,54 @@ export function buildOpportunityDecision(vehicle = {}) {
     action: action.action,
     label: action.label,
     decisionScore,
-    confidence: buildDecisionConfidence({
+    confidence: buildDecisionConfidenceV2({
       qualityScore,
       comparableConfidence,
-      opportunityScore,
+      opportunityScoreV2,
       valuationScore,
+      comparableCount,
     }),
-    reasons: buildReasons({
+    reasons: buildReasonsV2({
       action: action.action,
-      opportunityScore,
+      opportunityScoreV2,
       valuationScore,
       qualityScore,
       comparableConfidence,
+      comparableCount,
       roi,
       profit,
+      discountPercent,
+      sellSpeedScore,
+      estimatedSellDays,
+      vehicleValuation,
       marketValuation,
     }),
-    risks: buildRisks({
+    risks: buildRisksV2({
       qualityScore,
       comparableConfidence,
+      comparableCount,
       roi,
       profit,
+      discountPercent,
+      sellSpeedScore,
       marketValuation,
     }),
     opportunity,
     marketValuation,
-    summary: buildSummary({
+    vehicleValuation,
+    comparables,
+    sellSpeed,
+    summary: buildSummaryV2({
       action,
       decisionScore,
-      opportunityScore,
+      opportunityScoreV2,
       valuationScore,
       roi,
       profit,
+      discountPercent,
+      comparableCount,
+      comparableConfidence,
+      sellSpeed,
       marketValuation,
     }),
   };
@@ -77,153 +129,154 @@ export function enrichWithOpportunityDecision(items = []) {
     .filter(Boolean)
     .map((item) => ({
       ...item,
-      decision: buildOpportunityDecision(item),
+      decision: item.decision || buildOpportunityDecision(item),
     }));
 }
 
-function calculateDecisionScore({
-  opportunityScore,
+function calculateDecisionScoreV2({
+  opportunityScoreV2,
   valuationScore,
   qualityScore,
   comparableConfidence,
+  comparableCount,
+  sellSpeedScore,
   roi,
   profit,
+  discountPercent,
 }) {
-  let score = Math.round(
-    opportunityScore * 0.35 +
-      valuationScore * 0.30 +
-      qualityScore * 0.15 +
-      comparableConfidence * 0.15
-  );
+  let score = opportunityScoreV2 || 0;
 
-  if (roi > 0) {
-    score += 5;
+  if (!score) {
+    score = Math.round(
+      valuationScore * 0.35 +
+        qualityScore * 0.20 +
+        comparableConfidence * 0.25 +
+        sellSpeedScore * 0.20
+    );
   }
 
-  if (profit > 0) {
-    score += 5;
-  }
+  if (comparableCount >= 1) score += 3;
+  if (comparableCount >= 3) score += 4;
 
-  if (roi < 0 || profit < 0) {
-    score -= 20;
-  }
+  if (sellSpeedScore >= 80) score += 4;
+  if (sellSpeedScore < 50 && sellSpeedScore > 0) score -= 8;
 
-  if (qualityScore < 60 || comparableConfidence < 60) {
-    score -= 20;
-  }
+  if (discountPercent >= 5) score += 4;
+  if (discountPercent < 0) score -= 12;
+
+  if (roi < 0) score -= 15;
+  if (profit < 0) score -= 15;
+
+  if (qualityScore > 0 && qualityScore < 60) score -= 20;
+  if (comparableConfidence > 0 && comparableConfidence < 55) score -= 12;
 
   return clampScore(score);
 }
 
-function buildAction({
+function buildActionV2({
   decisionScore,
-  opportunityScore,
-  valuationScore,
+  opportunityScoreV2,
   qualityScore,
   comparableConfidence,
+  comparableCount,
   roi,
   profit,
 }) {
-  if (qualityScore < 60 || comparableConfidence < 60) {
-    return {
-      action: "REJECT",
-      label: "Descartar",
-    };
+  if (qualityScore > 0 && qualityScore < 60) {
+    return { action: "REJECT", label: "Descartar" };
   }
 
   if (roi < 0 || profit < 0) {
-    return {
-      action: "WATCH",
-      label: "Observar mercado",
-    };
+    return { action: "WATCH", label: "Observar mercado" };
   }
 
-  if (
-    decisionScore >= 82 &&
-    opportunityScore >= 75 &&
-    valuationScore >= 70
-  ) {
-    return {
-      action: "BUY",
-      label: "Comprar",
-    };
+  if (opportunityScoreV2 >= 85 && decisionScore >= 80) {
+    return { action: "BUY", label: "Comprar" };
   }
 
-  if (decisionScore >= 65) {
-    return {
-      action: "WATCH",
-      label: "Vigilar / revisar",
-    };
+  if (opportunityScoreV2 >= 65 || decisionScore >= 65) {
+    return { action: "WATCH", label: "Vigilar / revisar" };
   }
 
-  return {
-    action: "REJECT",
-    label: "Descartar",
-  };
+  if (comparableCount === 0 && comparableConfidence < 60) {
+    return { action: "REJECT", label: "Descartar" };
+  }
+
+  return { action: "REJECT", label: "Descartar" };
 }
 
-function buildDecisionConfidence({
+function buildDecisionConfidenceV2({
   qualityScore,
   comparableConfidence,
-  opportunityScore,
+  opportunityScoreV2,
   valuationScore,
+  comparableCount,
 }) {
-  const score = clampScore(
-    Math.round(
-      qualityScore * 0.30 +
-        comparableConfidence * 0.30 +
-        opportunityScore * 0.20 +
-        valuationScore * 0.20
-    )
+  let score = Math.round(
+    qualityScore * 0.25 +
+      comparableConfidence * 0.30 +
+      opportunityScoreV2 * 0.25 +
+      valuationScore * 0.20
   );
 
+  if (comparableCount >= 1) score += 5;
+  if (comparableCount >= 3) score += 5;
+
+  score = clampScore(score);
+
   if (score >= 85) {
-    return {
-      level: "high",
-      label: "Alta",
-      score,
-    };
+    return { level: "high", label: "Alta", score };
   }
 
   if (score >= 70) {
-    return {
-      level: "medium",
-      label: "Media",
-      score,
-    };
+    return { level: "medium", label: "Media", score };
   }
 
-  return {
-    level: "low",
-    label: "Baja",
-    score,
-  };
+  return { level: "low", label: "Baja", score };
 }
 
-function buildReasons({
+function buildReasonsV2({
   action,
-  opportunityScore,
+  opportunityScoreV2,
   valuationScore,
   qualityScore,
   comparableConfidence,
+  comparableCount,
   roi,
   profit,
+  discountPercent,
+  sellSpeedScore,
+  estimatedSellDays,
+  vehicleValuation,
   marketValuation,
 }) {
   const reasons = [];
 
-  if (opportunityScore >= 75) {
-    reasons.push(`Opportunity Score atractivo: ${opportunityScore}/100.`);
+  if (opportunityScoreV2 >= 85) {
+    reasons.push(`Score V2 fuerte: ${opportunityScoreV2}/100.`);
+  }
+
+  if (opportunityScoreV2 >= 65 && opportunityScoreV2 < 85) {
+    reasons.push(`Score V2 interesante: ${opportunityScoreV2}/100.`);
   }
 
   if (valuationScore >= 70) {
     reasons.push(`Valoración de mercado favorable: ${valuationScore}/100.`);
   }
 
-  if (marketValuation.discountValue > 0) {
+  const discountValue = normalizeNumber(
+    vehicleValuation?.discountAmount ??
+      marketValuation.discountValue
+  );
+
+  if (discountValue > 0) {
     reasons.push(
-      `Ventaja estimada frente a mercado: ${formatCurrency(marketValuation.discountValue)}.`
+      `Ventaja estimada frente a mercado: ${formatCurrency(discountValue)}.`
     );
+  }
+
+  if (discountPercent > 0) {
+    reasons.push(`Descuento frente a valoración: ${formatNumber(discountPercent)}%.`);
   }
 
   if (roi > 0) {
@@ -234,12 +287,22 @@ function buildReasons({
     reasons.push(`Margen estimado positivo: ${formatCurrency(profit)}.`);
   }
 
-  if (qualityScore >= 80) {
-    reasons.push("Calidad de datos alta.");
+  if (comparableCount > 0) {
+    reasons.push(`${comparableCount} comparable(s) usados para la valoración.`);
   }
 
   if (comparableConfidence >= 75) {
-    reasons.push("Confianza de comparables suficiente.");
+    reasons.push(`Confianza de valoración alta: ${comparableConfidence}/100.`);
+  }
+
+  if (sellSpeedScore >= 80) {
+    reasons.push(
+      `Rotación prevista alta: venta estimada en ${estimatedSellDays || 0} días.`
+    );
+  }
+
+  if (qualityScore >= 80) {
+    reasons.push("Calidad de datos alta.");
   }
 
   if (action === "WATCH" && reasons.length === 0) {
@@ -253,21 +316,27 @@ function buildReasons({
   return reasons;
 }
 
-function buildRisks({
+function buildRisksV2({
   qualityScore,
   comparableConfidence,
+  comparableCount,
   roi,
   profit,
-  marketValuation,
+  discountPercent,
+  sellSpeedScore,
 }) {
   const risks = [];
 
-  if (qualityScore < 70) {
+  if (qualityScore > 0 && qualityScore < 70) {
     risks.push("Calidad de datos por debajo del umbral recomendado.");
   }
 
-  if (comparableConfidence < 70) {
-    risks.push("Confianza de comparables baja.");
+  if (comparableCount === 0) {
+    risks.push("Sin comparables suficientes para defender la valoración.");
+  }
+
+  if (comparableConfidence > 0 && comparableConfidence < 70) {
+    risks.push("Confianza de valoración baja.");
   }
 
   if (roi < 0) {
@@ -278,8 +347,12 @@ function buildRisks({
     risks.push("Margen estimado negativo.");
   }
 
-  if (marketValuation.discountValue <= 0) {
-    risks.push("No existe ventaja clara frente al valor estimado de mercado.");
+  if (discountPercent <= 0) {
+    risks.push("No existe descuento claro frente al valor estimado.");
+  }
+
+  if (sellSpeedScore > 0 && sellSpeedScore < 55) {
+    risks.push("Riesgo de rotación lenta.");
   }
 
   if (risks.length === 0) {
@@ -289,23 +362,31 @@ function buildRisks({
   return risks;
 }
 
-function buildSummary({
+function buildSummaryV2({
   action,
   decisionScore,
-  opportunityScore,
+  opportunityScoreV2,
   valuationScore,
   roi,
   profit,
-  marketValuation,
+  discountPercent,
+  comparableCount,
+  comparableConfidence,
+  sellSpeed,
 }) {
   return [
     `Decisión: ${action.label}.`,
-    `Decision Score: ${decisionScore}/100.`,
-    `Opportunity Score: ${opportunityScore}/100.`,
+    `Decision Score V2: ${decisionScore}/100.`,
+    `Opportunity Score V2: ${opportunityScoreV2}/100.`,
     `Valuation Score: ${valuationScore}/100.`,
     `ROI estimado: ${formatNumber(roi)}%.`,
     `Margen estimado: ${formatCurrency(profit)}.`,
-    `Diferencia frente a mercado: ${formatCurrency(marketValuation.discountValue)}.`,
+    `Descuento frente a valoración: ${formatNumber(discountPercent)}%.`,
+    `Comparables: ${comparableCount}.`,
+    `Confianza: ${comparableConfidence}/100.`,
+    sellSpeed?.estimatedSellDays
+      ? `Venta estimada: ${sellSpeed.estimatedSellDays} días.`
+      : "Venta estimada: sin dato.",
   ].join(" ");
 }
 
