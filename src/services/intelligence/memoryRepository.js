@@ -1,3 +1,4 @@
+import { buildListingIdentity } from "./listingIdentityEngine";
 import { buildListingLifecycle, LISTING_STATUS } from "./marketListingLifecycleEngine";
 
 const STORAGE_KEY = "coches_saas_memory_records_v1";
@@ -16,7 +17,8 @@ export function createMemoryRepository() {
     const now = new Date().toISOString();
 
     validItems.forEach((item) => {
-      const fingerprint = buildFingerprint(item);
+      const identity = buildListingIdentity(item);
+      const fingerprint = identity.fingerprint;
 
       if (existingFingerprints.has(fingerprint)) {
         const existingRecord = records.find(
@@ -27,12 +29,17 @@ export function createMemoryRepository() {
           existingRecord.last_seen_at = now;
           existingRecord.updated_at = now;
           existingRecord.status = LISTING_STATUS.ACTIVE;
+          existingRecord.sourceSite = existingRecord.sourceSite || identity.sourceSite;
+          existingRecord.sourceUrl = existingRecord.sourceUrl || identity.sourceUrl;
+          existingRecord.listingId = existingRecord.listingId || identity.listingId;
+          existingRecord.fingerprintVersion = identity.fingerprintVersion;
+          existingRecord.identityConfidence = identity.identityConfidence;
           existingRecord.lifecycle = buildListingLifecycle(existingRecord);
         }
 
         skippedRecords.push({
           ...item,
-          fingerprint,
+          ...identity,
           skippedReason: "duplicate_refreshed",
         });
 
@@ -47,8 +54,8 @@ export function createMemoryRepository() {
         first_seen_at: now,
         last_seen_at: now,
         status: LISTING_STATUS.ACTIVE,
-        fingerprint,
         ...item,
+        ...identity,
       };
 
       savedRecord.lifecycle = buildListingLifecycle(savedRecord);
@@ -231,24 +238,24 @@ function loadRecordsFromStorage() {
 function normalizeStoredRecords(storedRecords = []) {
   const now = new Date().toISOString();
 
-  return storedRecords
-    .filter(Boolean)
-    .map((item) => {
-      const normalizedRecord = {
-        ...item,
-        fingerprint: item.fingerprint || buildFingerprint(item),
-        status: item.status || LISTING_STATUS.ACTIVE,
-        first_seen_at: item.first_seen_at || item.firstSeenAt || item.savedAt || now,
-        last_seen_at: item.last_seen_at || item.lastSeenAt || item.savedAt || now,
-        created_at: item.created_at || item.savedAt || now,
-        updated_at: item.updated_at || item.savedAt || now,
-      };
+  return storedRecords.filter(Boolean).map((item) => {
+    const identity = buildListingIdentity(item);
 
-      return {
-        ...normalizedRecord,
-        lifecycle: buildListingLifecycle(normalizedRecord),
-      };
-    });
+    const normalizedRecord = {
+      ...item,
+      ...identity,
+      status: item.status || LISTING_STATUS.ACTIVE,
+      first_seen_at: item.first_seen_at || item.firstSeenAt || item.savedAt || now,
+      last_seen_at: item.last_seen_at || item.lastSeenAt || item.savedAt || now,
+      created_at: item.created_at || item.savedAt || now,
+      updated_at: item.updated_at || item.savedAt || now,
+    };
+
+    return {
+      ...normalizedRecord,
+      lifecycle: buildListingLifecycle(normalizedRecord),
+    };
+  });
 }
 
 function persistRecords() {
@@ -268,28 +275,6 @@ function isBrowserStorageAvailable() {
     typeof window !== "undefined" &&
     typeof window.localStorage !== "undefined"
   );
-}
-
-function buildFingerprint(item = {}) {
-  return [
-    normalize(item.brand),
-    normalize(item.model),
-    normalize(item.year),
-    normalizeNumber(item.price),
-    normalizeNumber(item.km ?? item.mileage),
-  ]
-    .filter(Boolean)
-    .join("|");
-}
-
-function normalizeNumber(value) {
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue) || numericValue <= 0) {
-    return "";
-  }
-
-  return String(Math.round(numericValue));
 }
 
 function buildId() {
