@@ -1,14 +1,24 @@
-export function buildMarketValuation(vehicle = {}) {
-  const price = Number(vehicle.price || 0);
-  const roi = Number(vehicle.roi || 0);
-  const profit = Number(vehicle.profit || 0);
+export function buildMarketValuation(vehicle = {}, options = {}) {
+  const price = toNumber(vehicle.price);
+  const roi = toNumber(vehicle.roi);
+  const profit = toNumber(vehicle.profit);
+
+  const memoryValuation =
+    vehicle.vehicleValuation ||
+    vehicle.memoryValuation ||
+    options.vehicleValuation ||
+    null;
+
+  const memoryEstimatedValue = toNumber(memoryValuation?.estimatedMarketValue);
+  const memoryConfidence = toNumber(memoryValuation?.confidence);
+  const memoryComparableCount = toNumber(memoryValuation?.comparableCount);
 
   const estimatedMarketValue =
-    profit > 0
-      ? Math.round(price + profit)
-      : Math.round(price * (1 + roi / 100));
+    memoryEstimatedValue > 0 && memoryConfidence >= 50
+      ? memoryEstimatedValue
+      : buildFallbackMarketValue({ price, roi, profit });
 
-  const discountValue = estimatedMarketValue - price;
+  const discountValue = Math.round(estimatedMarketValue - price);
 
   const discountPercent =
     price > 0
@@ -19,6 +29,8 @@ export function buildMarketValuation(vehicle = {}) {
     discountPercent,
     roi,
     profit,
+    memoryConfidence,
+    memoryComparableCount,
   });
 
   return {
@@ -28,13 +40,37 @@ export function buildMarketValuation(vehicle = {}) {
     discountPercent,
     valuationScore,
     valuationLabel: buildValuationLabel(valuationScore),
+    valuationSource:
+      memoryEstimatedValue > 0 && memoryConfidence >= 50
+        ? "memory_comparables"
+        : "fallback_roi_profit",
+    valuationConfidence: memoryConfidence,
+    comparableCount: memoryComparableCount,
   };
+}
+
+function buildFallbackMarketValue({ price, roi, profit }) {
+  if (price <= 0) {
+    return 0;
+  }
+
+  if (profit > 0) {
+    return Math.round(price + profit);
+  }
+
+  if (roi !== 0) {
+    return Math.round(price * (1 + roi / 100));
+  }
+
+  return price;
 }
 
 function calculateValuationScore({
   discountPercent,
   roi,
   profit,
+  memoryConfidence,
+  memoryComparableCount,
 }) {
   let score = 50;
 
@@ -43,6 +79,42 @@ function calculateValuationScore({
 
   if (profit > 0) {
     score += 10;
+  }
+
+  if (profit >= 1000) {
+    score += 5;
+  }
+
+  if (profit >= 2000) {
+    score += 5;
+  }
+
+  if (memoryComparableCount >= 1) {
+    score += 5;
+  }
+
+  if (memoryComparableCount >= 3) {
+    score += 5;
+  }
+
+  if (memoryConfidence >= 70) {
+    score += 6;
+  }
+
+  if (memoryConfidence >= 85) {
+    score += 6;
+  }
+
+  if (memoryConfidence > 0 && memoryConfidence < 50) {
+    score -= 10;
+  }
+
+  if (roi < 0) {
+    score -= 12;
+  }
+
+  if (profit < 0) {
+    score -= 12;
   }
 
   return Math.max(0, Math.min(100, Math.round(score)));
@@ -62,4 +134,14 @@ function buildValuationLabel(score) {
   }
 
   return "Sobrevalorado";
+}
+
+function toNumber(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
+
+  return numericValue;
 }
