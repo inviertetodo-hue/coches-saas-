@@ -6,10 +6,12 @@ import BulkImportMemoryExplorerPanel from "../components/bulk-import/BulkImportM
 import BulkImportMemorySimulationPanel from "../components/bulk-import/BulkImportMemorySimulationPanel";
 import BulkImportPreviewCard from "../components/bulk-import/BulkImportPreviewCard";
 import BulkImportProtectedSavePanel from "../components/bulk-import/BulkImportProtectedSavePanel";
+import OpportunityIntelligencePanel from "../components/bulk-import/OpportunityIntelligencePanel";
 
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
 import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates";
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
+import { buildMasterOpportunityPipeline } from "../services/intelligence/masterOpportunityPipelineEngine";
 import { buildMemorySimulation } from "../services/intelligence/memorySimulationEngine";
 import { buildProtectedMemorySave } from "../services/intelligence/protectedMemorySaveEngine";
 import { createMemoryRepository } from "../services/intelligence/memoryRepository";
@@ -28,6 +30,11 @@ export default function BulkImport() {
 
   const memoryRepository = useMemo(() => createMemoryRepository(), []);
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
+
+  const opportunityPipeline = useMemo(
+    () => buildMasterOpportunityPipeline(memoryRecords),
+    [memoryRecords]
+  );
 
   function handlePreview() {
     const result = buildBulkUrlPreview({
@@ -100,15 +107,15 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 10.3.2 · Memory Analytics Connected</p>
+        <p style={eyebrowStyle}>FASE 10.6.0 · Opportunity Intelligence Connected</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
           guarda nada en Supabase: previsualiza, aprueba, simula memoria,
-          prepara un guardado protegido, guarda en memoria local de sesión y
-          muestra analítica de los registros guardados.
+          prepara un guardado protegido, guarda en memoria local de sesión,
+          muestra analítica y conecta el motor de oportunidades sobre la memoria local.
         </p>
       </div>
 
@@ -297,6 +304,8 @@ export default function BulkImport() {
               </p>
             </div>
           )}
+
+          <OpportunityIntelligencePanel pipeline={opportunityPipeline} />
 
           <BulkImportMemoryAnalyticsPanel records={memoryRecords} />
 
