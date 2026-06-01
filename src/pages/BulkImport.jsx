@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import BulkImportApprovedCard from "../components/bulk-import/BulkImportApprovedCard";
 import BulkImportMemoryAnalyticsPanel from "../components/bulk-import/BulkImportMemoryAnalyticsPanel";
@@ -35,6 +35,10 @@ export default function BulkImport() {
     () => buildMasterOpportunityPipeline(memoryRecords),
     [memoryRecords]
   );
+
+  useEffect(() => {
+    setMemoryRecords(memoryRepository.getAll());
+  }, [memoryRepository]);
 
   function handlePreview() {
     const result = buildBulkUrlPreview({
@@ -107,15 +111,17 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>FASE 10.6.0 · Opportunity Intelligence Connected</p>
+        <p style={eyebrowStyle}>
+          FASE 10.6.2 · Opportunity Intelligence Validation
+        </p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
           guarda nada en Supabase: previsualiza, aprueba, simula memoria,
-          prepara un guardado protegido, guarda en memoria local de sesión,
-          muestra analítica y conecta el motor de oportunidades sobre la memoria local.
+          prepara un guardado protegido, guarda en memoria local, carga memoria
+          persistida y muestra el motor de oportunidades conectado.
         </p>
       </div>
 
@@ -188,6 +194,8 @@ export default function BulkImport() {
           </button>
         </div>
       </div>
+
+      <OpportunityIntelligencePanel pipeline={opportunityPipeline} />
 
       {!preview && (
         <div style={emptyBoxStyle}>
@@ -300,12 +308,10 @@ export default function BulkImport() {
 
               <p style={saveResultTextStyle}>
                 Se han guardado {saveResult.inserted} registros en memoria local
-                de sesión. Todavía no se ha escrito nada en Supabase.
+                persistente. Todavía no se ha escrito nada en Supabase.
               </p>
             </div>
           )}
-
-          <OpportunityIntelligencePanel pipeline={opportunityPipeline} />
 
           <BulkImportMemoryAnalyticsPanel records={memoryRecords} />
 
