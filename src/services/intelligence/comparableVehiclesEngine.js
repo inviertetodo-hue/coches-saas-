@@ -17,6 +17,7 @@ export function buildComparableVehicles(vehicle = {}, memoryRecords = []) {
     averageComparablePrice: calculateAveragePrice(bestComparables),
     averageComparableKm: calculateAverageKm(bestComparables),
     averageComparableYear: calculateAverageYear(bestComparables),
+    quality: buildComparableQuality(bestComparables),
   };
 }
 
@@ -27,9 +28,7 @@ function isComparable(vehicle = {}, record = {}) {
     return false;
   }
 
-  const sourceMode = String(record.sourceMode || "").toLowerCase();
-
-  if (sourceMode === "mock-fallback") {
+  if (!isRealComparableRecord(record)) {
     return false;
   }
 
@@ -48,6 +47,50 @@ function isComparable(vehicle = {}, record = {}) {
   }
 
   if (vehicleModel !== recordModel) {
+    return false;
+  }
+
+  return true;
+}
+
+function isRealComparableRecord(record = {}) {
+  const sourceMode = normalize(record.sourceMode);
+
+  const blockedSourceModes = new Set([
+    "mock-fallback",
+    "mock-fallback-ranking",
+    "review",
+    "unresolved-url-query",
+    "brand-url-query",
+    "semantic-url-query",
+    "ready_for_live_feed",
+    "missing_model",
+    "insufficient_query",
+  ]);
+
+  if (blockedSourceModes.has(sourceMode)) {
+    return false;
+  }
+
+  if (record.needsLiveMarketFeed) {
+    return false;
+  }
+
+  if (record.isRealMarketData === false) {
+    return false;
+  }
+
+  const brand = normalize(record.brand);
+  const model = normalize(record.model);
+  const year = toNumber(record.year);
+  const price = toNumber(record.price);
+  const km = toNumber(record.km ?? record.mileage);
+
+  if (!brand || !model) {
+    return false;
+  }
+
+  if (year <= 0 || price <= 0 || km <= 0) {
     return false;
   }
 
@@ -81,15 +124,11 @@ function calculateComparableScore(vehicle = {}, record = {}) {
 function buildComparableReasons(vehicle = {}, record = {}) {
   const reasons = [];
 
-  if (
-    normalize(vehicle.brand) === normalize(record.brand)
-  ) {
+  if (normalize(vehicle.brand) === normalize(record.brand)) {
     reasons.push("Misma marca");
   }
 
-  if (
-    normalize(vehicle.model) === normalize(record.model)
-  ) {
+  if (normalize(vehicle.model) === normalize(record.model)) {
     reasons.push("Mismo modelo");
   }
 
@@ -118,6 +157,40 @@ function buildComparableReasons(vehicle = {}, record = {}) {
   return reasons;
 }
 
+function buildComparableQuality(records = []) {
+  const total = records.length;
+
+  if (total >= 5) {
+    return {
+      level: "strong",
+      label: "Comparables sólidos",
+      score: 90,
+    };
+  }
+
+  if (total >= 3) {
+    return {
+      level: "good",
+      label: "Comparables suficientes",
+      score: 75,
+    };
+  }
+
+  if (total >= 1) {
+    return {
+      level: "limited",
+      label: "Comparables limitados",
+      score: 55,
+    };
+  }
+
+  return {
+    level: "none",
+    label: "Sin comparables reales",
+    score: 0,
+  };
+}
+
 function calculateAveragePrice(records = []) {
   const values = records
     .map((item) => toNumber(item.price))
@@ -128,16 +201,13 @@ function calculateAveragePrice(records = []) {
   }
 
   return Math.round(
-    values.reduce((sum, value) => sum + value, 0) /
-      values.length
+    values.reduce((sum, value) => sum + value, 0) / values.length
   );
 }
 
 function calculateAverageKm(records = []) {
   const values = records
-    .map((item) =>
-      toNumber(item.km ?? item.mileage)
-    )
+    .map((item) => toNumber(item.km ?? item.mileage))
     .filter((value) => value > 0);
 
   if (!values.length) {
@@ -145,8 +215,7 @@ function calculateAverageKm(records = []) {
   }
 
   return Math.round(
-    values.reduce((sum, value) => sum + value, 0) /
-      values.length
+    values.reduce((sum, value) => sum + value, 0) / values.length
   );
 }
 
@@ -160,8 +229,7 @@ function calculateAverageYear(records = []) {
   }
 
   return Math.round(
-    values.reduce((sum, value) => sum + value, 0) /
-      values.length
+    values.reduce((sum, value) => sum + value, 0) / values.length
   );
 }
 
@@ -176,7 +244,5 @@ function toNumber(value) {
 }
 
 function normalize(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return String(value || "").trim().toLowerCase();
 }
