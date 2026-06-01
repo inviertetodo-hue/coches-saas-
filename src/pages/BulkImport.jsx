@@ -29,7 +29,10 @@ export default function BulkImport() {
   const [memoryRecords, setMemoryRecords] = useState([]);
 
   const memoryRepository = useMemo(() => createMemoryRepository(), []);
-  const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
+  const marketQueryCandidates = useMemo(
+    () => buildDemoCandidates(url),
+    [url]
+  );
 
   const currentOpportunityRecords = useMemo(() => {
     if (savePlan?.acceptedRecords?.length) {
@@ -60,7 +63,7 @@ export default function BulkImport() {
     const result = buildBulkUrlPreview({
       url,
       source: detectSource(url),
-      candidates: demoCandidates,
+      candidates: marketQueryCandidates,
       limit: 20,
     });
 
