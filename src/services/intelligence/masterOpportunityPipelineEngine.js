@@ -3,6 +3,7 @@ import { buildMarketValuation } from "./marketValuationEngine";
 import { buildOpportunityDecision } from "./opportunityDecisionEngine";
 import { buildOpportunityScore } from "./opportunityScoreEngine";
 import { buildPortfolioOpportunity } from "./portfolioOpportunityEngine";
+import { buildSellSpeed } from "./sellSpeedEngine";
 import { buildVehicleValuation } from "./vehicleValuationEngine";
 
 export function buildMasterOpportunityPipeline(records = [], options = {}) {
@@ -21,10 +22,20 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
     });
 
     const valuation = {
-      ...buildMarketValuation(vehicle),
+      ...buildMarketValuation(vehicle, {
+        vehicleValuation,
+      }),
       memoryValuation: vehicleValuation,
       comparables,
     };
+
+    const sellSpeed = buildSellSpeed({
+      successProbability: opportunity.scoreV2,
+      executiveScore: opportunity.scoreV2,
+      roi: vehicle.roi,
+      profit: vehicle.profit,
+      confidenceScore: vehicleValuation.confidence,
+    });
 
     const decision = buildOpportunityDecision({
       ...vehicle,
@@ -32,12 +43,14 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       valuation,
       vehicleValuation,
       comparables,
+      sellSpeed,
     });
 
     return {
       ...vehicle,
       comparables,
       vehicleValuation,
+      sellSpeed,
       opportunity,
       valuation,
       decision,
@@ -50,6 +63,13 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     if (bScore !== aScore) {
       return bScore - aScore;
+    }
+
+    const aSellSpeed = Number(a.sellSpeed?.sellSpeedScore || 0);
+    const bSellSpeed = Number(b.sellSpeed?.sellSpeedScore || 0);
+
+    if (bSellSpeed !== aSellSpeed) {
+      return bSellSpeed - aSellSpeed;
     }
 
     const aDiscount = Number(a.vehicleValuation?.discountPercent || 0);
@@ -82,6 +102,8 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       averageDiscountPercent: valuationSummary.averageDiscountPercent,
       totalComparables: valuationSummary.totalComparables,
       averageOpportunityScoreV2: valuationSummary.averageOpportunityScoreV2,
+      averageSellSpeedScore: valuationSummary.averageSellSpeedScore,
+      averageEstimatedSellDays: valuationSummary.averageEstimatedSellDays,
     },
   };
 }
@@ -226,11 +248,21 @@ function buildValuationSummary(records = []) {
     .map((item) => Number(item.opportunity?.scoreV2 || 0))
     .filter((value) => value > 0);
 
+  const sellSpeedValues = records
+    .map((item) => Number(item.sellSpeed?.sellSpeedScore || 0))
+    .filter((value) => value > 0);
+
+  const sellDaysValues = records
+    .map((item) => Number(item.sellSpeed?.estimatedSellDays || 0))
+    .filter((value) => value > 0);
+
   return {
     totalComparables,
     averageConfidence: average(confidenceValues),
     averageDiscountPercent: average(discountValues),
     averageOpportunityScoreV2: average(scoreV2Values),
+    averageSellSpeedScore: average(sellSpeedValues),
+    averageEstimatedSellDays: average(sellDaysValues),
     vehiclesWithComparables: records.filter(
       (item) => Number(item.comparables?.totalComparables || 0) > 0
     ).length,
