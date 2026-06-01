@@ -2,7 +2,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
   if (!pipeline || pipeline.totalRecords === 0) {
     return (
       <div style={panelStyle}>
-        <p style={eyebrowStyle}>FASE 10.8.4 · Opportunity Explanation Layer</p>
+        <p style={eyebrowStyle}>FASE 10.9.2 · Sell Speed Explanation Layer</p>
         <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         <p style={emptyTextStyle}>
           Todavía no hay suficientes registros para construir un ranking de oportunidades.
@@ -18,7 +18,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
     <div style={panelStyle}>
       <div style={headerStyle}>
         <div>
-          <p style={eyebrowStyle}>FASE 10.8.4 · Opportunity Explanation Layer</p>
+          <p style={eyebrowStyle}>FASE 10.9.2 · Sell Speed Explanation Layer</p>
           <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         </div>
 
@@ -35,6 +35,8 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
         <MetricCard label="ROI medio" value={`${formatNumber(summary.averageROI)}%`} />
         <MetricCard label="Score V2 medio" value={`${formatNumber(summary.averageOpportunityScoreV2)}/100`} />
         <MetricCard label="Comparables" value={summary.totalComparables || 0} />
+        <MetricCard label="Rotación media" value={`${formatNumber(summary.averageSellSpeedScore)}/100`} />
+        <MetricCard label="Venta media" value={`${formatNumber(summary.averageEstimatedSellDays)} días`} />
       </div>
 
       {topItems.length === 0 ? (
@@ -60,6 +62,7 @@ function OpportunityRow({ item, index }) {
   const opportunity = item.opportunity || {};
   const vehicleValuation = item.vehicleValuation || {};
   const comparables = item.comparables || {};
+  const sellSpeed = item.sellSpeed || {};
 
   const scoreV2 =
     opportunity.scoreV2 ||
@@ -107,9 +110,21 @@ function OpportunityRow({ item, index }) {
             Comparables {comparables.totalComparables || 0}
           </span>
           <span style={tagStyle}>
+            Rotación {sellSpeed.speedLabel || "SIN_DATO"}
+          </span>
+          <span style={tagStyle}>
+            Venta {sellSpeed.estimatedSellDays || 0} días
+          </span>
+          <span style={tagStyle}>
             Valoración {valuation.valuationLabel || "sin dato"}
           </span>
         </div>
+
+        {sellSpeed.summary && (
+          <div style={sellSpeedStyle}>
+            ⚡ {sellSpeed.summary}
+          </div>
+        )}
 
         {reasons.length > 0 && (
           <div style={reasonsStyle}>
@@ -126,6 +141,13 @@ function OpportunityRow({ item, index }) {
         <strong style={actionStyle}>{levelV2}</strong>
         <span style={scoreStyle}>{scoreV2}/100</span>
         <small style={scoreLabelStyle}>Score V2</small>
+
+        <div style={speedBoxStyle}>
+          <strong style={speedScoreStyle}>
+            {formatNumber(sellSpeed.sellSpeedScore)}/100
+          </strong>
+          <small style={scoreLabelStyle}>Rotación</small>
+        </div>
       </div>
     </div>
   );
@@ -283,6 +305,17 @@ const tagStyle = {
   fontWeight: "800",
 };
 
+const sellSpeedStyle = {
+  marginTop: "12px",
+  padding: "10px 12px",
+  borderRadius: "14px",
+  background: "rgba(34,197,94,0.10)",
+  border: "1px solid rgba(34,197,94,0.20)",
+  color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "800",
+};
+
 const reasonsStyle = {
   display: "grid",
   gap: "6px",
@@ -318,6 +351,19 @@ const scoreLabelStyle = {
   color: "#94a3b8",
   fontSize: "11px",
   fontWeight: "800",
+};
+
+const speedBoxStyle = {
+  marginTop: "12px",
+  paddingTop: "10px",
+  borderTop: "1px solid rgba(148,163,184,0.18)",
+};
+
+const speedScoreStyle = {
+  display: "block",
+  color: "#bbf7d0",
+  fontWeight: "900",
+  fontSize: "16px",
 };
 
 const emptyTextStyle = {
