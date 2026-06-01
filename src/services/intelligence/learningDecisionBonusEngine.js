@@ -1,170 +1,60 @@
-export function calculateLearningDecisionBonus(decision = {}, marketLearning = {}) {
-  const brand = cleanText(decision.brand);
-  const model = cleanText(decision.model);
-  const modelLabel = [brand, model].filter(Boolean).join(" ");
-
-  const brandMatch = findLearningMatch(marketLearning.brandLearning, brand);
-  const modelMatch = findLearningMatch(marketLearning.modelLearning, modelLabel);
-
-  const brandSignal = evaluateLearningSignal(brandMatch, "marca");
-  const modelSignal = evaluateLearningSignal(modelMatch, "modelo");
-
-  const learningBonus = clampBonus(brandSignal.bonus + modelSignal.bonus);
-
-  const learningLevel = detectLearningLevel(learningBonus);
-
-  const reasons = [
-    ...brandSignal.reasons,
-    ...modelSignal.reasons,
-  ];
-
-  if (!reasons.length) {
-    reasons.push(
-      "Todavía no hay aprendizaje suficiente para ajustar esta decisión."
-    );
-  }
-
-  return {
-    learningBonus,
-    learningLevel,
-    learningReason: reasons[0],
-    learningReasons: reasons,
-  };
-}
-
-export function applyLearningDecisionBonus(decision = {}, marketLearning = {}) {
-  const learning = calculateLearningDecisionBonus(decision, marketLearning);
-
-  return {
-    ...decision,
-    learningDecisionBonus: learning.learningBonus,
-    learningDecisionLevel: learning.learningLevel,
-    learningDecisionReason: learning.learningReason,
-    learningDecisionReasons: learning.learningReasons,
-  };
-}
-
-function findLearningMatch(list = [], label = "") {
-  const target = normalize(label);
-
-  if (!target || !Array.isArray(list)) {
-    return null;
-  }
-
-  return (
-    list.find((item) => normalize(item?.label) === target) || null
+export function applyLearningDecisionBonus(item = {}, learning = {}) {
+  const baseScore = Number(item.score || item.executiveScore || item.decisionScore || 0);
+  const learningBonus = Number(
+    learning.learningBonus ??
+      learning.confidenceBonus ??
+      item.learningBonus ??
+      item.historicalConfidenceBonus ??
+      0
   );
-}
 
-function evaluateLearningSignal(match, typeLabel) {
-  if (!match) {
-    return {
-      bonus: 0,
-      reasons: [],
-    };
-  }
-
-  const count = safeNumber(match.count);
-  const learningScore = safeNumber(match.learningScore);
-  const averageProfit = safeNumber(match.averageProfit);
-  const averageROI = safeNumber(match.averageROI);
-  const averageScore = safeNumber(match.averageScore);
-
-  let bonus = 0;
-  const reasons = [];
-
-  if (count >= 5) {
-    bonus += 4;
-    reasons.push(
-      `Aprendizaje sólido para esta ${typeLabel}: ${count} análisis.`
-    );
-  } else if (count >= 2) {
-    bonus += 2;
-    reasons.push(
-      `Aprendizaje inicial para esta ${typeLabel}: ${count} análisis.`
-    );
-  }
-
-  if (learningScore >= 85) {
-    bonus += 6;
-    reasons.push(
-      `La ${typeLabel} tiene patrón aprendido muy fuerte: ${learningScore}/100.`
-    );
-  } else if (learningScore >= 70) {
-    bonus += 4;
-    reasons.push(
-      `La ${typeLabel} tiene patrón aprendido fuerte: ${learningScore}/100.`
-    );
-  } else if (learningScore < 40 && learningScore > 0) {
-    bonus -= 4;
-    reasons.push(
-      `La ${typeLabel} tiene patrón aprendido débil: ${learningScore}/100.`
-    );
-  }
-
-  if (averageProfit >= 3000) {
-    bonus += 4;
-    reasons.push(
-      `Beneficio medio aprendido alto: ${averageProfit} €.`
-    );
-  } else if (averageProfit > 0 && averageProfit < 500) {
-    bonus -= 3;
-    reasons.push(
-      `Beneficio medio aprendido bajo: ${averageProfit} €.`
-    );
-  }
-
-  if (averageROI >= 25) {
-    bonus += 3;
-    reasons.push(
-      `ROI medio aprendido fuerte: ${averageROI}%.`
-    );
-  } else if (averageROI > 0 && averageROI < 8) {
-    bonus -= 3;
-    reasons.push(
-      `ROI medio aprendido débil: ${averageROI}%.`
-    );
-  }
-
-  if (averageScore >= 80) {
-    bonus += 2;
-    reasons.push(
-      `Score medio aprendido alto: ${averageScore}/100.`
-    );
-  } else if (averageScore > 0 && averageScore < 55) {
-    bonus -= 2;
-    reasons.push(
-      `Score medio aprendido bajo: ${averageScore}/100.`
-    );
-  }
+  const adjustedScore = clampScore(baseScore + learningBonus);
 
   return {
-    bonus,
-    reasons,
+    ...item,
+    learningBonus,
+    adjustedScore,
+    learningAdjustedScore: adjustedScore,
+    decisionScore: adjustedScore,
+    learningApplied: learningBonus !== 0,
+    learningSummary: buildLearningSummary({ learningBonus, adjustedScore }),
   };
 }
 
-function detectLearningLevel(bonus) {
-  if (bonus >= 10) return "Muy favorable";
-  if (bonus >= 5) return "Favorable";
-  if (bonus <= -8) return "Desfavorable";
-  if (bonus < 0) return "Débil";
-  return "Neutro";
+export function calculateLearningDecisionBonus(learning = {}) {
+  const confidenceScore = Number(
+    learning.confidenceScore ??
+      learning.historicalConfidenceScore ??
+      learning.score ??
+      0
+  );
+
+  if (confidenceScore >= 85) return 8;
+  if (confidenceScore >= 70) return 5;
+  if (confidenceScore >= 55) return 2;
+  if (confidenceScore > 0 && confidenceScore < 40) return -4;
+
+  return 0;
 }
 
-function clampBonus(value) {
-  return Math.max(-15, Math.min(15, Math.round(Number(value || 0))));
+function buildLearningSummary({ learningBonus, adjustedScore }) {
+  if (learningBonus > 0) {
+    return `Aprendizaje histórico suma ${learningBonus} puntos. Score ajustado: ${adjustedScore}/100.`;
+  }
+
+  if (learningBonus < 0) {
+    return `Aprendizaje histórico resta ${Math.abs(learningBonus)} puntos. Score ajustado: ${adjustedScore}/100.`;
+  }
+
+  return `Sin ajuste por aprendizaje histórico. Score: ${adjustedScore}/100.`;
 }
 
-function cleanText(value) {
-  return String(value || "").trim();
-}
+function clampScore(value) {
+  const numericValue = Number(value);
 
-function normalize(value) {
-  return cleanText(value).toLowerCase();
-}
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
 
-function safeNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
+  return Math.max(0, Math.min(100, Math.round(numericValue)));
 }
