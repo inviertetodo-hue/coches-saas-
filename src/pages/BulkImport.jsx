@@ -31,9 +31,25 @@ export default function BulkImport() {
   const memoryRepository = useMemo(() => createMemoryRepository(), []);
   const demoCandidates = useMemo(() => buildDemoCandidates(url), [url]);
 
+  const currentOpportunityRecords = useMemo(() => {
+    if (savePlan?.acceptedRecords?.length) {
+      return savePlan.acceptedRecords;
+    }
+
+    if (memorySimulation?.records?.length) {
+      return memorySimulation.records;
+    }
+
+    if (approvedImport?.approvedItems?.length) {
+      return approvedImport.approvedItems;
+    }
+
+    return [];
+  }, [approvedImport, memorySimulation, savePlan]);
+
   const opportunityPipeline = useMemo(
-    () => buildMasterOpportunityPipeline(memoryRecords),
-    [memoryRecords]
+    () => buildMasterOpportunityPipeline(currentOpportunityRecords),
+    [currentOpportunityRecords]
   );
 
   useEffect(() => {
@@ -112,16 +128,16 @@ export default function BulkImport() {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <p style={eyebrowStyle}>
-          FASE 10.6.2 · Opportunity Intelligence Validation
+          FASE 10.6.3 · Current Batch Opportunity Intelligence
         </p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
-          Pega una URL grande de AutoScout24 o similar. Esta pantalla todavía no
-          guarda nada en Supabase: previsualiza, aprueba, simula memoria,
-          prepara un guardado protegido, guarda en memoria local, carga memoria
-          persistida y muestra el motor de oportunidades conectado.
+          Esta pantalla separa el lote actual de la memoria histórica: el panel
+          de oportunidades analiza los candidatos aprobados de la búsqueda
+          actual, mientras la memoria histórica queda abajo para analítica y
+          exploración.
         </p>
       </div>
 
