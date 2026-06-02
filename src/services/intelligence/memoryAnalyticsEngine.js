@@ -65,7 +65,7 @@ export function buildMemoryAnalytics(records = []) {
     totalRecords,
     brandsCount: brands.length,
     modelsCount: models.length,
-    avgROI: Math.round(avgROI),
+    avgROI: roundToTwoDecimals(avgROI),
     avgProfit: Math.round(avgProfit),
     bestOpportunity,
     worstOpportunity,
@@ -102,6 +102,14 @@ function calculateAverage(values = []) {
   const total = cleanValues.reduce((sum, value) => sum + value, 0);
 
   return total / cleanValues.length;
+}
+
+function roundToTwoDecimals(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.round(number * 100) / 100;
 }
 
 function calculatePercentage(part, total) {

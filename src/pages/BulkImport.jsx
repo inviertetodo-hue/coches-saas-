@@ -422,8 +422,9 @@ export default function BulkImport() {
               </div>
 
               <p style={saveResultTextStyle}>
-                Se han guardado {saveResult.inserted} registros en memoria local
-                persistente. Todavía no se ha escrito nada en Supabase.
+                Se han insertado {saveResult.inserted} registros nuevos y actualizado{" "}
+                {saveResult.skipped || 0} registros existentes en memoria local.
+                Todavía no se ha escrito nada en Supabase.
               </p>
             </div>
           )}
@@ -441,9 +442,13 @@ export default function BulkImport() {
               </p>
             )}
 
-            {preview.items.map((item) => (
-              <BulkImportPreviewCard key={item.id} item={item} />
-            ))}
+            {preview.items.map((item) => {
+              const enrichedItem =
+                approvedImport?.approvedItems?.find((approved) => approved.id === item.id) ||
+                item;
+
+              return <BulkImportPreviewCard key={enrichedItem.id} item={enrichedItem} />;
+            })}
           </div>
         </>
       )}
