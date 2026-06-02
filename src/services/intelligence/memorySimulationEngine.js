@@ -56,6 +56,16 @@ export function buildMemorySimulation({
 }
 
 function buildMemoryRecord(item, approvedImport, index) {
+  const valuation = item.valuation || {};
+
+  const roi = safeNumber(
+    valuation.roi ?? item.roi
+  );
+
+  const profit = safeNumber(
+    valuation.profit ?? item.profit
+  );
+
   return {
     id: item.id || `memory-simulation-${index + 1}`,
     memoryType: "bulk_import_market_observation",
@@ -68,8 +78,8 @@ function buildMemoryRecord(item, approvedImport, index) {
     year: safeNumber(item.year),
     price: safeNumber(item.price),
     mileage: safeNumber(item.mileage),
-    roi: safeNumber(item.roi),
-    profit: safeNumber(item.profit),
+    roi,
+    profit,
 
     dataQualityScore: safeNumber(item.dataQualityScore),
     dataQualityLabel: item.dataQualityLabel || "UNKNOWN",
@@ -77,13 +87,13 @@ function buildMemoryRecord(item, approvedImport, index) {
     canSaveAnalysis: item.canSaveAnalysis === true,
 
     opportunityType:
-      safeNumber(item.roi) > 0 && safeNumber(item.profit) > 0
+      roi > 0 && profit > 0
         ? "positive_market_signal"
         : "negative_market_signal",
 
     shouldTrainOpportunity:
-      safeNumber(item.roi) > 0 &&
-      safeNumber(item.profit) > 0 &&
+      roi > 0 &&
+      profit > 0 &&
       safeNumber(item.dataQualityScore) >= 75,
 
     shouldTrainMarketMemory:

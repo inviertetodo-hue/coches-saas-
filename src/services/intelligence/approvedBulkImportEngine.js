@@ -37,6 +37,10 @@ export function buildApprovedBulkImport({
 }
 
 function buildApprovedItem(item, preview, index) {
+  const valuation = item.valuation || {};
+  const roi = safeNumber(valuation.roi ?? item.roi);
+  const profit = safeNumber(valuation.profit ?? item.profit);
+
   return {
     id: item.id || `approved-bulk-${index + 1}`,
     title: item.title || "Vehículo aprobado",
@@ -45,8 +49,9 @@ function buildApprovedItem(item, preview, index) {
     year: safeNumber(item.year),
     price: safeNumber(item.price),
     mileage: safeNumber(item.mileage),
-    roi: safeNumber(item.roi),
-    profit: safeNumber(item.profit),
+    roi,
+    profit,
+    valuation: item.valuation || {},
 
     source: item.source || preview.source || "unknown",
     sourceUrl: item.url || preview.url || "",
