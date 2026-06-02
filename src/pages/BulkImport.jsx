@@ -278,7 +278,16 @@ export default function BulkImport() {
             </div>
           ))}
         </div>
-      )}
+      )}{realFeedResult.diagnostics?.map((item, index) => (
+  <div key={`${item.source}-${index}`} style={diagnosticStyle}>
+    <strong>
+      {item.source} · {item.status}
+    </strong>
+    <p>Texto recibido: {item.textLength}</p>
+    <p>Anuncios parseados: {item.parsedCount}</p>
+    <p>{item.message}</p>
+  </div>
+))}
 
       <OpportunityIntelligencePanel pipeline={opportunityPipeline} />
 
@@ -707,6 +716,14 @@ const warningStyle = {
   border: "1px solid rgba(248,113,113,0.24)",
   color: "#fecaca",
   fontWeight: "800",
+  marginBottom: "10px",
+};const diagnosticStyle = {
+  padding: "12px 14px",
+  borderRadius: "14px",
+  background: "rgba(15,23,42,0.5)",
+  border: "1px solid rgba(148,163,184,0.24)",
+  color: "#cbd5e1",
+  fontWeight: "700",
   marginBottom: "10px",
 };
 
