@@ -28,7 +28,14 @@ export function createMemoryRepository() {
 
         if (existingRecord) {
           Object.assign(existingRecord, {
+            ...existingRecord,
+            ...item,
+            ...identity,
             ...truth,
+            id: existingRecord.id,
+            savedAt: existingRecord.savedAt,
+            created_at: existingRecord.created_at,
+            first_seen_at: existingRecord.first_seen_at,
             last_seen_at: now,
             updated_at: now,
             status: LISTING_STATUS.ACTIVE,

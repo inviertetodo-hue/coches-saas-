@@ -108,9 +108,23 @@ export function useBulkImportFlow() {
       return;
     }
 
+    const localPipeline = buildMasterOpportunityPipeline(preview.items);
+
+    const enrichedItemsById = new Map(
+      (localPipeline.topOpportunities || []).map((item) => [item.id, item])
+    );
+
+    const enrichedPreview = {
+      ...preview,
+      items: preview.items.map((item) => ({
+        ...item,
+        ...(enrichedItemsById.get(item.id) || {}),
+      })),
+    };
+
     setApprovedImport(
       buildApprovedBulkImport({
-        preview,
+        preview: enrichedPreview,
         maxItems: 50,
       })
     );
