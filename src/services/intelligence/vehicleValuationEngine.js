@@ -157,18 +157,10 @@ function calculateEstimatedMarketValue(vehicle = {}, comparableRecords = []) {
 
   const weightedValues = comparableRecords.map((record) => {
     const comparablePrice = toNumber(record.price);
-    const profit = toNumber(record.profit);
-    const roi = toNumber(record.roi);
-
-    const estimated =
-      profit > 0
-        ? comparablePrice + profit
-        : comparablePrice * (1 + roi / 100);
-
     const weight = calculateComparableWeight(vehicle, record);
 
     return {
-      value: estimated,
+      value: comparablePrice,
       weight,
     };
   });
@@ -204,20 +196,12 @@ function calculateEstimatedMarketValue(vehicle = {}, comparableRecords = []) {
 
 function fallbackMarketValue(vehicle = {}) {
   const price = toNumber(vehicle.price);
-  const roi = toNumber(vehicle.roi);
-  const profit = toNumber(vehicle.profit);
 
   if (price <= 0) return 0;
 
-  if (profit > 0) {
-    return Math.round(price + profit);
-  }
-
-  if (roi !== 0) {
-    return Math.round(price * (1 + roi / 100));
-  }
-
-  return price;
+  // Sin comparables, asumimos que el precio es cercano al valor de mercado
+  // pero con un pequeño ajuste conservador
+  return Math.round(price * 1.05);
 }
 
 function calculateComparableWeight(vehicle = {}, record = {}) {

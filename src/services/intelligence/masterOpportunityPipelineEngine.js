@@ -14,13 +14,6 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
     const vehicleValuation = buildVehicleValuation(vehicle, memoryRecords);
     const baseOpportunity = buildOpportunityScore(vehicle);
 
-    const opportunity = buildOpportunityScoreV2({
-      vehicle,
-      baseOpportunity,
-      comparables,
-      vehicleValuation,
-    });
-
     const valuation = {
       ...buildMarketValuation(vehicle, {
         vehicleValuation,
@@ -29,11 +22,24 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       comparables,
     };
 
+    // Usar ROI y profit calculados de la valuación, no del vehículo original
+    const roi = Number(valuation.roi || 0);
+    const profit = Number(valuation.profit || 0);
+
+    const opportunity = buildOpportunityScoreV2({
+      vehicle,
+      baseOpportunity,
+      comparables,
+      vehicleValuation,
+      roi,
+      profit,
+    });
+
     const sellSpeed = buildSellSpeed({
       successProbability: opportunity.scoreV2,
       executiveScore: opportunity.scoreV2,
-      roi: vehicle.roi,
-      profit: vehicle.profit,
+      roi,
+      profit,
       confidenceScore: vehicleValuation.confidence,
     });
 
@@ -113,6 +119,8 @@ function buildOpportunityScoreV2({
   baseOpportunity,
   comparables,
   vehicleValuation,
+  roi = 0,
+  profit = 0,
 }) {
   const baseScore = Number(
     baseOpportunity?.score ??
@@ -121,8 +129,6 @@ function buildOpportunityScoreV2({
       0
   );
 
-  const roi = Number(vehicle.roi || 0);
-  const profit = Number(vehicle.profit || 0);
   const comparableCount = Number(comparables?.totalComparables || 0);
   const confidence = Number(vehicleValuation?.confidence || 0);
   const discountPercent = Number(vehicleValuation?.discountPercent || 0);

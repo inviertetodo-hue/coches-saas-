@@ -1,7 +1,5 @@
 export function buildMarketValuation(vehicle = {}, options = {}) {
   const price = toNumber(vehicle.price);
-  const roi = toNumber(vehicle.roi);
-  const profit = toNumber(vehicle.profit);
 
   const memoryValuation =
     vehicle.vehicleValuation ||
@@ -16,14 +14,15 @@ export function buildMarketValuation(vehicle = {}, options = {}) {
   const estimatedMarketValue =
     memoryEstimatedValue > 0 && memoryConfidence >= 50
       ? memoryEstimatedValue
-      : buildFallbackMarketValue({ price, roi, profit });
+      : buildFallbackMarketValue(vehicle);
 
-  const discountValue = Math.round(estimatedMarketValue - price);
+  // Calcular profit y roi basados en el valor de mercado estimado
+  const profit = Math.round(estimatedMarketValue - price);
+  const roi =
+    price > 0 ? Number(((profit / price) * 100).toFixed(2)) : 0;
 
-  const discountPercent =
-    price > 0
-      ? Number(((discountValue / price) * 100).toFixed(2))
-      : 0;
+  const discountValue = profit;
+  const discountPercent = roi;
 
   const valuationScore = calculateValuationScore({
     discountPercent,
@@ -36,6 +35,8 @@ export function buildMarketValuation(vehicle = {}, options = {}) {
   return {
     price,
     estimatedMarketValue,
+    profit,
+    roi,
     discountValue,
     discountPercent,
     valuationScore,
@@ -43,26 +44,21 @@ export function buildMarketValuation(vehicle = {}, options = {}) {
     valuationSource:
       memoryEstimatedValue > 0 && memoryConfidence >= 50
         ? "memory_comparables"
-        : "fallback_roi_profit",
+        : "fallback_market_estimate",
     valuationConfidence: memoryConfidence,
     comparableCount: memoryComparableCount,
   };
 }
 
-function buildFallbackMarketValue({ price, roi, profit }) {
+function buildFallbackMarketValue(vehicle = {}) {
+  const price = toNumber(vehicle.price);
+
   if (price <= 0) {
     return 0;
   }
 
-  if (profit > 0) {
-    return Math.round(price + profit);
-  }
-
-  if (roi !== 0) {
-    return Math.round(price * (1 + roi / 100));
-  }
-
-  return price;
+  // Sin comparables reales, asumimos un valor conservador cercano al precio
+  return Math.round(price * 1.05);
 }
 
 function calculateValuationScore({
