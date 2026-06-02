@@ -95,8 +95,8 @@ function OpportunityRow({ item, index }) {
         </p>
 
         <div style={tagsStyle}>
-          <span style={tagStyle}>ROI {formatNumber(item.roi)}%</span>
-          <span style={tagStyle}>Margen {formatNumber(item.profit)} €</span>
+          <span style={tagStyle}>ROI {formatNumber(valuation.roi ?? item.roi)}%</span>
+          <span style={tagStyle}>Margen {formatNumber(valuation.profit ?? item.profit)} €</span>
           <span style={tagStyle}>
             Valor estimado {formatNumber(vehicleValuation.estimatedMarketValue)} €
           </span>

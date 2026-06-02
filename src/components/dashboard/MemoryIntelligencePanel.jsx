@@ -124,7 +124,7 @@ function OpportunityCard({ title, item, positive = false }) {
       </strong>
 
       <p style={detailStyle}>
-        ROI {formatNumber(item.roi)}% · Margen {formatNumber(item.profit)} €
+        ROI {formatNumber(item.valuation?.roi ?? item.roi)}% · Margen {formatNumber(item.valuation?.profit ?? item.profit)} €
       </p>
 
       <span style={positive ? positiveTagStyle : warningTagStyle}>

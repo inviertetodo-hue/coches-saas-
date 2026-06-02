@@ -45,6 +45,8 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     const decision = buildOpportunityDecision({
       ...vehicle,
+      roi,           // Pass calculated ROI
+      profit,        // Pass calculated profit
       opportunity,
       valuation,
       vehicleValuation,
