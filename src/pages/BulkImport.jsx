@@ -82,10 +82,7 @@ export default function BulkImport() {
       setRealFeedResult(realResult);
       setPreview({
         ...result,
-        insights: [
-          ...buildRealFeedInsights(realResult),
-          ...result.insights,
-        ],
+        insights: [...buildRealFeedInsights(realResult), ...result.insights],
       });
     } catch (error) {
       setRealFeedResult({
@@ -164,16 +161,14 @@ export default function BulkImport() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <p style={eyebrowStyle}>
-          FASE 11.4 · Real Market Feed Bulk Import
-        </p>
+        <p style={eyebrowStyle}>FASE 11.5 · Real Listing Inspection Layer</p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
           Esta pantalla conecta una URL de búsqueda con el feed real
-          experimental, bloquea candidatos incompletos y solo permite guardar
-          vehículos con hechos verificables de mercado.
+          experimental, bloquea candidatos incompletos y muestra una muestra del
+          texto bruto para mejorar la normalización de anuncios reales.
         </p>
       </div>
 
@@ -199,7 +194,9 @@ export default function BulkImport() {
               cursor: isLoadingRealFeed ? "not-allowed" : "pointer",
             }}
           >
-            {isLoadingRealFeed ? "Buscando datos reales..." : "Generar preview real"}
+            {isLoadingRealFeed
+              ? "Buscando datos reales..."
+              : "Generar preview real"}
           </button>
 
           <button
@@ -277,17 +274,27 @@ export default function BulkImport() {
               {item}
             </div>
           ))}
+
+          {realFeedResult.diagnostics?.map((item, index) => (
+            <div key={`${item.source}-${index}`} style={diagnosticStyle}>
+              <strong>
+                {item.source} · {item.status}
+              </strong>
+
+              <p>Texto recibido: {item.textLength}</p>
+              <p>Anuncios parseados: {item.parsedCount}</p>
+              <p>{item.message}</p>
+
+              {item.textSample && (
+                <>
+                  <p style={sampleLabelStyle}>Muestra de texto bruto:</p>
+                  <pre style={diagnosticSampleStyle}>{item.textSample}</pre>
+                </>
+              )}
+            </div>
+          ))}
         </div>
-      )}{realFeedResult?.diagnostics?.map((item, index) => (
-  <div key={`${item.source}-${index}`} style={diagnosticStyle}>
-    <strong>
-      {item.source} · {item.status}
-    </strong>
-    <p>Texto recibido: {item.textLength}</p>
-    <p>Anuncios parseados: {item.parsedCount}</p>
-    <p>{item.message}</p>
-  </div>
-))}
+      )}
 
       <OpportunityIntelligencePanel pipeline={opportunityPipeline} />
 
@@ -717,7 +724,9 @@ const warningStyle = {
   color: "#fecaca",
   fontWeight: "800",
   marginBottom: "10px",
-};const diagnosticStyle = {
+};
+
+const diagnosticStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
   background: "rgba(15,23,42,0.5)",
@@ -725,6 +734,26 @@ const warningStyle = {
   color: "#cbd5e1",
   fontWeight: "700",
   marginBottom: "10px",
+};
+
+const sampleLabelStyle = {
+  marginTop: "12px",
+  marginBottom: "8px",
+  color: "#bae6fd",
+  fontWeight: "900",
+};
+
+const diagnosticSampleStyle = {
+  whiteSpace: "pre-wrap",
+  overflowX: "auto",
+  marginTop: "10px",
+  padding: "12px",
+  borderRadius: "12px",
+  background: "rgba(2,6,23,0.72)",
+  border: "1px solid rgba(148,163,184,0.18)",
+  color: "#e2e8f0",
+  fontSize: "12px",
+  lineHeight: "1.5",
 };
 
 const approvedPanelStyle = {
