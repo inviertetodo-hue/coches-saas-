@@ -12,18 +12,30 @@ export function generateOpportunityRadar(analyses = []) {
   const radarInsights = [];
 
   analyses.forEach((item) => {
-    const score = Number(item.score || 0);
-    const roi = Number(item.roi || 0);
-    const profit = Number(item.profit || 0);
+    const decision = item.decision || {};
+    const action = decision.action || "";
+    const score = Number(decision.decisionScore || item.score || 0);
+    const roi = Number(item.roi || item.valuation?.roi || 0);
+    const profit = Number(item.profit || item.valuation?.profit || 0);
+    const sellSpeedScore = Number(item.sellSpeed?.sellSpeedScore || 0);
 
-    if (score >= 85 && roi >= 20 && profit >= 5000) {
+    const isPriority =
+      action === "BUY" ||
+      (action === "WATCH" && score >= 75 && profit > 0) ||
+      (!action && score >= 80 && roi >= 8 && profit > 0);
+
+    if (isPriority) {
       priorityOpportunities.push({
         id: item.id,
         title: item.title || "Vehículo IA",
         score,
         roi,
         profit,
-        reason: "Score alto + ROI alto + beneficio fuerte",
+        action,
+        sellSpeedScore,
+        reason:
+          decision.summary ||
+          `Radar V2: ${action || "OPPORTUNITY"} con score ${score}/100, ROI ${roi}% y margen ${profit} €.`,
       });
     }
   });
