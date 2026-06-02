@@ -19,6 +19,7 @@ export function createMemoryRepository() {
     validItems.forEach((item) => {
       const identity = buildListingIdentity(item);
       const fingerprint = identity.fingerprint;
+      const truth = buildTruthFields(item, identity, now);
 
       if (existingFingerprints.has(fingerprint)) {
         const existingRecord = records.find(
@@ -26,20 +27,25 @@ export function createMemoryRepository() {
         );
 
         if (existingRecord) {
-          existingRecord.last_seen_at = now;
-          existingRecord.updated_at = now;
-          existingRecord.status = LISTING_STATUS.ACTIVE;
-          existingRecord.sourceSite = existingRecord.sourceSite || identity.sourceSite;
-          existingRecord.sourceUrl = existingRecord.sourceUrl || identity.sourceUrl;
-          existingRecord.listingId = existingRecord.listingId || identity.listingId;
-          existingRecord.fingerprintVersion = identity.fingerprintVersion;
-          existingRecord.identityConfidence = identity.identityConfidence;
+          Object.assign(existingRecord, {
+            ...truth,
+            last_seen_at: now,
+            updated_at: now,
+            status: LISTING_STATUS.ACTIVE,
+            sourceSite: existingRecord.sourceSite || identity.sourceSite,
+            sourceUrl: existingRecord.sourceUrl || identity.sourceUrl,
+            listingId: existingRecord.listingId || identity.listingId,
+            fingerprintVersion: identity.fingerprintVersion,
+            identityConfidence: identity.identityConfidence,
+          });
+
           existingRecord.lifecycle = buildListingLifecycle(existingRecord);
         }
 
         skippedRecords.push({
           ...item,
           ...identity,
+          ...truth,
           skippedReason: "duplicate_refreshed",
         });
 
@@ -56,6 +62,7 @@ export function createMemoryRepository() {
         status: LISTING_STATUS.ACTIVE,
         ...item,
         ...identity,
+        ...truth,
       };
 
       savedRecord.lifecycle = buildListingLifecycle(savedRecord);
@@ -139,14 +146,10 @@ export function createMemoryRepository() {
 
     return {
       total: records.length,
-      active: records.filter((item) => item.status === LISTING_STATUS.ACTIVE)
-        .length,
-      sold: records.filter((item) => item.status === LISTING_STATUS.SOLD)
-        .length,
-      expired: records.filter((item) => item.status === LISTING_STATUS.EXPIRED)
-        .length,
-      archived: records.filter((item) => item.status === LISTING_STATUS.ARCHIVED)
-        .length,
+      active: records.filter((item) => item.status === LISTING_STATUS.ACTIVE).length,
+      sold: records.filter((item) => item.status === LISTING_STATUS.SOLD).length,
+      expired: records.filter((item) => item.status === LISTING_STATUS.EXPIRED).length,
+      archived: records.filter((item) => item.status === LISTING_STATUS.ARCHIVED).length,
     };
   }
 
@@ -197,9 +200,11 @@ function updateStatus(fingerprint, status) {
 function refreshLifecycle() {
   records = records.map((item) => {
     const lifecycle = buildListingLifecycle(item);
+    const truth = buildTruthFields(item, item, item.captured_at || item.savedAt);
 
     return {
       ...item,
+      ...truth,
       status: lifecycle.status,
       first_seen_at: lifecycle.first_seen_at,
       last_seen_at: lifecycle.last_seen_at,
@@ -240,10 +245,12 @@ function normalizeStoredRecords(storedRecords = []) {
 
   return storedRecords.filter(Boolean).map((item) => {
     const identity = buildListingIdentity(item);
+    const truth = buildTruthFields(item, identity, now);
 
     const normalizedRecord = {
       ...item,
       ...identity,
+      ...truth,
       status: item.status || LISTING_STATUS.ACTIVE,
       first_seen_at: item.first_seen_at || item.firstSeenAt || item.savedAt || now,
       last_seen_at: item.last_seen_at || item.lastSeenAt || item.savedAt || now,
@@ -256,6 +263,68 @@ function normalizeStoredRecords(storedRecords = []) {
       lifecycle: buildListingLifecycle(normalizedRecord),
     };
   });
+}
+
+function buildTruthFields(item = {}, identity = {}, fallbackDate) {
+  const sourceUrl = cleanText(
+    item.source_url ||
+      item.sourceUrl ||
+      identity.sourceUrl ||
+      item.url ||
+      item.listingUrl ||
+      item.originalUrl
+  );
+
+  const source = cleanText(
+    item.source ||
+      item.sourceSite ||
+      identity.sourceSite ||
+      detectSourceFromUrl(sourceUrl)
+  );
+
+  const confidenceScore = normalizeConfidenceScore(
+    item.confidence_score ??
+      item.dataQualityScore ??
+      item.qualityScore ??
+      item.score ??
+      identity.identityConfidence ??
+      0
+  );
+
+  const hasValidSource = Boolean(sourceUrl || source);
+  const hasCoreFacts = Boolean(item.brand && item.model && item.price && item.year);
+
+  const dataTruthStatus =
+    item.data_truth_status ||
+    (item.verification_level === "VERIFIED_SOURCE_DATA"
+      ? "FACT"
+      : hasValidSource && hasCoreFacts
+        ? "FACT"
+        : "UNVERIFIED");
+
+  const verificationLevel =
+    item.verification_level ||
+    (dataTruthStatus === "FACT"
+      ? "VERIFIED_SOURCE_DATA"
+      : "UNVERIFIED_LEGACY_DATA");
+
+  const capturedAt =
+    item.captured_at ||
+    item.capturedAt ||
+    item.savedAt ||
+    item.created_at ||
+    fallbackDate ||
+    new Date().toISOString();
+
+  return {
+    source,
+    source_url: sourceUrl,
+    sourceUrl,
+    captured_at: capturedAt,
+    verification_level: verificationLevel,
+    confidence_score: confidenceScore,
+    data_truth_status: dataTruthStatus,
+  };
 }
 
 function persistRecords() {
@@ -283,4 +352,28 @@ function buildId() {
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function cleanText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeConfidenceScore(value) {
+  const parsed = Number(value || 0);
+
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+}
+
+function detectSourceFromUrl(value) {
+  if (!value) return "";
+
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
 }
