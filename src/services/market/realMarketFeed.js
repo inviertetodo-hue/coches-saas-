@@ -46,8 +46,8 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         durationMs: Date.now() - startedAt,
         message:
           parsedListings.length > 0
-            ? `${parsedListings.length} anuncios compatibles detectados.`
-            : "Fetch correcto, pero el parser todavía no encontró anuncios compatibles.",
+            ? `${parsedListings.length} anuncios normalizados detectados.`
+            : "Fetch correcto, pero el normalizador no encontró anuncios completos.",
       });
 
       allListings.push(...parsedListings);
@@ -84,7 +84,10 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
 
 async function fetchSearchText(url) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REAL_FEED_TIMEOUT_MS);
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REAL_FEED_TIMEOUT_MS
+  );
 
   try {
     const response = await fetch(buildReaderUrl(url), {
@@ -176,14 +179,14 @@ function parseAutoscoutListingsFromText({
   maxBudget,
   semantic,
 }) {
-  const lines = toUsefulLines(text);
-  const listings = [];
+  const blocks = splitAutoscoutTextIntoListingBlocks(text);
   const queryBrand = detectBrand(query);
   const queryModel = detectModel(query, query);
+  const listings = [];
 
-  for (let index = 0; index < lines.length; index += 1) {
-    const block = lines.slice(index, index + 18);
-    const blockText = block.join(" ");
+  blocks.forEach((block, index) => {
+    const normalizedBlock = normalizeBlockLines(block);
+    const blockText = normalizedBlock.join(" ");
 
     const price = extractPrice(blockText);
     const mileage = extractMileage(blockText);
@@ -192,9 +195,30 @@ function parseAutoscoutListingsFromText({
     const fuelType = detectFuelType(blockText);
     const powerKw = extractPowerKw(blockText);
     const power = extractPower(blockText);
+    const imageUrl = extractFirstImageUrl(block.join("\n"));
+    const sourceUrl = extractFirstUrl(blockText);
 
-    if (!price || !year || !mileage) {
-      continue;
+    if (!price || !mileage || !year) {
+      return;
+    }
+
+    const identity = buildListingIdentityFromContext({
+      block: normalizedBlock,
+      query,
+      queryBrand,
+      queryModel,
+      fuelType,
+      year,
+      power,
+      index,
+    });
+
+    if (!identity.brand || !identity.model) {
+      return;
+    }
+
+    if (isGenericOrDealerTitle(identity.title)) {
+      return;
     }
 
     const validation = validateVehicleCompatibility({
@@ -209,32 +233,21 @@ function parseAutoscoutListingsFromText({
     });
 
     if (!validation.isCompatible) {
-      continue;
+      return;
     }
-
-    const title = buildTitleFromBlock({
-      block,
-      fallback: buildAutoscoutTitle({
-        query,
-        fuelType,
-        year,
-        power,
-        validation,
-      }),
-    });
 
     listings.push({
       id: buildListingId({
         source,
         country,
-        line: title,
+        line: identity.title,
         price,
         mileage,
         year,
       }),
-      title,
-      brand: detectBrand(title) || queryBrand,
-      model: detectModel(title, query) || queryModel,
+      title: identity.title,
+      brand: identity.brand,
+      model: identity.model,
       price,
       km: mileage,
       mileage,
@@ -247,7 +260,8 @@ function parseAutoscoutListingsFromText({
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
       source,
-      url: extractFirstUrl(blockText),
+      url: sourceUrl,
+      imageUrl,
       isRealData: true,
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
@@ -258,12 +272,175 @@ function parseAutoscoutListingsFromText({
         hasPower: Boolean(powerKw),
         estimatedMileage: false,
         estimatedYear: false,
-        sourceFormat: "autoscout-r-jina",
+        sourceFormat: "autoscout-r-jina-block-v2",
+      },
+      raw: {
+        block: normalizedBlock,
       },
     });
-  }
+  });
 
   return listings;
+}
+
+function splitAutoscoutTextIntoListingBlocks(text) {
+  const lines = String(text || "").split("\n");
+  const blocks = [];
+  let currentBlock = [];
+
+  lines.forEach((line) => {
+    const cleanLine = String(line || "").trim();
+
+    if (cleanLine.startsWith("![Image")) {
+      if (currentBlock.length > 0) {
+        blocks.push(currentBlock);
+      }
+
+      currentBlock = [cleanLine];
+      return;
+    }
+
+    if (currentBlock.length > 0) {
+      currentBlock.push(cleanLine);
+    }
+  });
+
+  if (currentBlock.length > 0) {
+    blocks.push(currentBlock);
+  }
+
+  return blocks
+    .map((block) => block.map((line) => String(line || "").trim()).filter(Boolean))
+    .filter((block) => block.length >= 4)
+    .filter((block) => isRealListingImageBlock(block));
+}
+
+function isRealListingImageBlock(block = []) {
+  const firstLine = block[0] || "";
+
+  if (!firstLine.startsWith("![Image")) return false;
+  if (firstLine.includes("seal-images")) return false;
+  if (!firstLine.includes("listing-images")) return false;
+
+  const text = block.join(" ");
+
+  return Boolean(extractPrice(text) && extractMileage(text));
+}
+
+function normalizeBlockLines(block = []) {
+  return block
+    .map((line) => cleanText(line))
+    .filter(Boolean)
+    .filter((line) => !isBlockedLine(line))
+    .filter((line) => !line.startsWith("![Image"))
+    .filter((line) => !line.includes("listing-images"))
+    .filter((line) => !line.includes("seal-images"));
+}
+
+function buildListingIdentityFromContext({
+  block,
+  query,
+  queryBrand,
+  queryModel,
+  fuelType,
+  year,
+  power,
+  index,
+}) {
+  const brandFromBlock = detectBrand(block.join(" "));
+  const modelFromBlock = detectModel(block.join(" "), query);
+  const brand = brandFromBlock || queryBrand;
+  const model = modelFromBlock || queryModel;
+
+  const titleCandidate = findBestTitleLine({
+    block,
+    brand,
+    model,
+    query,
+  });
+
+  const title =
+    titleCandidate ||
+    buildAutoscoutTitle({
+      brand,
+      model,
+      fuelType,
+      year,
+      power,
+      index,
+    });
+
+  return {
+    brand,
+    model,
+    title,
+  };
+}
+
+function findBestTitleLine({ block, brand, model, query }) {
+  const candidates = block.filter((line) =>
+    looksLikePotentialListingTitle({ line, brand, model, query })
+  );
+
+  const withBrandAndModel = candidates.find((line) => {
+    const text = normalize(line);
+    return normalize(brand) && normalize(model)
+      ? text.includes(normalize(brand)) && text.includes(normalize(model))
+      : false;
+  });
+
+  if (withBrandAndModel) return cleanTitle(withBrandAndModel);
+
+  const withModel = candidates.find((line) => {
+    const text = normalize(line);
+    return normalize(model) ? text.includes(normalize(model)) : false;
+  });
+
+  if (withModel) return cleanTitle(withModel);
+
+  return "";
+}
+
+function looksLikePotentialListingTitle({ line, brand, model, query }) {
+  const text = normalize(line);
+
+  if (!line || line.length < 5 || line.length > 160) return false;
+  if (extractPrice(line)) return false;
+  if (extractMileage(line)) return false;
+  if (extractYear(line)) return false;
+  if (extractPowerKw(line)) return false;
+  if (detectFuelType(line)) return false;
+  if (isBlockedLine(line)) return false;
+  if (isEquipmentLine(line)) return false;
+  if (isDealerLine(line)) return false;
+  if (isGenericOrDealerTitle(line)) return false;
+  if (text.includes("http")) return false;
+
+  const normalizedBrand = normalize(brand);
+  const normalizedModel = normalize(model);
+  const normalizedQuery = normalize(query);
+
+  if (normalizedBrand && text.includes(normalizedBrand)) return true;
+  if (normalizedModel && text.includes(normalizedModel)) return true;
+
+  return normalizedQuery
+    .split(" ")
+    .filter((part) => part.length >= 3)
+    .some((part) => text.includes(part));
+}
+
+function buildAutoscoutTitle({ brand, model, fuelType, year, power, index }) {
+  const parts = [brand, model].filter(Boolean);
+
+  if (year) parts.push(String(year));
+  if (fuelType) parts.push(fuelType);
+  if (power) parts.push(power);
+
+  if (parts.length === 0) {
+    return `Vehículo detectado ${index + 1}`;
+  }
+
+  return parts.join(" · ");
 }
 
 function parseGenericListingsFromText({
@@ -313,7 +490,7 @@ function parseGenericListingsFromText({
 
     listings.push({
       id: buildListingId({ source, country, line, price, mileage, year }),
-      title: line,
+      title: cleanTitle(line),
       brand: detectBrand(line) || queryBrand,
       model: detectModel(line, query),
       price,
@@ -438,34 +615,82 @@ function isBlockedLine(line) {
   return blocked.some((item) => text.includes(item));
 }
 
-function buildTitleFromBlock({ block, fallback }) {
-  const candidate = block.find((line) => {
-    const text = normalize(line);
+function isEquipmentLine(line) {
+  const text = normalize(line);
 
-    return (
-      line.length >= 4 &&
-      line.length <= 140 &&
-      !extractPrice(line) &&
-      !extractMileage(line) &&
-      !extractYear(line) &&
-      !text.startsWith("![image") &&
-      !text.startsWith("[!") &&
-      !text.includes("http")
-    );
-  });
+  const equipmentTerms = [
+    "airbag",
+    "airbags",
+    "abs",
+    "bluetooth",
+    "sensor",
+    "llantas",
+    "climatizador",
+    "cierre centralizado",
+    "direccion asistida",
+    "camara",
+    "control de traccion",
+    "volante multifuncion",
+    "ventanas tintadas",
+    "faros",
+    "asistente",
+    "ordenador",
+    "esp",
+    "aire acondicionado",
+  ];
 
-  return candidate || fallback || "Vehículo detectado";
+  return equipmentTerms.some((term) => text.includes(term));
 }
 
-function buildAutoscoutTitle({ query, fuelType, year, power, validation }) {
-  const parts = [cleanText(query)];
+function isDealerLine(line) {
+  const text = normalize(line);
 
-  if (year) parts.push(String(year));
-  if (fuelType) parts.push(fuelType);
-  if (power) parts.push(power);
-  if (validation?.score) parts.push(`match ${validation.score}/100`);
+  const dealerTerms = [
+    "concesionario",
+    "vendedor",
+    "servicepartner",
+    "vertragshandler",
+    "vehiculos de ocasion",
+    "financiacion",
+    "stock fuera",
+    "garantia",
+    "dto",
+    "oferta",
+    "precio justo",
+    "super oferta",
+    "sin comparacion",
+  ];
 
-  return parts.join(" · ");
+  return dealerTerms.some((term) => text.includes(term));
+}
+
+function isGenericOrDealerTitle(title) {
+  const text = normalize(title);
+
+  if (!text) return true;
+
+  const genericTerms = [
+    "title:",
+    "markdown content",
+    "anuncios de",
+    "autoscout24",
+    "url source",
+    "image",
+    "precio justo",
+    "super oferta",
+    "sin comparacion",
+    "stock fuera",
+    "financiacion",
+  ];
+
+  return genericTerms.some((term) => text.includes(term));
+}
+
+function cleanTitle(value) {
+  return cleanText(value)
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function extractRegistration(text) {
@@ -498,6 +723,11 @@ function extractFirstUrl(text) {
   return match?.[0] || "";
 }
 
+function extractFirstImageUrl(text) {
+  const match = String(text).match(/!\[Image[^\]]*\]\(([^)]+)\)/i);
+  return match?.[1] || "";
+}
+
 function looksLikeVehicleTitle(line, query) {
   const text = normalize(line);
   const queryText = normalize(query);
@@ -505,6 +735,9 @@ function looksLikeVehicleTitle(line, query) {
   if (line.length < 4 || line.length > 160) return false;
   if (!queryText) return false;
   if (isBlockedLine(line)) return false;
+  if (isEquipmentLine(line)) return false;
+  if (isDealerLine(line)) return false;
+  if (isGenericOrDealerTitle(line)) return false;
 
   const brand = detectBrand(queryText).toLowerCase();
 
@@ -548,11 +781,12 @@ function extractMileage(text) {
 }
 
 function extractYear(text) {
-  const match = String(text).match(
-    /\b(2012|2013|2014|2015|2016|2017|2018|2019|2020|2021|2022|2023|2024|2025|2026)\b/
-  );
+  const currentYear = new Date().getFullYear();
+  const earliestYear = 1990;
+  const match = String(text).match(/\b(19\d{2}|20\d{2})\b/);
+  const year = match?.[0] ? safeNumber(match[0]) : 0;
 
-  return match?.[1] ? safeNumber(match[1]) : 0;
+  return year >= earliestYear && year <= currentYear + 1 ? year : 0;
 }
 
 function detectBrand(value) {
@@ -632,7 +866,23 @@ function detectModel(title, query) {
     "qashqai",
   ];
 
-  return models.find((model) => text.includes(model)) || cleanText(query);
+  const detected = models.find((model) => text.includes(model));
+
+  if (detected) return detected;
+
+  const cleanedQuery = cleanText(query);
+  const normalizedQuery = normalize(cleanedQuery);
+
+  if (
+    normalizedQuery &&
+    !["audi", "bmw", "porsche", "volvo", "mercedes", "volkswagen"].includes(
+      normalizedQuery
+    )
+  ) {
+    return cleanedQuery;
+  }
+
+  return "";
 }
 
 function detectFuelType(text) {
@@ -710,7 +960,14 @@ function dedupeListings(listings) {
   const seen = new Set();
 
   return listings.filter((listing) => {
-    const key = `${normalize(listing.title)}-${listing.price}-${listing.km}-${listing.year}`;
+    const key = [
+      normalize(listing.brand),
+      normalize(listing.model),
+      listing.price,
+      listing.km,
+      listing.year,
+      normalize(listing.fuelType),
+    ].join("-");
 
     if (seen.has(key)) return false;
 
