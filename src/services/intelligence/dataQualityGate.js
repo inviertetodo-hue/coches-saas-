@@ -7,8 +7,8 @@ export function buildDataQualityGate({
   year = 0,
   price = 0,
   mileage = 0,
-  matchScore = 0,
-  comparableConfidence = 0,
+  matchScore = null,
+  comparableConfidence = null,
   roi = 0,
   profit = 0,
 } = {}) {
@@ -55,12 +55,15 @@ export function buildDataQualityGate({
     reasons.push("Kilometraje incoherente.");
   }
 
-  if (Number(matchScore || 0) < 70) {
+  if (hasExplicitScore(matchScore) && Number(matchScore) < 70) {
     score -= 15;
     reasons.push("Match semántico bajo.");
   }
 
-  if (Number(comparableConfidence || 0) < 70) {
+  if (
+    hasExplicitScore(comparableConfidence) &&
+    Number(comparableConfidence) < 70
+  ) {
     score -= 15;
     reasons.push("Confianza de comparables baja.");
   }
@@ -81,6 +84,16 @@ export function buildDataQualityGate({
     reasons,
     summary: buildSummary(dataQualityScore, reasons),
   };
+}
+
+function hasExplicitScore(value) {
+  if (value === null || value === undefined || value === "") {
+    return false;
+  }
+
+  const number = Number(value);
+
+  return Number.isFinite(number);
 }
 
 function isMockSource(value) {
