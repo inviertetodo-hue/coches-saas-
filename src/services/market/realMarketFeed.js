@@ -349,8 +349,9 @@ function buildListingIdentityFromContext({
 }) {
   const brandFromBlock = detectBrand(block.join(" "));
   const modelFromBlock = detectModel(block.join(" "), query);
-  const brand = brandFromBlock || queryBrand;
-  const model = modelFromBlock || queryModel;
+
+  const brand = queryBrand || brandFromBlock;
+  const model = queryModel || modelFromBlock;
 
   const titleCandidate = findBestTitleLine({
     block,
