@@ -9,22 +9,59 @@ export function generateWatchlist(analyses = []) {
   }
 
   const items = analyses
-    .filter((item) => {
-      const score = Number(item.score || 0);
-      const roi = Number(item.roi || 0);
-      const profit = Number(item.profit || 0);
+    .map((item) => {
+      const decision = item.decision || {};
+      const action = decision.action || "";
+      const decisionScore = Number(decision.decisionScore || item.score || 0);
+      const confidenceScore = Number(decision.confidence?.score || 0);
+      const opportunityScoreV2 = Number(
+        item.opportunity?.scoreV2 ||
+          item.opportunity?.opportunityScoreV2 ||
+          item.score ||
+          0
+      );
+      const roi = Number(item.roi || item.valuation?.roi || 0);
+      const profit = Number(item.profit || item.valuation?.profit || 0);
+      const sellSpeedScore = Number(item.sellSpeed?.sellSpeedScore || 0);
 
-      return score >= 75 && roi >= 12 && profit > 0;
+      const shouldWatch =
+        action === "BUY" ||
+        (action === "WATCH" && (profit > 0 || decisionScore >= 70)) ||
+        (!action && decisionScore >= 75 && roi >= 8 && profit > 0);
+
+      if (!shouldWatch) return null;
+
+      return {
+        id: item.id,
+        title: item.title || "Vehículo IA",
+        score: decisionScore || opportunityScoreV2,
+        roi,
+        profit,
+        action,
+        confidenceScore,
+        opportunityScoreV2,
+        sellSpeedScore,
+        reason:
+          decision.summary ||
+          buildWatchReason({
+            action,
+            decisionScore,
+            opportunityScoreV2,
+            roi,
+            profit,
+            sellSpeedScore,
+          }),
+      };
     })
-    .map((item) => ({
-      id: item.id,
-      title: item.title || "Vehículo IA",
-      score: Number(item.score || 0),
-      roi: Number(item.roi || 0),
-      profit: Number(item.profit || 0),
-      reason: "Candidato para seguimiento por score, ROI y beneficio positivo.",
-    }))
-    .sort((a, b) => b.score + b.roi - (a.score + a.roi))
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        b.score +
+        b.opportunityScoreV2 +
+        b.roi +
+        b.sellSpeedScore -
+        (a.score + a.opportunityScoreV2 + a.roi + a.sellSpeedScore)
+    )
     .slice(0, 8);
 
   const watchlistScore = Math.min(
@@ -60,4 +97,27 @@ export function generateWatchlist(analyses = []) {
     items,
     insights,
   };
+}
+
+function buildWatchReason({
+  action,
+  decisionScore,
+  opportunityScoreV2,
+  roi,
+  profit,
+  sellSpeedScore,
+}) {
+  if (action === "BUY") {
+    return `BUY del Decision Engine V2: score ${decisionScore}/100, ROI ${roi}% y margen ${profit} €.`;
+  }
+
+  if (action === "WATCH") {
+    return `WATCH del Decision Engine V2: requiere validación, score ${decisionScore}/100 y rotación ${sellSpeedScore}/100.`;
+  }
+
+  if (opportunityScoreV2 >= 75 && profit > 0) {
+    return `Candidato por oportunidad V2: score ${opportunityScoreV2}/100, ROI ${roi}% y margen ${profit} €.`;
+  }
+
+  return "Candidato para seguimiento por señales combinadas de oportunidad.";
 }
