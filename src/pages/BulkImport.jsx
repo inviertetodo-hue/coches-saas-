@@ -278,7 +278,7 @@ export default function BulkImport() {
             </div>
           ))}
         </div>
-      )}{realFeedResult.diagnostics?.map((item, index) => (
+      )}{realFeedResult?.diagnostics?.map((item, index) => (
   <div key={`${item.source}-${index}`} style={diagnosticStyle}>
     <strong>
       {item.source} · {item.status}
