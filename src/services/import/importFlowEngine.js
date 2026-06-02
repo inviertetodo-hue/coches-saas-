@@ -50,15 +50,23 @@ const MOBILE_DE_MS_REFERENCE = {
   },
 };
 
+export const IMPORT_URL_TYPES = {
+  SEARCH_RESULT_SOURCE: "SEARCH_RESULT_SOURCE",
+  LISTING_DETAIL: "LISTING_DETAIL",
+  UNKNOWN: "UNKNOWN",
+};
+
 export function buildImportFlowDraft({ url = "", manual = {} } = {}) {
   const normalizedUrl = cleanText(url);
   const source = detectSource(normalizedUrl);
-  const urlSignals = extractSignalsFromUrl(normalizedUrl);
+  const urlType = detectUrlType(normalizedUrl);
+  const urlSignals = extractSignalsFromUrl(normalizedUrl, urlType);
   const manualSignals = normalizeManualFields(manual);
 
   return {
     url: normalizedUrl,
     source,
+    urlType,
 
     title: manualSignals.title || urlSignals.title || "",
     brand: manualSignals.brand || urlSignals.brand || "",
@@ -73,6 +81,7 @@ export function buildImportFlowDraft({ url = "", manual = {} } = {}) {
     confidence: calculateImportConfidence({
       urlSignals,
       manualSignals,
+      urlType,
     }),
 
     missingFields: detectMissingFields({
@@ -88,6 +97,7 @@ export function buildImportFlowDraft({ url = "", manual = {} } = {}) {
       source,
       urlSignals,
       manualSignals,
+      urlType,
     }),
   };
 }
@@ -102,7 +112,40 @@ function detectSource(url) {
   return "unknown";
 }
 
-function extractSignalsFromUrl(url) {
+function detectUrlType(url) {
+  const normalized = normalize(url);
+
+  if (!normalized) {
+    return IMPORT_URL_TYPES.UNKNOWN;
+  }
+
+  if (
+    normalized.includes("/lst/") ||
+    normalized.includes("/results") ||
+    normalized.includes("/search") ||
+    normalized.includes("homepage_search-mask") ||
+    normalized.includes("sort=") ||
+    normalized.includes("ustate=") ||
+    normalized.includes("atype=")
+  ) {
+    return IMPORT_URL_TYPES.SEARCH_RESULT_SOURCE;
+  }
+
+  if (
+    normalized.includes("/offer/") ||
+    normalized.includes("/anuncio/") ||
+    normalized.includes("/coches/") ||
+    normalized.includes("/vehicle/") ||
+    normalized.includes("adid=") ||
+    normalized.includes("id=")
+  ) {
+    return IMPORT_URL_TYPES.LISTING_DETAIL;
+  }
+
+  return IMPORT_URL_TYPES.UNKNOWN;
+}
+
+function extractSignalsFromUrl(url, urlType = IMPORT_URL_TYPES.UNKNOWN) {
   const decoded = safeDecode(url);
   const mobileDeMs = extractMobileDeMs(decoded);
   const externalId = extractExternalId(decoded);
@@ -118,6 +161,9 @@ function extractSignalsFromUrl(url) {
     model,
     fuel_type,
     title,
+    urlType,
+    isSearchResultSource: urlType === IMPORT_URL_TYPES.SEARCH_RESULT_SOURCE,
+    isListingDetail: urlType === IMPORT_URL_TYPES.LISTING_DETAIL,
   };
 }
 
@@ -153,8 +199,8 @@ function extractMobileDeMs(url) {
 }
 
 function extractExternalId(url) {
-  const match = url.match(/[?&]id=(\d+)/i);
-  return match?.[1] || "";
+  const match = url.match(/[?&](id|adid)=(\d+)/i);
+  return match?.[2] || "";
 }
 
 function detectBrand(text) {
@@ -288,7 +334,20 @@ function detectMissingFields(draft) {
   return missing;
 }
 
-function calculateImportConfidence({ urlSignals, manualSignals }) {
+function calculateImportConfidence({
+  urlSignals,
+  manualSignals,
+  urlType = IMPORT_URL_TYPES.UNKNOWN,
+}) {
+  if (urlType === IMPORT_URL_TYPES.SEARCH_RESULT_SOURCE) {
+    return Math.min(
+      35,
+      (urlSignals.brand ? 15 : 0) +
+        (urlSignals.model ? 15 : 0) +
+        (urlSignals.fuel_type ? 5 : 0)
+    );
+  }
+
   let score = 0;
 
   if (urlSignals.externalId) score += 15;
@@ -302,9 +361,18 @@ function calculateImportConfidence({ urlSignals, manualSignals }) {
   return Math.min(100, score);
 }
 
-function buildUserMessage({ source, urlSignals, manualSignals }) {
+function buildUserMessage({
+  source,
+  urlSignals,
+  manualSignals,
+  urlType = IMPORT_URL_TYPES.UNKNOWN,
+}) {
   if (!source || source === "unknown") {
     return "Pega una URL válida o introduce los datos manualmente.";
+  }
+
+  if (urlType === IMPORT_URL_TYPES.SEARCH_RESULT_SOURCE) {
+    return "Esta URL es una búsqueda/listado. Sirve para descubrir candidatos, pero no se guardará como coche real hasta extraer anuncios concretos.";
   }
 
   const missingCore =
