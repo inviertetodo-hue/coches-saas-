@@ -9,12 +9,12 @@ import BulkImportProtectedSavePanel from "../components/bulk-import/BulkImportPr
 import OpportunityIntelligencePanel from "../components/bulk-import/OpportunityIntelligencePanel";
 
 import { buildApprovedBulkImport } from "../services/intelligence/approvedBulkImportEngine";
-import { buildDemoCandidates } from "../services/intelligence/bulkDemoCandidates";
 import { buildBulkUrlPreview } from "../services/intelligence/bulkUrlPreviewEngine";
 import { buildMasterOpportunityPipeline } from "../services/intelligence/masterOpportunityPipelineEngine";
 import { buildMemorySimulation } from "../services/intelligence/memorySimulationEngine";
 import { buildProtectedMemorySave } from "../services/intelligence/protectedMemorySaveEngine";
 import { createMemoryRepository } from "../services/intelligence/memoryRepository";
+import { fetchRealMarketListings } from "../services/market/realMarketFeed";
 
 const DEFAULT_URL =
   "https://www.autoscout24.es/lst/audi/a3?sort=standard&desc=0&ustate=N%2CU&atype=C&cy=E&damaged_listing=exclude&source=homepage_search-mask";
@@ -27,12 +27,10 @@ export default function BulkImport() {
   const [savePlan, setSavePlan] = useState(null);
   const [saveResult, setSaveResult] = useState(null);
   const [memoryRecords, setMemoryRecords] = useState([]);
+  const [isLoadingRealFeed, setIsLoadingRealFeed] = useState(false);
+  const [realFeedResult, setRealFeedResult] = useState(null);
 
   const memoryRepository = useMemo(() => createMemoryRepository(), []);
-  const marketQueryCandidates = useMemo(
-    () => buildDemoCandidates(url),
-    [url]
-  );
 
   const currentOpportunityRecords = useMemo(() => {
     if (savePlan?.acceptedRecords?.length) {
@@ -59,19 +57,55 @@ export default function BulkImport() {
     setMemoryRecords(memoryRepository.getAll());
   }, [memoryRepository]);
 
-  function handlePreview() {
-    const result = buildBulkUrlPreview({
-      url,
-      source: detectSource(url),
-      candidates: marketQueryCandidates,
-      limit: 20,
-    });
-
-    setPreview(result);
+  async function handlePreview() {
+    setIsLoadingRealFeed(true);
+    setPreview(null);
     setApprovedImport(null);
     setMemorySimulation(null);
     setSavePlan(null);
     setSaveResult(null);
+    setRealFeedResult(null);
+
+    try {
+      const scan = buildScanFromUrl(url);
+      const realResult = await fetchRealMarketListings(scan, {
+        maxListings: 20,
+      });
+
+      const result = buildBulkUrlPreview({
+        url,
+        source: detectSource(url),
+        candidates: realResult.listings,
+        limit: 20,
+      });
+
+      setRealFeedResult(realResult);
+      setPreview({
+        ...result,
+        insights: [
+          ...buildRealFeedInsights(realResult),
+          ...result.insights,
+        ],
+      });
+    } catch (error) {
+      setRealFeedResult({
+        mode: "real-feed-error",
+        listings: [],
+        errors: [error.message],
+        diagnostics: [],
+      });
+
+      setPreview(
+        buildBulkUrlPreview({
+          url,
+          source: detectSource(url),
+          candidates: [],
+          limit: 20,
+        })
+      );
+    } finally {
+      setIsLoadingRealFeed(false);
+    }
   }
 
   function handlePrepareApproved() {
@@ -131,16 +165,15 @@ export default function BulkImport() {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <p style={eyebrowStyle}>
-          FASE 10.6.3 · Current Batch Opportunity Intelligence
+          FASE 11.4 · Real Market Feed Bulk Import
         </p>
 
         <h1 style={titleStyle}>🌍 Bulk Import Preview</h1>
 
         <p style={subtitleStyle}>
-          Esta pantalla separa el lote actual de la memoria histórica: el panel
-          de oportunidades analiza los candidatos aprobados de la búsqueda
-          actual, mientras la memoria histórica queda abajo para analítica y
-          exploración.
+          Esta pantalla conecta una URL de búsqueda con el feed real
+          experimental, bloquea candidatos incompletos y solo permite guardar
+          vehículos con hechos verificables de mercado.
         </p>
       </div>
 
@@ -156,8 +189,17 @@ export default function BulkImport() {
         />
 
         <div style={buttonRowStyle}>
-          <button type="button" onClick={handlePreview} style={buttonStyle}>
-            Generar preview seguro
+          <button
+            type="button"
+            onClick={handlePreview}
+            disabled={isLoadingRealFeed}
+            style={{
+              ...buttonStyle,
+              opacity: isLoadingRealFeed ? 0.6 : 1,
+              cursor: isLoadingRealFeed ? "not-allowed" : "pointer",
+            }}
+          >
+            {isLoadingRealFeed ? "Buscando datos reales..." : "Generar preview real"}
           </button>
 
           <button
@@ -214,14 +256,38 @@ export default function BulkImport() {
         </div>
       </div>
 
+      {realFeedResult && (
+        <div style={feedPanelStyle}>
+          <h2 style={sectionTitleStyle}>📡 Real Market Feed</h2>
+
+          <div style={gridStyle}>
+            <MetricCard label="Modo" value={realFeedResult.mode} />
+            <MetricCard
+              label="Listings reales"
+              value={realFeedResult.listings?.length || 0}
+            />
+            <MetricCard
+              label="Errores"
+              value={realFeedResult.errors?.length || 0}
+            />
+          </div>
+
+          {realFeedResult.errors?.map((item, index) => (
+            <div key={`${item}-${index}`} style={warningStyle}>
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+
       <OpportunityIntelligencePanel pipeline={opportunityPipeline} />
 
       {!preview && (
         <div style={emptyBoxStyle}>
           <strong>Sin preview todavía.</strong>
           <p>
-            Esta fase sirve para validar la calidad antes de guardar nada en la
-            memoria histórica.
+            Esta fase sirve para validar datos reales antes de guardar nada en
+            la memoria histórica.
           </p>
         </div>
       )}
@@ -339,6 +405,12 @@ export default function BulkImport() {
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>🚗 Candidatos previsualizados</h2>
 
+            {preview.items.length === 0 && (
+              <p style={emptyTextStyle}>
+                No hay candidatos reales previsualizables.
+              </p>
+            )}
+
             {preview.items.map((item) => (
               <BulkImportPreviewCard key={item.id} item={item} />
             ))}
@@ -356,6 +428,86 @@ function MetricCard({ label, value }) {
       <strong style={metricValueStyle}>{value}</strong>
     </div>
   );
+}
+
+function buildScanFromUrl(url) {
+  const source = detectSource(url);
+  const query = inferQueryFromUrl(url);
+
+  return {
+    query,
+    maxBudget: 0,
+    country: "España",
+    semantic: {},
+    searchLinks: [
+      {
+        source: source === "autoscout24" ? "AutoScout24" : source,
+        country: "España",
+        url,
+      },
+    ],
+  };
+}
+
+function inferQueryFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname
+      .split("/")
+      .map((part) => decodeURIComponent(part))
+      .filter(Boolean);
+
+    const blocked = new Set([
+      "lst",
+      "coches",
+      "car",
+      "cars",
+      "vehiculo",
+      "vehiculos",
+      "anuncio",
+      "offer",
+    ]);
+
+    const useful = parts
+      .filter((part) => !blocked.has(part.toLowerCase()))
+      .map((part) => part.replace(/-/g, " "))
+      .filter(Boolean);
+
+    if (useful.length >= 2) {
+      return useful.slice(-2).join(" ");
+    }
+
+    if (useful.length === 1) {
+      return useful[0];
+    }
+
+    return parsed.searchParams.get("q") || "búsqueda mercado";
+  } catch {
+    return "búsqueda mercado";
+  }
+}
+
+function buildRealFeedInsights(realResult) {
+  const listingsCount = realResult?.listings?.length || 0;
+  const errorsCount = realResult?.errors?.length || 0;
+
+  const insights = [
+    `Feed real: ${listingsCount} anuncios detectados antes del filtro de calidad.`,
+  ];
+
+  if (errorsCount > 0) {
+    insights.push(
+      `Feed real con ${errorsCount} avisos técnicos. Se mantiene protección contra datos incompletos.`
+    );
+  }
+
+  if (listingsCount === 0) {
+    insights.push(
+      "No se han extraído anuncios reales suficientes desde la fuente. No se usará fallback demo para proteger la memoria."
+    );
+  }
+
+  return insights;
 }
 
 function detectSource(url) {
@@ -402,6 +554,14 @@ const panelStyle = {
   borderRadius: "22px",
   background: "rgba(15,23,42,0.72)",
   border: "1px solid rgba(56,189,248,0.22)",
+  marginBottom: "24px",
+};
+
+const feedPanelStyle = {
+  padding: "20px",
+  borderRadius: "22px",
+  background: "rgba(59,130,246,0.14)",
+  border: "1px solid rgba(96,165,250,0.28)",
   marginBottom: "24px",
 };
 
@@ -538,6 +698,16 @@ const insightStyle = {
   marginBottom: "10px",
   color: "#dcfce7",
   fontWeight: "800",
+};
+
+const warningStyle = {
+  padding: "12px 14px",
+  borderRadius: "14px",
+  background: "rgba(248,113,113,0.12)",
+  border: "1px solid rgba(248,113,113,0.24)",
+  color: "#fecaca",
+  fontWeight: "800",
+  marginBottom: "10px",
 };
 
 const approvedPanelStyle = {
