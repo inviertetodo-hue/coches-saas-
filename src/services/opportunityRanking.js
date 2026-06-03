@@ -1,5 +1,8 @@
 import { buildDecisionPipeline } from "./intelligence/decisionPipeline";
-import { buildHistoricalModelMemory } from "./intelligence/historicalMemory";
+import {
+  buildHistoricalModelMemory,
+  buildOpportunityTimelineSummary,
+} from "./intelligence/historicalMemory";
 import {
   calculateSemanticQuality,
   calculateRiskPenalty,
@@ -16,6 +19,13 @@ export function generateOpportunityRanking(analyses = []) {
   }
 
   const historicalModelMemory = buildHistoricalModelMemory(analyses);
+  const timelineSummary = buildOpportunityTimelineSummary(analyses);
+  const timelineByFingerprint = new Map(
+    (timelineSummary.timelines || []).map((timeline) => [
+      timeline.fingerprint,
+      timeline,
+    ])
+  );
 
   const topOpportunities = analyses
     .map((item) => {
@@ -81,6 +91,9 @@ export function generateOpportunityRanking(analyses = []) {
         semanticQuality,
       });
 
+      const timeline = timelineByFingerprint.get(resolveFingerprint(item));
+      const timelineMomentum = buildTimelineMomentum(timeline);
+
       return {
         id: item.id,
         title: title || "Vehículo IA",
@@ -91,6 +104,17 @@ export function generateOpportunityRanking(analyses = []) {
         confidence: semanticQuality,
         riskPenalty,
         liquidityBonus,
+        timeline,
+        timelineMomentumScore: timelineMomentum.timelineMomentumScore,
+        timelineMomentumLabel: timelineMomentum.timelineMomentumLabel,
+        timelineMomentumSummary: timelineMomentum.timelineMomentumSummary,
+        timelineEvents: timeline?.totalEvents || 0,
+        latestTimelineAction: timeline?.latestAction || "WATCH",
+        latestTimelineROI: timeline?.latestROI || 0,
+        latestTimelineProfit: timeline?.latestProfit || 0,
+        latestTimelinePrice: timeline?.latestPrice || 0,
+        latestTimelineSellSpeed: timeline?.latestSellSpeed || 0,
+        timelineSummary: timeline?.timelineSummary || "Sin histórico temporal suficiente.",
         ...decision.flat,
       };
     })
@@ -102,17 +126,75 @@ export function generateOpportunityRanking(analyses = []) {
   const rankingInsights = buildRankingInsights(
     topOpportunities,
     analyses.length,
-    rankingScore
+    rankingScore,
+    timelineSummary
   );
 
   return {
     rankingScore,
     topOpportunities,
     rankingInsights,
+    timelineSummary,
   };
 }
 
+function buildTimelineMomentum(timeline = null) {
+  if (!timeline || !Array.isArray(timeline.events) || timeline.events.length < 2) {
+    return {
+      timelineMomentumScore: 50,
+      timelineMomentumLabel: "NO_HISTORY",
+      timelineMomentumSummary: "Sin histórico temporal suficiente.",
+    };
+  }
+
+  const first = timeline.events[0];
+  const latest = timeline.events[timeline.events.length - 1];
+
+  let score = 50;
+
+  if (first.action !== "BUY" && latest.action === "BUY") score += 20;
+  if (first.action === "BUY" && latest.action !== "BUY") score -= 20;
+
+  const roiChange = safeNumber(latest.roi) - safeNumber(first.roi);
+  const profitChange = safeNumber(latest.profit) - safeNumber(first.profit);
+  const priceChange = safeNumber(latest.price) - safeNumber(first.price);
+  const sellSpeedChange =
+    safeNumber(latest.sellSpeedScore) - safeNumber(first.sellSpeedScore);
+
+  if (roiChange >= 5) score += 12;
+  if (roiChange <= -5) score -= 12;
+
+  if (profitChange >= 1000) score += 12;
+  if (profitChange <= -1000) score -= 12;
+
+  if (priceChange < 0) score += 8;
+  if (priceChange > 0) score -= 5;
+
+  if (sellSpeedChange >= 10) score += 8;
+  if (sellSpeedChange <= -10) score -= 8;
+
+  const timelineMomentumScore = clampScore(score);
+
+  return {
+    timelineMomentumScore,
+    timelineMomentumLabel: buildTimelineMomentumLabel(timelineMomentumScore),
+    timelineMomentumSummary: timeline.timelineSummary,
+  };
+}
+
+function buildTimelineMomentumLabel(score) {
+  if (score >= 80) return "IMPROVING_FAST";
+  if (score >= 65) return "IMPROVING";
+  if (score >= 45) return "STABLE";
+  if (score >= 30) return "DETERIORATING";
+  return "AVOID_TREND";
+}
+
 function sortOpportunities(a, b) {
+  if (b.timelineMomentumScore !== a.timelineMomentumScore) {
+    return b.timelineMomentumScore - a.timelineMomentumScore;
+  }
+
   if (b.allocationScore !== a.allocationScore) {
     return b.allocationScore - a.allocationScore;
   }
@@ -160,17 +242,23 @@ function calculateRankingScore(topOpportunities = []) {
       return (
         sum +
         Math.round(
-          safeNumber(item.allocationScore) * 0.45 +
-            safeNumber(item.executiveBuySignalScore) * 0.25 +
+          safeNumber(item.allocationScore) * 0.35 +
+            safeNumber(item.executiveBuySignalScore) * 0.22 +
             safeNumber(item.marketTimingScore) * 0.15 +
-            safeNumber(item.capitalEfficiencyScore) * 0.15
+            safeNumber(item.capitalEfficiencyScore) * 0.13 +
+            safeNumber(item.timelineMomentumScore) * 0.15
         )
       );
     }, 0) / topOpportunities.length
   );
 }
 
-function buildRankingInsights(topOpportunities, total, rankingScore) {
+function buildRankingInsights(
+  topOpportunities,
+  total,
+  rankingScore,
+  timelineSummary = {}
+) {
   const insights = [];
 
   if (topOpportunities.length > 0) {
@@ -179,11 +267,11 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
 
   if (rankingScore >= 85) {
     insights.push(
-      "🔥 El top de oportunidades muestra alta prioridad de asignación de capital, señal ejecutiva fuerte, buen timing y eficiencia operativa."
+      "🔥 El top de oportunidades muestra alta prioridad de asignación de capital, señal ejecutiva fuerte, buen timing, eficiencia operativa y momentum temporal."
     );
   } else if (rankingScore >= 70) {
     insights.push(
-      "🟢 Hay oportunidades interesantes, pero conviene validar asignación de capital, timing y riesgo de inventario."
+      "🟢 Hay oportunidades interesantes, pero conviene validar asignación de capital, timing, riesgo de inventario y evolución temporal."
     );
   } else if (rankingScore >= 50) {
     insights.push(
@@ -192,6 +280,30 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
   } else {
     insights.push(
       "📊 El ranking aún no tiene suficiente fuerza para una asignación de capital agresiva."
+    );
+  }
+
+  if (safeNumber(timelineSummary.totalTimelines) > 0) {
+    insights.push(
+      `🧭 El ranking ya incorpora memoria temporal sobre ${timelineSummary.totalTimelines} oportunidad(es).`
+    );
+  }
+
+  if (safeNumber(timelineSummary.upgradedToBuy) > 0) {
+    insights.push(
+      `🚀 ${timelineSummary.upgradedToBuy} oportunidad(es) han mejorado hasta BUY en el histórico temporal.`
+    );
+  }
+
+  if (safeNumber(timelineSummary.priceDrops) > 0) {
+    insights.push(
+      `📉 ${timelineSummary.priceDrops} oportunidad(es) muestran bajadas de precio en timeline.`
+    );
+  }
+
+  if (safeNumber(timelineSummary.improvingROI) > 0) {
+    insights.push(
+      `💰 ${timelineSummary.improvingROI} oportunidad(es) mejoran ROI con el tiempo.`
     );
   }
 
@@ -325,15 +437,57 @@ function buildRankingInsights(topOpportunities, total, rankingScore) {
     );
   }
 
+  if (
+    topOpportunities.some(
+      (item) =>
+        item.timelineMomentumLabel === "IMPROVING_FAST" ||
+        item.timelineMomentumLabel === "IMPROVING"
+    )
+  ) {
+    insights.push(
+      "📈 El ranking detecta oportunidades con momentum temporal positivo."
+    );
+  }
+
+  if (
+    topOpportunities.some(
+      (item) =>
+        item.timelineMomentumLabel === "DETERIORATING" ||
+        item.timelineMomentumLabel === "AVOID_TREND"
+    )
+  ) {
+    insights.push(
+      "📉 Algunas oportunidades muestran deterioro temporal. Revisa evolución antes de comprar."
+    );
+  }
+
   const strongest = topOpportunities[0];
 
   if (strongest) {
     insights.push(
-      `🥇 Mejor oportunidad actual: ${strongest.title} · allocation ${strongest.allocationTier} · score ${strongest.allocationScore}/100 · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel}.`
+      `🥇 Mejor oportunidad actual: ${strongest.title} · allocation ${strongest.allocationTier} · score ${strongest.allocationScore}/100 · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel} · momentum ${strongest.timelineMomentumLabel}.`
     );
   }
 
   return insights;
+}
+
+function resolveFingerprint(item = {}) {
+  return (
+    item.fingerprint ||
+    item.market_fingerprint ||
+    item.id ||
+    [item.brand, item.model, item.year, item.km, item.price]
+      .filter(Boolean)
+      .join("-")
+      .toLowerCase()
+  );
+}
+
+function clampScore(value) {
+  if (value > 100) return 100;
+  if (value < 0) return 0;
+  return Math.round(value);
 }
 
 function safeNumber(value) {
