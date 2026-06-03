@@ -1,4 +1,7 @@
-export function analyzeOpportunityAlerts(analyses = []) {
+export function analyzeOpportunityAlerts(
+  analyses = [],
+  changes = []
+) {
   if (!Array.isArray(analyses) || analyses.length === 0) {
     return {
       alertScore: 0,
@@ -12,64 +15,98 @@ export function analyzeOpportunityAlerts(analyses = []) {
   const opportunityAlerts = [];
   const warningAlerts = [];
 
-  const highScore = analyses.filter(
-    (item) => Number(item.score || 0) >= 90
+  const buyItems = analyses.filter(
+    (item) =>
+      (item.decision?.action || item.action) === "BUY"
   );
 
-  const highROI = analyses.filter(
-    (item) => Number(item.roi || 0) >= 30
+  const highDecisionScore = analyses.filter(
+    (item) =>
+      Number(
+        item.decision?.decisionScore ||
+          item.decisionScore ||
+          0
+      ) >= 85
   );
 
-  const highProfit = analyses.filter(
-    (item) => Number(item.profit || 0) >= 10000
+  const highConfidence = analyses.filter(
+    (item) =>
+      Number(
+        item.decision?.confidence?.score ||
+          item.vehicleValuation?.confidence ||
+          item.confidence ||
+          0
+      ) >= 80
   );
 
-  const riskyLowScore = analyses.filter(
-    (item) => Number(item.score || 0) <= 45
+  const actionUpgrades = changes.filter(
+    (item) =>
+      item?.change?.signals?.some(
+        (signal) => signal.type === "ACTION_UPGRADE"
+      )
+  );
+
+  const priceDrops = changes.filter(
+    (item) =>
+      item?.change?.signals?.some(
+        (signal) => signal.type === "PRICE_DROP"
+      )
+  );
+
+  const confidenceDrops = changes.filter(
+    (item) =>
+      item?.change?.signals?.some(
+        (signal) => signal.type === "CONFIDENCE_DOWN"
+      )
   );
 
   let alertScore =
-    50 +
-    highScore.length * 8 +
-    highROI.length * 7 +
-    highProfit.length * 6 -
-    riskyLowScore.length * 5;
+    40 +
+    buyItems.length * 8 +
+    highDecisionScore.length * 6 +
+    highConfidence.length * 4 +
+    actionUpgrades.length * 10 +
+    priceDrops.length * 6 -
+    confidenceDrops.length * 4;
 
   alertScore = clampScore(alertScore);
 
-  if (highScore.length > 0) {
+  if (buyItems.length > 0) {
     opportunityAlerts.push(
-      `🔥 ${highScore.length} oportunidad(es) con score IA extremo.`
+      `🚀 ${buyItems.length} oportunidad(es) BUY activas.`
     );
   }
 
-  if (highROI.length > 0) {
+  if (highDecisionScore.length > 0) {
     opportunityAlerts.push(
-      `💰 ${highROI.length} operación(es) con ROI superior al 30%.`
+      `🏆 ${highDecisionScore.length} oportunidad(es) con Decision Score alto.`
     );
   }
 
-  if (highProfit.length > 0) {
-    opportunityAlerts.push(
-      `🚀 ${highProfit.length} coche(s) con beneficio estimado superior a 10.000 €.`
-    );
-  }
-
-  if (riskyLowScore.length > 0) {
-    warningAlerts.push(
-      `⚠️ ${riskyLowScore.length} análisis con riesgo elevado detectado.`
-    );
-  }
-
-  if (highScore.length > 0 && highROI.length > 0) {
+  if (actionUpgrades.length > 0) {
     criticalAlerts.push(
-      "🏆 Hay coincidencia entre score IA alto y ROI alto: revisar primero."
+      `🔥 ${actionUpgrades.length} oportunidad(es) han pasado de WATCH a BUY.`
     );
   }
 
-  if (opportunityAlerts.length === 0) {
+  if (priceDrops.length > 0) {
+    criticalAlerts.push(
+      `📉 ${priceDrops.length} oportunidad(es) han bajado de precio.`
+    );
+  }
+
+  if (confidenceDrops.length > 0) {
     warningAlerts.push(
-      "📊 Todavía no hay alertas fuertes; conviene aumentar el dataset."
+      `⚠️ ${confidenceDrops.length} oportunidad(es) pierden confianza.`
+    );
+  }
+
+  if (
+    criticalAlerts.length === 0 &&
+    opportunityAlerts.length === 0
+  ) {
+    warningAlerts.push(
+      "📊 Todavía no existen alertas relevantes."
     );
   }
 
