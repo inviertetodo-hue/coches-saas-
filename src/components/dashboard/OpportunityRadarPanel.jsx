@@ -5,6 +5,8 @@ export default function OpportunityRadarPanel({ radar }) {
     ? radar.priorityOpportunities.slice(0, 12)
     : [];
 
+  const feed = buildOpportunityFeedFromRadar(opportunities);
+
   const discoverNow = opportunities.filter(
     (item) => item.discoveryLevel === "DISCOVER_NOW"
   ).length;
@@ -47,6 +49,26 @@ export default function OpportunityRadarPanel({ radar }) {
           value={getRadarMode(opportunities)}
           text="Lectura rápida del estado actual del mercado."
         />
+      </div>
+
+      <div style={sectionStyle}>
+        <p style={sectionTitleStyle}>🔥 Opportunity Feed</p>
+
+        {feed.length === 0 && (
+          <p style={emptyStyle}>Todavía no hay eventos prioritarios.</p>
+        )}
+
+        {feed.map((event, index) => (
+          <div key={`${event.type}-${event.title}-${index}`} style={feedCardStyle}>
+            <div>
+              <p style={feedTypeStyle}>{event.type}</p>
+              <h3 style={feedTitleStyle}>{event.title}</h3>
+              <p style={feedTextStyle}>{event.text}</p>
+            </div>
+
+            <span style={feedPriorityStyle}>{event.priority}/100</span>
+          </div>
+        ))}
       </div>
 
       <div style={sectionStyle}>
@@ -166,6 +188,52 @@ function SignalCard({ title, value, text }) {
   );
 }
 
+function buildOpportunityFeedFromRadar(items = []) {
+  const events = [];
+
+  items.forEach((item) => {
+    if (item.discoveryLevel === "DISCOVER_NOW") {
+      events.push({
+        type: "DISCOVERY_NOW",
+        priority: 100,
+        title: item.title || "Oportunidad IA",
+        text: `Revisar ya: prioridad radar ${item.radarPriority || 0}/100.`,
+      });
+    }
+
+    if (item.action === "BUY") {
+      events.push({
+        type: "BUY_SIGNAL",
+        priority: 92,
+        title: item.title || "Oportunidad IA",
+        text: `BUY confirmado con Decision Score ${item.decisionScore || 0}/100.`,
+      });
+    }
+
+    if (Number(item.sellSpeedScore || 0) >= 80) {
+      events.push({
+        type: "FAST_SELL",
+        priority: 82,
+        title: item.title || "Oportunidad IA",
+        text: `Alta rotación prevista. Sell Speed ${item.sellSpeedScore}/100.`,
+      });
+    }
+
+    if (Number(item.discountPercent || 0) >= 8) {
+      events.push({
+        type: "VALUATION_DISCOUNT",
+        priority: 78,
+        title: item.title || "Oportunidad IA",
+        text: `Descuento relevante frente a valoración: ${item.discountPercent}%.`,
+      });
+    }
+  });
+
+  return events
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 8);
+}
+
 function getRadarMode(items = []) {
   const discoverNow = items.filter((item) => item.discoveryLevel === "DISCOVER_NOW").length;
   const buy = items.filter((item) => item.action === "BUY").length;
@@ -279,6 +347,48 @@ const sectionTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
   marginBottom: "14px",
+};
+
+const feedCardStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  alignItems: "flex-start",
+  padding: "16px",
+  borderRadius: "18px",
+  background: "rgba(34,197,94,0.12)",
+  border: "1px solid rgba(34,197,94,0.22)",
+  marginBottom: "12px",
+};
+
+const feedTypeStyle = {
+  margin: "0 0 6px 0",
+  color: "#86efac",
+  fontSize: "11px",
+  fontWeight: "900",
+};
+
+const feedTitleStyle = {
+  margin: "0 0 6px 0",
+  fontSize: "17px",
+};
+
+const feedTextStyle = {
+  margin: 0,
+  color: "#d1fae5",
+  fontSize: "13px",
+  lineHeight: "1.45",
+};
+
+const feedPriorityStyle = {
+  minWidth: "66px",
+  textAlign: "center",
+  padding: "7px 10px",
+  borderRadius: "999px",
+  background: "rgba(15,23,42,0.65)",
+  color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "900",
 };
 
 const insightCardStyle = {
