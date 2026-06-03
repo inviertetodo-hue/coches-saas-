@@ -5,54 +5,43 @@ export default function OpportunityRadarPanel({ radar }) {
     ? radar.priorityOpportunities.slice(0, 12)
     : [];
 
-  const urgentCount = opportunities.filter((item) => getRadarLevel(item) === "Alta").length;
-  const mediumCount = opportunities.filter((item) => getRadarLevel(item) === "Media").length;
-  const averageROI = calculateAverage(opportunities, "roi");
+  const discoverNow = opportunities.filter(
+    (item) => item.discoveryLevel === "DISCOVER_NOW"
+  ).length;
+
+  const fastSell = opportunities.filter(
+    (item) => Number(item.sellSpeedScore || 0) >= 80
+  ).length;
+
+  const averagePriority = calculateAverage(opportunities, "radarPriority");
 
   return (
     <div style={containerStyle}>
-      <h2 style={titleStyle}>📡 Opportunity Radar V3</h2>
+      <h2 style={titleStyle}>📡 Opportunity Radar V4</h2>
 
       <p style={subtitleStyle}>
-        Radar ejecutivo conectado al Decision Engine V3 para priorizar BUY,
-        validar WATCH y evitar falsas oportunidades.
+        Radar de descubrimiento conectado a señales BUY, descuento, rotación,
+        confianza, comparables y prioridad real de oportunidad.
       </p>
 
       <div style={gridStyle}>
-        <MetricCard
-          label="Radar Score"
-          value={`${radar?.radarScore || 0}/100`}
-        />
-
-        <MetricCard
-          label="Radar Level"
-          value={radar?.radarLevel || "-"}
-        />
-
-        <MetricCard
-          label="Priority Deals"
-          value={opportunities.length}
-        />
-
-        <MetricCard
-          label="ROI medio radar"
-          value={`${averageROI}%`}
-        />
+        <MetricCard label="Radar Score" value={`${radar?.radarScore || 0}/100`} />
+        <MetricCard label="Radar Level" value={radar?.radarLevel || "-"} />
+        <MetricCard label="Discovery Now" value={discoverNow} />
+        <MetricCard label="Priority Media" value={`${averagePriority}/100`} />
       </div>
 
       <div style={signalGridStyle}>
         <SignalCard
-          title="Alta prioridad"
-          value={urgentCount}
-          text="BUY o señales muy fuertes con evidencia suficiente."
+          title="Descubrir ya"
+          value={discoverNow}
+          text="Oportunidades con prioridad inmediata."
         />
-
         <SignalCard
-          title="Prioridad media"
-          value={mediumCount}
-          text="WATCH relevantes que necesitan validación."
+          title="Fast Sell"
+          value={fastSell}
+          text="Candidatos con alta rotación prevista."
         />
-
         <SignalCard
           title="Radar mode"
           value={getRadarMode(opportunities)}
@@ -78,9 +67,7 @@ export default function OpportunityRadarPanel({ radar }) {
         <p style={sectionTitleStyle}>🏆 Priority Opportunities</p>
 
         {opportunities.length === 0 && (
-          <p style={emptyStyle}>
-            No hay oportunidades prioritarias todavía.
-          </p>
+          <p style={emptyStyle}>No hay oportunidades prioritarias todavía.</p>
         )}
 
         {opportunities.map((item, index) => (
@@ -98,8 +85,12 @@ function RadarDeal({ item, index }) {
   const comparableCount = Number(item.comparableCount || 0);
   const roi = Number(item.roi || 0);
   const profit = Number(item.profit || 0);
+  const sellSpeedScore = Number(item.sellSpeedScore || 0);
+  const estimatedSellDays = Number(item.estimatedSellDays || 0);
+  const discountPercent = Number(item.discountPercent || 0);
+  const radarPriority = Number(item.radarPriority || 0);
   const action = item.action || "WATCH";
-  const level = getRadarLevel(item);
+  const discoveryLevel = item.discoveryLevel || "OBSERVE";
 
   return (
     <div style={dealCardStyle}>
@@ -109,15 +100,19 @@ function RadarDeal({ item, index }) {
           <h3 style={dealTitleStyle}>{item.title || "Oportunidad sin título"}</h3>
         </div>
 
-        <span style={levelPillStyle}>{level}</span>
+        <span style={levelPillStyle}>{discoveryLevel}</span>
       </div>
 
       <div style={miniGridStyle}>
         <MiniMetric label="Acción" value={action} />
+        <MiniMetric label="Priority" value={`${radarPriority}/100`} />
         <MiniMetric label="Decision" value={`${decisionScore}/100`} />
         <MiniMetric label="Score" value={`${score}/100`} />
         <MiniMetric label="Confianza" value={`${confidence}/100`} />
         <MiniMetric label="Comparables" value={comparableCount} />
+        <MiniMetric label="Sell Speed" value={`${sellSpeedScore}/100`} />
+        <MiniMetric label="Venta est." value={`${estimatedSellDays} días`} />
+        <MiniMetric label="Descuento" value={`${discountPercent}%`} />
         <MiniMetric label="ROI" value={`${roi}%`} />
         <MiniMetric label="Beneficio" value={`${profit} €`} />
       </div>
@@ -126,7 +121,7 @@ function RadarDeal({ item, index }) {
         <div
           style={{
             ...barFillStyle,
-            width: `${Math.min(Math.max(decisionScore || score, 0), 100)}%`,
+            width: `${Math.min(Math.max(radarPriority || decisionScore || score, 0), 100)}%`,
           }}
         />
       </div>
@@ -134,6 +129,16 @@ function RadarDeal({ item, index }) {
       <p style={reasonStyle}>
         {item.reason || buildRadarReason(item)}
       </p>
+
+      {Array.isArray(item.discoverySignals) && item.discoverySignals.length > 0 && (
+        <div style={signalsBoxStyle}>
+          {item.discoverySignals.slice(0, 3).map((signal, signalIndex) => (
+            <p key={`${signal.type}-${signalIndex}`} style={signalLineStyle}>
+              {signal.label}
+            </p>
+          ))}
+        </div>
+      )}
 
       <p style={actionStyle}>
         Acción sugerida: {getRadarAction(item)}
@@ -161,69 +166,38 @@ function SignalCard({ title, value, text }) {
   );
 }
 
-function getRadarLevel(item) {
-  const action = item?.action || "WATCH";
-  const decisionScore = Number(item?.decisionScore || 0);
-  const confidence = Number(item?.confidence || 0);
-  const comparableCount = Number(item?.comparableCount || 0);
-
-  if (
-    action === "BUY" &&
-    decisionScore >= 80 &&
-    confidence >= 70 &&
-    comparableCount >= 2
-  ) {
-    return "Alta";
-  }
-
-  if (action === "BUY" || decisionScore >= 70) {
-    return "Media";
-  }
-
-  return "Observación";
-}
-
 function getRadarMode(items = []) {
-  const high = items.filter((item) => getRadarLevel(item) === "Alta").length;
+  const discoverNow = items.filter((item) => item.discoveryLevel === "DISCOVER_NOW").length;
   const buy = items.filter((item) => item.action === "BUY").length;
 
-  if (high >= 3) return "Mercado activo";
+  if (discoverNow >= 2) return "Cazar oportunidades";
   if (buy >= 1) return "Comprar selectivo";
-  if (items.length >= 5) return "Vigilar";
+  if (items.length >= 5) return "Vigilar mercado";
   return "Esperar datos";
 }
 
 function getRadarAction(item) {
-  const action = item?.action || "WATCH";
-  const level = getRadarLevel(item);
-
-  if (action === "BUY" && level === "Alta") {
-    return "comparar ya y contactar vendedor";
+  if (item?.discoveryLevel === "DISCOVER_NOW") {
+    return "revisar ya y contactar vendedor";
   }
 
-  if (action === "BUY") {
+  if (item?.action === "BUY") {
     return "validar evidencia antes de comprar";
   }
 
-  if (action === "WATCH") {
-    return "validar datos y seguir precio";
+  if (item?.action === "WATCH") {
+    return "seguir precio y confirmar datos";
   }
 
   return "mantener fuera de prioridad";
 }
 
 function buildRadarReason(item = {}) {
-  const action = item.action || "WATCH";
-  const decisionScore = Number(item.decisionScore || 0);
-  const score = Number(item.score || 0);
-  const confidence = Number(item.confidence || 0);
-  const comparableCount = Number(item.comparableCount || 0);
-
-  if (action === "BUY") {
-    return `BUY confirmado por Decision Score ${decisionScore}/100, Opportunity Score ${score}/100, confianza ${confidence}/100 y ${comparableCount} comparable(s).`;
+  if (item.action === "BUY") {
+    return `BUY confirmado. Prioridad ${item.radarPriority || 0}/100 y Decision Score ${item.decisionScore || 0}/100.`;
   }
 
-  return `WATCH. Señal interesante, pero requiere validación adicional. Confianza ${confidence}/100 y ${comparableCount} comparable(s).`;
+  return `WATCH. Prioridad ${item.radarPriority || 0}/100. Requiere validación adicional.`;
 }
 
 function calculateAverage(items, field) {
@@ -317,8 +291,7 @@ const insightCardStyle = {
 };
 
 const dealCardStyle = {
-  background:
-    "linear-gradient(135deg, rgba(34,197,94,0.14), rgba(37,99,235,0.12))",
+  background: "linear-gradient(135deg, rgba(34,197,94,0.14), rgba(37,99,235,0.12))",
   border: "1px solid rgba(34,197,94,0.25)",
   padding: "18px",
   borderRadius: "20px",
@@ -400,6 +373,21 @@ const reasonStyle = {
   fontWeight: "900",
   lineHeight: "1.45",
   margin: "0 0 10px 0",
+};
+
+const signalsBoxStyle = {
+  marginBottom: "10px",
+  padding: "12px",
+  borderRadius: "14px",
+  background: "rgba(15,23,42,0.55)",
+  border: "1px solid rgba(34,197,94,0.16)",
+};
+
+const signalLineStyle = {
+  margin: "0 0 6px 0",
+  color: "#d1fae5",
+  fontSize: "12px",
+  lineHeight: "1.4",
 };
 
 const actionStyle = {
