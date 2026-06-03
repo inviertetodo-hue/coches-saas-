@@ -1,4 +1,4 @@
-touch src/services/intelligence/opportunityActionNormalizer.jsexport const OPPORTUNITY_ACTIONS = {
+export const OPPORTUNITY_ACTIONS = {
   BUY: "BUY",
   WATCH: "WATCH",
   REJECT: "REJECT",
