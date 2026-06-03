@@ -184,7 +184,7 @@ export default function OpportunityDetail({ opportunity = {} }) {
           />
           <MiniMetric
             label="Nivel"
-            value={decision.label || opportunityData.opportunityLevelV2 || action}
+            value={action}
           />
         </div>
 
