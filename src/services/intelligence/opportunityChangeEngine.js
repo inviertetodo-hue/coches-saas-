@@ -5,38 +5,35 @@ export function buildOpportunityChange(current = {}, previous = {}) {
   const currentAction = normalizeAction(current.decision?.action || current.action);
   const previousAction = normalizeAction(previous.decision?.action || previous.action);
 
-  const currentScore = toNumber(
-    current.decision?.decisionScore ??
-      current.opportunity?.scoreV2 ??
-      current.score
-  );
+  const currentScore = resolveScore(current);
+  const previousScore = resolveScore(previous);
 
-  const previousScore = toNumber(
-    previous.decision?.decisionScore ??
-      previous.opportunity?.scoreV2 ??
-      previous.score
-  );
+  const currentConfidence = resolveConfidence(current);
+  const previousConfidence = resolveConfidence(previous);
 
-  const currentConfidence = toNumber(
-    current.decision?.confidence?.score ??
-      current.vehicleValuation?.confidence ??
-      current.confidence
-  );
+  const currentROI = resolveROI(current);
+  const previousROI = resolveROI(previous);
 
-  const previousConfidence = toNumber(
-    previous.decision?.confidence?.score ??
-      previous.vehicleValuation?.confidence ??
-      previous.confidence
-  );
+  const currentProfit = resolveProfit(current);
+  const previousProfit = resolveProfit(previous);
+
+  const currentSellSpeed = resolveSellSpeed(current);
+  const previousSellSpeed = resolveSellSpeed(previous);
 
   const priceChange = calculatePriceChange(currentPrice, previousPrice);
   const scoreChange = currentScore - previousScore;
   const confidenceChange = currentConfidence - previousConfidence;
+  const roiChange = currentROI - previousROI;
+  const profitChange = currentProfit - previousProfit;
+  const sellSpeedChange = currentSellSpeed - previousSellSpeed;
 
   const signals = buildSignals({
     priceChange,
     scoreChange,
     confidenceChange,
+    roiChange,
+    profitChange,
+    sellSpeedChange,
     currentAction,
     previousAction,
   });
@@ -45,14 +42,30 @@ export function buildOpportunityChange(current = {}, previous = {}) {
     currentPrice,
     previousPrice,
     priceChange,
+
     currentAction,
     previousAction,
+
     currentScore,
     previousScore,
     scoreChange,
+
     currentConfidence,
     previousConfidence,
     confidenceChange,
+
+    currentROI,
+    previousROI,
+    roiChange,
+
+    currentProfit,
+    previousProfit,
+    profitChange,
+
+    currentSellSpeed,
+    previousSellSpeed,
+    sellSpeedChange,
+
     signals,
     hasImportantChange: signals.some((signal) => signal.importance === "HIGH"),
     summary: buildSummary(signals),
@@ -101,6 +114,9 @@ function buildSignals({
   priceChange,
   scoreChange,
   confidenceChange,
+  roiChange,
+  profitChange,
+  sellSpeedChange,
   currentAction,
   previousAction,
 }) {
@@ -126,7 +142,7 @@ function buildSignals({
     signals.push({
       type: "SCORE_UP",
       importance: "HIGH",
-      label: `Score mejora ${scoreChange} puntos.`,
+      label: `Score mejora ${formatNumber(scoreChange)} puntos.`,
     });
   }
 
@@ -134,7 +150,7 @@ function buildSignals({
     signals.push({
       type: "SCORE_DOWN",
       importance: "HIGH",
-      label: `Score cae ${Math.abs(scoreChange)} puntos.`,
+      label: `Score cae ${formatNumber(Math.abs(scoreChange))} puntos.`,
     });
   }
 
@@ -142,7 +158,7 @@ function buildSignals({
     signals.push({
       type: "CONFIDENCE_UP",
       importance: "MEDIUM",
-      label: `Confianza mejora ${confidenceChange} puntos.`,
+      label: `Confianza mejora ${formatNumber(confidenceChange)} puntos.`,
     });
   }
 
@@ -150,7 +166,55 @@ function buildSignals({
     signals.push({
       type: "CONFIDENCE_DOWN",
       importance: "MEDIUM",
-      label: `Confianza cae ${Math.abs(confidenceChange)} puntos.`,
+      label: `Confianza cae ${formatNumber(Math.abs(confidenceChange))} puntos.`,
+    });
+  }
+
+  if (roiChange >= 5) {
+    signals.push({
+      type: "ROI_UP",
+      importance: roiChange >= 10 ? "HIGH" : "MEDIUM",
+      label: `ROI mejora ${formatNumber(roiChange)} puntos.`,
+    });
+  }
+
+  if (roiChange <= -5) {
+    signals.push({
+      type: "ROI_DOWN",
+      importance: roiChange <= -10 ? "HIGH" : "MEDIUM",
+      label: `ROI cae ${formatNumber(Math.abs(roiChange))} puntos.`,
+    });
+  }
+
+  if (profitChange >= 1000) {
+    signals.push({
+      type: "PROFIT_UP",
+      importance: profitChange >= 2500 ? "HIGH" : "MEDIUM",
+      label: `Beneficio estimado mejora ${formatCurrency(profitChange)}.`,
+    });
+  }
+
+  if (profitChange <= -1000) {
+    signals.push({
+      type: "PROFIT_DOWN",
+      importance: profitChange <= -2500 ? "HIGH" : "MEDIUM",
+      label: `Beneficio estimado cae ${formatCurrency(Math.abs(profitChange))}.`,
+    });
+  }
+
+  if (sellSpeedChange >= 10) {
+    signals.push({
+      type: "SELL_SPEED_UP",
+      importance: sellSpeedChange >= 20 ? "HIGH" : "MEDIUM",
+      label: `Rotación mejora ${formatNumber(sellSpeedChange)} puntos.`,
+    });
+  }
+
+  if (sellSpeedChange <= -10) {
+    signals.push({
+      type: "SELL_SPEED_DOWN",
+      importance: sellSpeedChange <= -20 ? "HIGH" : "MEDIUM",
+      label: `Rotación empeora ${formatNumber(Math.abs(sellSpeedChange))} puntos.`,
     });
   }
 
@@ -192,6 +256,35 @@ function calculatePriceChange(currentPrice, previousPrice) {
   };
 }
 
+function resolveScore(item = {}) {
+  return toNumber(
+    item.decision?.decisionScore ??
+      item.opportunity?.scoreV2 ??
+      item.opportunity?.opportunityScoreV2 ??
+      item.score
+  );
+}
+
+function resolveConfidence(item = {}) {
+  return toNumber(
+    item.decision?.confidence?.score ??
+      item.vehicleValuation?.confidence ??
+      item.confidence
+  );
+}
+
+function resolveROI(item = {}) {
+  return toNumber(item.valuation?.roi ?? item.roi ?? item.expectedROI);
+}
+
+function resolveProfit(item = {}) {
+  return toNumber(item.valuation?.profit ?? item.profit ?? item.expectedProfit);
+}
+
+function resolveSellSpeed(item = {}) {
+  return toNumber(item.sellSpeed?.sellSpeedScore ?? item.sellSpeedScore);
+}
+
 function resolveFingerprint(item = {}) {
   return (
     item.fingerprint ||
@@ -220,6 +313,16 @@ function buildSummary(signals = []) {
   }
 
   return signals[0]?.label || "Sin cambios relevantes.";
+}
+
+function formatCurrency(value) {
+  return `${Math.round(toNumber(value)).toLocaleString("es-ES")} €`;
+}
+
+function formatNumber(value) {
+  return toNumber(value).toLocaleString("es-ES", {
+    maximumFractionDigits: 2,
+  });
 }
 
 function toNumber(value) {
