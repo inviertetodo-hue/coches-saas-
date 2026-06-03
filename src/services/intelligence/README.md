@@ -30,4 +30,45 @@ Protected Memory Save
 ↓
 Memory Repository
 ↓
-Dashboard / History / Radar / Watchlist / Alerts
+Dashboard / History / Radar / Watchlist / Alerts## Known Legacy Paths
+
+Los siguientes archivos todavía utilizan acceso directo a `import_analyses` y no siguen completamente la arquitectura moderna:
+
+### Escritura directa
+
+* src/components/scanner/ScannerResultsSection.jsx
+* src/hooks/useEnrichedMarketFeed.js
+* src/pages/Importer.jsx
+
+### Lectura directa
+
+* src/pages/History.jsx
+* src/pages/Dashboard.jsx
+* src/pages/Deals.jsx
+
+## Objetivo de migración
+
+Migrar progresivamente estos flujos hacia:
+
+Component
+↓
+DataQualityGate
+↓
+PersistencePolicyEngine
+↓
+ApprovedBulkImportEngine
+↓
+ProtectedMemorySaveEngine
+↓
+MemoryRepository
+
+Sin romper compatibilidad con Supabase durante la transición.
+
+## Prioridad
+
+1. Importer.jsx
+2. ScannerResultsSection.jsx
+3. useEnrichedMarketFeed.js
+4. History.jsx
+5. Dashboard.jsx
+6. Deals.jsx
