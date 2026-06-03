@@ -7,6 +7,7 @@ import { analyzeComparableMarket } from "../services/comparableIntelligence";
 import { analyzeVehicleMemory } from "../services/vehicleMemoryEngine";
 import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
+import { buildScannerOpportunityPayload } from "../services/intelligence/scannerPersistenceAdapter";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 import { findOpportunities } from "../services/search/opportunityFinder";
 import { fetchRealMarketListings } from "../services/market/realMarketFeed";
@@ -519,19 +520,10 @@ async function saveBestRealOpportunityToMarketMemory({
   savedScanRef.current = saveKey;
   window.sessionStorage.setItem(sessionKey, "saved");
 
-  const payload = {
-    title: bestCandidate.title || scan?.query || "Scanner opportunity",
-    brand: bestCandidate.brand || null,
-    model: bestCandidate.model || null,
-    fuel_type: bestCandidate.fuelType || null,
-    drivetrain: bestCandidate.drivetrain || null,
-    performance_package: bestCandidate.performancePackage || null,
-    country: bestCandidate.country || scan?.country || null,
-    profit: Math.round(Number(bestCandidate.netProfit || 0)),
-    roi: Number(bestCandidate.netRoi || 0),
-    score: Number(bestCandidate.finalDecision?.finalScore || 0),
-    url: bestCandidate.url || null,
-  };
+  const payload = buildScannerOpportunityPayload({
+    candidate: bestCandidate,
+    scan,
+  });
 
   const { error } = await supabase.from("import_analyses").insert(payload);
 
