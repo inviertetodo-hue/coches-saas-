@@ -1,6 +1,7 @@
 import { useState } from "react";
 import OpportunityCard from "../opportunities/OpportunityCard";
 import OpportunityDetail from "../opportunities/OpportunityDetail";
+import { normalizeOpportunityAction } from "../../services/intelligence/opportunityActionNormalizer";
 
 export default function OpportunityIntelligencePanel({ pipeline }) {
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
@@ -92,12 +93,13 @@ function buildCardOpportunity(item = {}) {
     ? opportunity.opportunityReasonsV2
     : [];
 
-  const action =
+  const action = normalizeOpportunityAction(
     decision.action ||
-    decision.recommendation ||
-    decision.label ||
-    opportunity.opportunityLevelV2 ||
-    "WATCH";
+      decision.recommendation ||
+      decision.label ||
+      opportunity.opportunityLevelV2 ||
+      "WATCH"
+  );
 
   return {
     ...item,
@@ -160,10 +162,12 @@ function OpportunityRow({ item, index }) {
     opportunity.opportunityScore ||
     0;
 
-  const levelV2 =
-    opportunity.opportunityLevelV2 ||
-    decision.label ||
-    "Sin decisión";
+  const levelV2 = normalizeOpportunityAction(
+    decision.action ||
+      opportunity.opportunityLevelV2 ||
+      decision.label ||
+      "WATCH"
+  );
 
   const reasons = Array.isArray(opportunity.opportunityReasonsV2)
     ? opportunity.opportunityReasonsV2
