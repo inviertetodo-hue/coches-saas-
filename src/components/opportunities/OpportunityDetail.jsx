@@ -1,3 +1,5 @@
+import { normalizeOpportunityAction } from "../../services/intelligence/opportunityActionNormalizer";
+
 export default function OpportunityDetail({ opportunity = {} }) {
   const decision = opportunity.decision || {};
   const valuation = opportunity.valuation || {};
@@ -6,7 +8,9 @@ export default function OpportunityDetail({ opportunity = {} }) {
   const sellSpeed = opportunity.sellSpeed || {};
   const opportunityData = opportunity.opportunity || {};
 
-  const action = decision.action || opportunity.action || "WATCH";
+  const action = normalizeOpportunityAction(
+    decision.action || opportunity.action || "WATCH"
+  );
   const title = opportunity.title || buildVehicleTitle(opportunity);
   const badge = getBadge(action);
 
