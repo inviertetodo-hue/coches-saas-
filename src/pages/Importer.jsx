@@ -4,6 +4,7 @@ import { analyzeCar } from "../services/profitAnalyzer";
 import { parseCarFromUrl } from "../services/urlParser";
 import { parseMobileDeUrl } from "../services/market/adapters/mobileDeAdapter";
 import { readListingFromUrl } from "../services/market/listingReader";
+import { buildImporterAnalysisPayload } from "../services/intelligence/importerPersistenceAdapter";
 
 export default function Importer() {
   const [car, setCar] = useState({
@@ -252,24 +253,13 @@ export default function Importer() {
     setSaving(true);
     setMessage("");
 
-    const finalTitle =
-      semanticData?.title?.trim() ||
-      car.title.trim() ||
-      buildTitleFromUrlFallback(car.url);
-
-    const { error } = await supabase.from("import_analyses").insert({
-      title: finalTitle,
-      brand: semanticData?.brand || null,
-      model: semanticData?.model || null,
-      fuel_type: semanticData?.fuelType || null,
-      drivetrain: semanticData?.drivetrain || null,
-      performance_package: semanticData?.performancePackage || null,
-      country: car.country,
-      profit: Math.round(analysis.estimatedProfit),
-      roi: Number(analysis.roi),
-      score: Number(analysis.score),
-      url: car.url.trim() || null,
+    const payload = buildImporterAnalysisPayload({
+      analysis,
+      semanticData,
+      car,
     });
+
+    const { error } = await supabase.from("import_analyses").insert(payload);
 
     if (error) {
       console.error("Error saving analysis:", error);
