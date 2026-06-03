@@ -1,5 +1,8 @@
+import { analyzeOpportunityAlerts } from "../opportunityAlerts";
+import { generateWatchlist } from "../watchlistEngine";
 import { buildComparableVehicles } from "./comparableVehiclesEngine";
 import { buildMarketValuation } from "./marketValuationEngine";
+import { buildOpportunityChanges } from "./opportunityChangeEngine";
 import { buildOpportunityDecision } from "./opportunityDecisionEngine";
 import { buildOpportunityScore } from "./opportunityScoreEngine";
 import { buildPortfolioOpportunity } from "./portfolioOpportunityEngine";
@@ -8,6 +11,7 @@ import { buildVehicleValuation } from "./vehicleValuationEngine";
 
 export function buildMasterOpportunityPipeline(records = [], options = {}) {
   const memoryRecords = options.memoryRecords || records;
+  const previousRecords = options.previousRecords || options.previousItems || [];
 
   const enriched = records.filter(Boolean).map((vehicle) => {
     const comparables = buildComparableVehicles(vehicle, memoryRecords);
@@ -59,6 +63,8 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     return {
       ...vehicle,
+      roi,
+      profit,
       comparables,
       vehicleValuation,
       sellSpeed,
@@ -92,12 +98,18 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
   const topOpportunities = ranked.slice(0, 20);
   const portfolio = buildPortfolioOpportunity(ranked);
   const valuationSummary = buildValuationSummary(ranked);
+  const watchlist = generateWatchlist(ranked);
+  const changes = buildOpportunityChanges(ranked, previousRecords);
+  const alerts = analyzeOpportunityAlerts(ranked, changes);
 
   return {
     totalRecords: ranked.length,
     topOpportunities,
     portfolio,
     valuationSummary,
+    watchlist,
+    changes,
+    alerts,
     buyCount: portfolio.buyCount,
     watchCount: portfolio.watchCount,
     rejectCount: portfolio.rejectCount,
@@ -115,6 +127,9 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       averageOpportunityScoreV2: valuationSummary.averageOpportunityScoreV2,
       averageSellSpeedScore: valuationSummary.averageSellSpeedScore,
       averageEstimatedSellDays: valuationSummary.averageEstimatedSellDays,
+      watchlistScore: watchlist.watchlistScore,
+      alertScore: alerts.alertScore,
+      importantChanges: changes.filter((item) => item.change?.hasImportantChange).length,
     },
   };
 }
