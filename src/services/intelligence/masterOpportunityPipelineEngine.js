@@ -11,7 +11,11 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
   const enriched = records.filter(Boolean).map((vehicle) => {
     const comparables = buildComparableVehicles(vehicle, memoryRecords);
-    const vehicleValuation = buildVehicleValuation(vehicle, memoryRecords);
+
+    const vehicleValuation = buildVehicleValuation(vehicle, memoryRecords, {
+      comparables,
+    });
+
     const baseOpportunity = buildOpportunityScore(vehicle);
 
     const valuation = {
@@ -22,7 +26,6 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       comparables,
     };
 
-    // Usar ROI y profit calculados de la valuación, no del vehículo original
     const roi = Number(valuation.roi || 0);
     const profit = Number(valuation.profit || 0);
 
@@ -45,8 +48,8 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     const decision = buildOpportunityDecision({
       ...vehicle,
-      roi,           // Pass calculated ROI
-      profit,        // Pass calculated profit
+      roi,
+      profit,
       opportunity,
       valuation,
       vehicleValuation,
