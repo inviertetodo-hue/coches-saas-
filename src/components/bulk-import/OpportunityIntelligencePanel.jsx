@@ -2,6 +2,7 @@ import { useState } from "react";
 import OpportunityCard from "../opportunities/OpportunityCard";
 import OpportunityDetail from "../opportunities/OpportunityDetail";
 import { normalizeOpportunityAction } from "../../services/intelligence/opportunityActionNormalizer";
+import { buildOpportunityFeed } from "../../services/intelligence/opportunityFeedEngine";
 
 export default function OpportunityIntelligencePanel({ pipeline }) {
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
@@ -9,7 +10,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
   if (!pipeline || pipeline.totalRecords === 0) {
     return (
       <div style={panelStyle}>
-        <p style={eyebrowStyle}>FASE 10.9.3 · Opportunity Feed Layer</p>
+        <p style={eyebrowStyle}>FASE 10.9.3 · Shared Opportunity Feed</p>
         <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         <p style={emptyTextStyle}>
           Todavía no hay suficientes registros para construir un ranking de oportunidades.
@@ -20,7 +21,15 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
 
   const summary = pipeline.summary || {};
   const topItems = pipeline.topOpportunities || [];
-  const feedItems = buildOpportunityFeed(topItems);
+  const feedItems = buildOpportunityFeed({
+    radar: {
+      priorityOpportunities: topItems.map(buildFeedOpportunityItem),
+    },
+    changes: pipeline.changes || [],
+    alerts: pipeline.alerts || {},
+    limit: 8,
+  }).events;
+
   const bestOpportunity = topItems[0] || null;
   const bestCardOpportunity = bestOpportunity
     ? buildCardOpportunity(bestOpportunity)
@@ -30,7 +39,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
     <div style={panelStyle}>
       <div style={headerStyle}>
         <div>
-          <p style={eyebrowStyle}>FASE 10.9.3 · Opportunity Feed Layer</p>
+          <p style={eyebrowStyle}>FASE 10.9.3 · Shared Opportunity Feed</p>
           <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         </div>
 
@@ -105,71 +114,52 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
   );
 }
 
-function buildOpportunityFeed(items = []) {
-  const events = [];
+function buildFeedOpportunityItem(item = {}) {
+  const decision = item.decision || {};
+  const valuation = item.valuation || {};
+  const opportunity = item.opportunity || {};
+  const vehicleValuation = item.vehicleValuation || {};
+  const sellSpeed = item.sellSpeed || {};
 
-  items.slice(0, 12).forEach((item) => {
-    const decision = item.decision || {};
-    const valuation = item.valuation || {};
-    const opportunity = item.opportunity || {};
-    const vehicleValuation = item.vehicleValuation || {};
-    const sellSpeed = item.sellSpeed || {};
-    const title = buildVehicleTitle(item);
+  const action = normalizeOpportunityAction(
+    decision.action ||
+      decision.recommendation ||
+      decision.label ||
+      opportunity.opportunityLevelV2 ||
+      item.action ||
+      "WATCH"
+  );
 
-    const action = normalizeOpportunityAction(
-      decision.action ||
-        decision.recommendation ||
-        decision.label ||
-        opportunity.opportunityLevelV2 ||
-        "WATCH"
-    );
+  const decisionScore =
+    Number(
+      decision.decisionScore ||
+        opportunity.scoreV2 ||
+        opportunity.opportunityScoreV2 ||
+        item.score ||
+        0
+    ) || 0;
 
-    const decisionScore = Number(decision.decisionScore || opportunity.scoreV2 || 0);
-    const discountPercent = Number(vehicleValuation.discountPercent || 0);
-    const sellSpeedScore = Number(sellSpeed.sellSpeedScore || 0);
-    const roi = Number(valuation.roi ?? item.roi ?? 0);
-    const profit = Number(valuation.profit ?? item.profit ?? 0);
+  const sellSpeedScore =
+    Number(sellSpeed.sellSpeedScore || item.sellSpeedScore || 0) || 0;
 
-    if (action === "BUY") {
-      events.push({
-        type: "BUY_SIGNAL",
-        priority: 95,
-        title,
-        text: `BUY confirmado con Decision Score ${decisionScore}/100.`,
-      });
-    }
+  const discountPercent =
+    Number(vehicleValuation.discountPercent || opportunity.discountPercent || 0) || 0;
 
-    if (discountPercent >= 8) {
-      events.push({
-        type: "VALUATION_DISCOUNT",
-        priority: 86,
-        title,
-        text: `Descuento relevante frente a valoración: ${formatNumber(discountPercent)}%.`,
-      });
-    }
+  const roi = Number(valuation.roi ?? item.roi ?? 0) || 0;
+  const profit = Number(valuation.profit ?? item.profit ?? 0) || 0;
 
-    if (sellSpeedScore >= 80) {
-      events.push({
-        type: "FAST_SELL",
-        priority: 84,
-        title,
-        text: `Alta rotación prevista: Sell Speed ${formatNumber(sellSpeedScore)}/100.`,
-      });
-    }
-
-    if (roi >= 12 && profit > 0) {
-      events.push({
-        type: "ROI_PROFIT",
-        priority: 78,
-        title,
-        text: `ROI ${formatNumber(roi)}% con margen estimado positivo de ${formatNumber(profit)} €.`,
-      });
-    }
-  });
-
-  return events
-    .sort((a, b) => b.priority - a.priority)
-    .slice(0, 8);
+  return {
+    ...item,
+    title: buildVehicleTitle(item),
+    action,
+    decisionScore,
+    radarPriority: decisionScore,
+    discoveryLevel: action === "BUY" && decisionScore >= 85 ? "DISCOVER_NOW" : "OBSERVE",
+    sellSpeedScore,
+    discountPercent,
+    roi,
+    profit,
+  };
 }
 
 function buildCardOpportunity(item = {}) {
