@@ -10,6 +10,18 @@ export default function GlobalStatsPanel({
   opportunityAlerts,
   temporal,
 }) {
+  const criticalCount = Array.isArray(opportunityAlerts?.criticalAlerts)
+    ? opportunityAlerts.criticalAlerts.length
+    : 0;
+
+  const opportunityCount = Array.isArray(opportunityAlerts?.opportunityAlerts)
+    ? opportunityAlerts.opportunityAlerts.length
+    : 0;
+
+  const warningCount = Array.isArray(opportunityAlerts?.warningAlerts)
+    ? opportunityAlerts.warningAlerts.length
+    : 0;
+
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
@@ -58,23 +70,17 @@ export default function GlobalStatsPanel({
 
         <MetricCard
           label="Confidence"
-          value={
-            confidence?.confidenceLevel || "-"
-          }
+          value={confidence?.confidenceLevel || "-"}
         />
 
         <MetricCard
           label="Learning Level"
-          value={
-            learning?.learningLevel || "-"
-          }
+          value={learning?.learningLevel || "-"}
         />
 
         <MetricCard
           label="Strategy"
-          value={
-            portfolio?.strategy || "-"
-          }
+          value={portfolio?.strategy || "-"}
         />
       </div>
 
@@ -100,6 +106,28 @@ export default function GlobalStatsPanel({
         />
       </div>
 
+      <div style={marketGridStyle}>
+        <MetricCard
+          label="Alertas Críticas"
+          value={criticalCount}
+        />
+
+        <MetricCard
+          label="Oportunidades"
+          value={opportunityCount}
+        />
+
+        <MetricCard
+          label="Avisos"
+          value={warningCount}
+        />
+
+        <MetricCard
+          label="Radar Signals"
+          value={criticalCount + opportunityCount + warningCount}
+        />
+      </div>
+
       <div style={footerStyle}>
         <div style={footerCardStyle}>
           <p style={footerLabelStyle}>
@@ -117,8 +145,7 @@ export default function GlobalStatsPanel({
           </p>
 
           <p style={footerValueStyle}>
-            {market?.bestFuelType ||
-              "Sin datos"}
+            {market?.bestFuelType || "Sin datos"}
           </p>
         </div>
 
@@ -128,8 +155,7 @@ export default function GlobalStatsPanel({
           </p>
 
           <p style={footerValueStyle}>
-            {market?.bestConfiguration ||
-              "Sin datos"}
+            {market?.bestConfiguration || "Sin datos"}
           </p>
         </div>
       </div>
@@ -142,8 +168,7 @@ const containerStyle = {
   padding: "28px",
   borderRadius: "28px",
   background: "rgba(15,23,42,0.78)",
-  border:
-    "1px solid rgba(148,163,184,0.16)",
+  border: "1px solid rgba(148,163,184,0.16)",
 };
 
 const headerStyle = {
@@ -172,10 +197,8 @@ const titleStyle = {
 const statusBadgeStyle = {
   padding: "10px 14px",
   borderRadius: "999px",
-  background:
-    "rgba(34,197,94,0.12)",
-  border:
-    "1px solid rgba(34,197,94,0.24)",
+  background: "rgba(34,197,94,0.12)",
+  border: "1px solid rgba(34,197,94,0.24)",
   color: "#bbf7d0",
   fontWeight: "900",
   fontSize: "13px",
@@ -183,25 +206,21 @@ const statusBadgeStyle = {
 
 const marketGridStyle = {
   display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit,minmax(220px,1fr))",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
   gap: "18px",
   marginBottom: "24px",
 };
 
 const footerStyle = {
   display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit,minmax(240px,1fr))",
+  gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
   gap: "18px",
   marginTop: "10px",
 };
 
 const footerCardStyle = {
-  background:
-    "rgba(255,255,255,0.04)",
-  border:
-    "1px solid rgba(148,163,184,0.12)",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(148,163,184,0.12)",
   borderRadius: "22px",
   padding: "18px",
 };
