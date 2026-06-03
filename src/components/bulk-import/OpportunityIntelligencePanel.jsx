@@ -1,3 +1,5 @@
+import OpportunityCard from "../opportunities/OpportunityCard";
+
 export default function OpportunityIntelligencePanel({ pipeline }) {
   if (!pipeline || pipeline.totalRecords === 0) {
     return (
@@ -13,6 +15,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
 
   const summary = pipeline.summary || {};
   const topItems = pipeline.topOpportunities || [];
+  const bestOpportunity = topItems[0] || null;
 
   return (
     <div style={panelStyle}>
@@ -27,6 +30,13 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
           {pipeline.rejectCount || 0} REJECT
         </strong>
       </div>
+
+      {bestOpportunity && (
+        <section style={heroSectionStyle}>
+          <p style={heroEyebrowStyle}>Mejor oportunidad actual</p>
+          <OpportunityCard opportunity={buildCardOpportunity(bestOpportunity)} />
+        </section>
+      )}
 
       <div style={gridStyle}>
         <MetricCard label="Vehículos analizados" value={summary.totalRecords || 0} />
@@ -53,6 +63,66 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
         </div>
       )}
     </div>
+  );
+}
+
+function buildCardOpportunity(item = {}) {
+  const decision = item.decision || {};
+  const valuation = item.valuation || {};
+  const opportunity = item.opportunity || {};
+  const vehicleValuation = item.vehicleValuation || {};
+  const reasons = Array.isArray(opportunity.opportunityReasonsV2)
+    ? opportunity.opportunityReasonsV2
+    : [];
+
+  const action =
+    decision.action ||
+    decision.recommendation ||
+    decision.label ||
+    opportunity.opportunityLevelV2 ||
+    "WATCH";
+
+  return {
+    ...item,
+    title: buildVehicleTitle(item),
+    action,
+    decision: {
+      ...decision,
+      action,
+      reasons: decision.reasons || reasons,
+      summary:
+        decision.summary ||
+        vehicleValuation.summary ||
+        reasons[0] ||
+        "Oportunidad detectada por señales combinadas de mercado.",
+      confidence: {
+        ...(decision.confidence || {}),
+        score:
+          decision.confidence?.score ??
+          decision.confidenceScore ??
+          vehicleValuation.confidence ??
+          item.confidence ??
+          0,
+      },
+    },
+    price: item.price ?? item.purchasePrice ?? valuation.purchasePrice,
+    estimatedMarketValue:
+      vehicleValuation.estimatedMarketValue ??
+      valuation.estimatedMarketValue ??
+      item.estimatedMarketValue,
+    profit: valuation.profit ?? item.profit ?? opportunity.expectedProfit,
+    roi: valuation.roi ?? item.roi ?? opportunity.expectedROI,
+    valuation,
+    vehicleValuation,
+    opportunity,
+  };
+}
+
+function buildVehicleTitle(item = {}) {
+  return (
+    [item.brand, item.model, item.version, item.year].filter(Boolean).join(" ") ||
+    item.title ||
+    "Vehículo sin identificar"
   );
 }
 
@@ -85,10 +155,7 @@ function OpportunityRow({ item, index }) {
       <div style={rankStyle}>#{index + 1}</div>
 
       <div style={mainStyle}>
-        <strong style={vehicleStyle}>
-          {[item.brand, item.model, item.year].filter(Boolean).join(" ") ||
-            "Vehículo sin identificar"}
-        </strong>
+        <strong style={vehicleStyle}>{buildVehicleTitle(item)}</strong>
 
         <p style={summaryStyle}>
           {decision.summary || vehicleValuation.summary || "Sin resumen de decisión disponible."}
@@ -121,9 +188,7 @@ function OpportunityRow({ item, index }) {
         </div>
 
         {sellSpeed.summary && (
-          <div style={sellSpeedStyle}>
-            ⚡ {sellSpeed.summary}
-          </div>
+          <div style={sellSpeedStyle}>⚡ {sellSpeed.summary}</div>
         )}
 
         {reasons.length > 0 && (
@@ -214,6 +279,19 @@ const badgeStyle = {
   border: "1px solid rgba(250,204,21,0.3)",
   color: "#fef3c7",
   fontSize: "12px",
+};
+
+const heroSectionStyle = {
+  marginBottom: "18px",
+};
+
+const heroEyebrowStyle = {
+  margin: "0 0 10px 0",
+  color: "#bbf7d0",
+  fontSize: "13px",
+  fontWeight: "950",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
 };
 
 const gridStyle = {
