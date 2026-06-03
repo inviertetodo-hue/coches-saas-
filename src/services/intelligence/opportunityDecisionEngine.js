@@ -8,7 +8,8 @@ export function buildOpportunityDecision(vehicle = {}) {
     vehicle.marketValuation ||
     buildMarketValuation(vehicle);
 
-  const vehicleValuation = vehicle.vehicleValuation || vehicle.valuation?.memoryValuation || null;
+  const vehicleValuation =
+    vehicle.vehicleValuation || vehicle.valuation?.memoryValuation || null;
   const comparables = vehicle.comparables || vehicle.valuation?.comparables || null;
   const sellSpeed = vehicle.sellSpeed || null;
 
@@ -18,23 +19,19 @@ export function buildOpportunityDecision(vehicle = {}) {
       opportunity.opportunityScore
   );
 
-  const opportunityScore = normalizeNumber(opportunity.opportunityScore);
   const valuationScore = normalizeNumber(
-    vehicle.valuation?.valuationScore ??
-      marketValuation.valuationScore
+    vehicle.valuation?.valuationScore ?? marketValuation.valuationScore
   );
 
   const qualityScore = normalizeNumber(vehicle.qualityScore ?? vehicle.quality);
   const comparableConfidence = normalizeNumber(
-    vehicleValuation?.confidence ??
-      vehicle.comparableConfidence
+    vehicleValuation?.confidence ?? vehicle.comparableConfidence
   );
 
   const roi = normalizeNumber(vehicle.roi);
   const profit = normalizeNumber(vehicle.profit);
   const comparableCount = normalizeNumber(
-    comparables?.totalComparables ??
-      vehicleValuation?.comparableCount
+    comparables?.totalComparables ?? vehicleValuation?.comparableCount
   );
 
   const sellSpeedScore = normalizeNumber(sellSpeed?.sellSpeedScore);
@@ -101,7 +98,6 @@ export function buildOpportunityDecision(vehicle = {}) {
       profit,
       discountPercent,
       sellSpeedScore,
-      marketValuation,
     }),
     opportunity,
     marketValuation,
@@ -119,7 +115,6 @@ export function buildOpportunityDecision(vehicle = {}) {
       comparableCount,
       comparableConfidence,
       sellSpeed,
-      marketValuation,
     }),
   };
 }
@@ -190,8 +185,17 @@ function buildActionV2({
     return { action: "WATCH", label: "Observar mercado" };
   }
 
-  if (opportunityScoreV2 >= 85 && decisionScore >= 80) {
+  const hasStrongScore = opportunityScoreV2 >= 85 && decisionScore >= 80;
+  const hasReliableEvidence =
+    comparableConfidence >= 70 && comparableCount >= 2;
+  const hasPositiveEconomics = roi > 0 && profit > 0;
+
+  if (hasStrongScore && hasReliableEvidence && hasPositiveEconomics) {
     return { action: "BUY", label: "Comprar" };
+  }
+
+  if (hasStrongScore) {
+    return { action: "WATCH", label: "Validar oportunidad" };
   }
 
   if (opportunityScoreV2 >= 65 || decisionScore >= 65) {
@@ -265,8 +269,7 @@ function buildReasonsV2({
   }
 
   const discountValue = normalizeNumber(
-    vehicleValuation?.discountAmount ??
-      marketValuation.discountValue
+    vehicleValuation?.discountAmount ?? marketValuation.discountValue
   );
 
   if (discountValue > 0) {
@@ -293,6 +296,16 @@ function buildReasonsV2({
 
   if (comparableConfidence >= 75) {
     reasons.push(`Confianza de valoración alta: ${comparableConfidence}/100.`);
+  }
+
+  if (
+    action === "WATCH" &&
+    opportunityScoreV2 >= 85 &&
+    (comparableConfidence < 70 || comparableCount < 2)
+  ) {
+    reasons.push(
+      "Score alto, pero falta evidencia suficiente para confirmar compra directa."
+    );
   }
 
   if (sellSpeedScore >= 80) {
@@ -333,6 +346,10 @@ function buildRisksV2({
 
   if (comparableCount === 0) {
     risks.push("Sin comparables suficientes para defender la valoración.");
+  }
+
+  if (comparableCount > 0 && comparableCount < 2) {
+    risks.push("Pocos comparables para confirmar una compra directa.");
   }
 
   if (comparableConfidence > 0 && comparableConfidence < 70) {
