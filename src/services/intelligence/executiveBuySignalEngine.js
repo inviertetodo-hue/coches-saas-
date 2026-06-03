@@ -4,13 +4,21 @@ export function buildExecutiveBuySignal({
   confidenceScore = 0,
   liquidityScore = 60,
   riskScore = 50,
+  timelineMomentumScore = 50,
+  timelineMomentumLabel = "NO_HISTORY",
 } = {}) {
+  const momentumScore = normalizeMomentumScore(
+    timelineMomentumScore,
+    timelineMomentumLabel
+  );
+
   const score =
-    executiveScore * 0.35 +
-    successProbability * 0.35 +
-    confidenceScore * 0.15 +
-    liquidityScore * 0.10 +
-    (100 - riskScore) * 0.05;
+    executiveScore * 0.30 +
+    successProbability * 0.30 +
+    confidenceScore * 0.14 +
+    liquidityScore * 0.09 +
+    (100 - riskScore) * 0.05 +
+    momentumScore * 0.12;
 
   const finalScore = clamp(Math.round(score), 0, 100);
 
@@ -18,8 +26,26 @@ export function buildExecutiveBuySignal({
     finalScore,
     signal: getSignal(finalScore),
     color: getColor(finalScore),
-    summary: buildSummary(finalScore),
+    summary: buildSummary(finalScore, timelineMomentumLabel),
+    timelineMomentumScore: momentumScore,
+    timelineMomentumLabel,
   };
+}
+
+function normalizeMomentumScore(score, label) {
+  const numericScore = Number(score);
+
+  if (Number.isFinite(numericScore) && numericScore > 0) {
+    return clamp(Math.round(numericScore), 0, 100);
+  }
+
+  if (label === "IMPROVING_FAST") return 88;
+  if (label === "IMPROVING") return 72;
+  if (label === "STABLE") return 52;
+  if (label === "DETERIORATING") return 34;
+  if (label === "AVOID_TREND") return 18;
+
+  return 50;
 }
 
 function getSignal(score) {
@@ -38,24 +64,50 @@ function getColor(score) {
   return "red";
 }
 
-function buildSummary(score) {
+function buildSummary(score, timelineMomentumLabel) {
+  const momentumText = buildMomentumSummary(timelineMomentumLabel);
+
   if (score >= 90) {
-    return "Señal ejecutiva extremadamente fuerte.";
+    return `Señal ejecutiva extremadamente fuerte. ${momentumText}`;
   }
 
   if (score >= 78) {
-    return "Compra potencial con alta prioridad.";
+    return `Compra potencial con alta prioridad. ${momentumText}`;
   }
 
   if (score >= 62) {
-    return "Mantener en seguimiento.";
+    return `Mantener en seguimiento. ${momentumText}`;
   }
 
   if (score >= 45) {
-    return "No priorizar actualmente.";
+    return `No priorizar actualmente. ${momentumText}`;
   }
 
-  return "Descartar salvo circunstancia excepcional.";
+  return `Descartar salvo circunstancia excepcional. ${momentumText}`;
+}
+
+function buildMomentumSummary(label) {
+  if (label === "IMPROVING_FAST") {
+    return "La evolución temporal mejora de forma clara.";
+  }
+
+  if (label === "IMPROVING") {
+    return "La evolución temporal es positiva.";
+  }
+
+  if (label === "STABLE") {
+    return "La evolución temporal es estable.";
+  }
+
+  if (label === "DETERIORATING") {
+    return "La evolución temporal se está deteriorando.";
+  }
+
+  if (label === "AVOID_TREND") {
+    return "La evolución temporal aconseja evitar la operación.";
+  }
+
+  return "Sin histórico temporal suficiente.";
 }
 
 function clamp(value, min, max) {
