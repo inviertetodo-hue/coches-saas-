@@ -9,7 +9,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
   if (!pipeline || pipeline.totalRecords === 0) {
     return (
       <div style={panelStyle}>
-        <p style={eyebrowStyle}>FASE 10.9.2 · Sell Speed Explanation Layer</p>
+        <p style={eyebrowStyle}>FASE 10.9.3 · Opportunity Feed Layer</p>
         <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         <p style={emptyTextStyle}>
           Todavía no hay suficientes registros para construir un ranking de oportunidades.
@@ -20,6 +20,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
 
   const summary = pipeline.summary || {};
   const topItems = pipeline.topOpportunities || [];
+  const feedItems = buildOpportunityFeed(topItems);
   const bestOpportunity = topItems[0] || null;
   const bestCardOpportunity = bestOpportunity
     ? buildCardOpportunity(bestOpportunity)
@@ -29,7 +30,7 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
     <div style={panelStyle}>
       <div style={headerStyle}>
         <div>
-          <p style={eyebrowStyle}>FASE 10.9.2 · Sell Speed Explanation Layer</p>
+          <p style={eyebrowStyle}>FASE 10.9.3 · Opportunity Feed Layer</p>
           <h2 style={titleStyle}>🏆 Top oportunidades detectadas</h2>
         </div>
 
@@ -53,6 +54,26 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
               <OpportunityDetail opportunity={selectedOpportunity} />
             </section>
           )}
+        </section>
+      )}
+
+      {feedItems.length > 0 && (
+        <section style={feedSectionStyle}>
+          <p style={feedEyebrowStyle}>🔥 Opportunity Feed</p>
+
+          <div style={feedGridStyle}>
+            {feedItems.map((event, index) => (
+              <div key={`${event.type}-${event.title}-${index}`} style={feedCardStyle}>
+                <div>
+                  <p style={feedTypeStyle}>{event.type}</p>
+                  <strong style={feedTitleStyle}>{event.title}</strong>
+                  <p style={feedTextStyle}>{event.text}</p>
+                </div>
+
+                <span style={feedPriorityStyle}>{event.priority}/100</span>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -82,6 +103,73 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
       )}
     </div>
   );
+}
+
+function buildOpportunityFeed(items = []) {
+  const events = [];
+
+  items.slice(0, 12).forEach((item) => {
+    const decision = item.decision || {};
+    const valuation = item.valuation || {};
+    const opportunity = item.opportunity || {};
+    const vehicleValuation = item.vehicleValuation || {};
+    const sellSpeed = item.sellSpeed || {};
+    const title = buildVehicleTitle(item);
+
+    const action = normalizeOpportunityAction(
+      decision.action ||
+        decision.recommendation ||
+        decision.label ||
+        opportunity.opportunityLevelV2 ||
+        "WATCH"
+    );
+
+    const decisionScore = Number(decision.decisionScore || opportunity.scoreV2 || 0);
+    const discountPercent = Number(vehicleValuation.discountPercent || 0);
+    const sellSpeedScore = Number(sellSpeed.sellSpeedScore || 0);
+    const roi = Number(valuation.roi ?? item.roi ?? 0);
+    const profit = Number(valuation.profit ?? item.profit ?? 0);
+
+    if (action === "BUY") {
+      events.push({
+        type: "BUY_SIGNAL",
+        priority: 95,
+        title,
+        text: `BUY confirmado con Decision Score ${decisionScore}/100.`,
+      });
+    }
+
+    if (discountPercent >= 8) {
+      events.push({
+        type: "VALUATION_DISCOUNT",
+        priority: 86,
+        title,
+        text: `Descuento relevante frente a valoración: ${formatNumber(discountPercent)}%.`,
+      });
+    }
+
+    if (sellSpeedScore >= 80) {
+      events.push({
+        type: "FAST_SELL",
+        priority: 84,
+        title,
+        text: `Alta rotación prevista: Sell Speed ${formatNumber(sellSpeedScore)}/100.`,
+      });
+    }
+
+    if (roi >= 12 && profit > 0) {
+      events.push({
+        type: "ROI_PROFIT",
+        priority: 78,
+        title,
+        text: `ROI ${formatNumber(roi)}% con margen estimado positivo de ${formatNumber(profit)} €.`,
+      });
+    }
+  });
+
+  return events
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 8);
 }
 
 function buildCardOpportunity(item = {}) {
@@ -328,6 +416,68 @@ const detailEyebrowStyle = {
   fontWeight: "950",
   letterSpacing: "0.05em",
   textTransform: "uppercase",
+};
+
+const feedSectionStyle = {
+  marginBottom: "18px",
+};
+
+const feedEyebrowStyle = {
+  margin: "0 0 10px 0",
+  color: "#86efac",
+  fontSize: "13px",
+  fontWeight: "950",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+};
+
+const feedGridStyle = {
+  display: "grid",
+  gap: "10px",
+  marginBottom: "18px",
+};
+
+const feedCardStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  alignItems: "flex-start",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  background: "rgba(34,197,94,0.10)",
+  border: "1px solid rgba(34,197,94,0.22)",
+};
+
+const feedTypeStyle = {
+  margin: "0 0 5px 0",
+  color: "#86efac",
+  fontSize: "11px",
+  fontWeight: "950",
+};
+
+const feedTitleStyle = {
+  display: "block",
+  color: "#ffffff",
+  fontSize: "15px",
+  marginBottom: "5px",
+};
+
+const feedTextStyle = {
+  margin: 0,
+  color: "#d1fae5",
+  fontSize: "12px",
+  lineHeight: "1.45",
+};
+
+const feedPriorityStyle = {
+  minWidth: "66px",
+  textAlign: "center",
+  padding: "7px 10px",
+  borderRadius: "999px",
+  background: "rgba(15,23,42,0.7)",
+  color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "950",
 };
 
 const gridStyle = {
