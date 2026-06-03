@@ -34,13 +34,44 @@ export function buildOpportunityDecision(vehicle = {}) {
     comparables?.totalComparables ?? vehicleValuation?.comparableCount
   );
 
-  const sellSpeedScore = normalizeNumber(sellSpeed?.sellSpeedScore);
-  const estimatedSellDays = normalizeNumber(sellSpeed?.estimatedSellDays);
+  const sellSpeedScore = normalizeNumber(
+    sellSpeed?.sellSpeedScore ?? vehicle.sellSpeedScore
+  );
+  const estimatedSellDays = normalizeNumber(
+    sellSpeed?.estimatedSellDays ?? vehicle.estimatedSellDays
+  );
   const discountPercent = normalizeNumber(
     vehicleValuation?.discountPercent ??
       vehicle.valuation?.discountPercent ??
       marketValuation.discountPercent
   );
+
+  const executiveBuySignalScore = normalizeNumber(
+    vehicle.executiveBuySignalScore ??
+      vehicle.executiveBuySignal?.finalScore
+  );
+
+  const executiveBuySignalLabel =
+    vehicle.executiveBuySignalLabel ||
+    vehicle.executiveBuySignal?.signal ||
+    "";
+
+  const timelineMomentumScore = normalizeNumber(vehicle.timelineMomentumScore);
+  const timelineMomentumLabel = vehicle.timelineMomentumLabel || "";
+
+  const marketTimingScore = normalizeNumber(vehicle.marketTimingScore);
+  const marketTimingLabel = vehicle.marketTimingLabel || "";
+
+  const capitalEfficiencyScore = normalizeNumber(vehicle.capitalEfficiencyScore);
+  const capitalEfficiencyLabel = vehicle.capitalEfficiencyLabel || "";
+
+  const inventoryRiskScore = normalizeNumber(vehicle.inventoryRiskScore);
+  const inventoryRiskLabel = vehicle.inventoryRiskLabel || "";
+
+  const allocationScore = normalizeNumber(vehicle.allocationScore);
+  const allocationTier = vehicle.allocationTier || "";
+
+  const successProbability = normalizeNumber(vehicle.successProbability);
 
   const decisionScore = calculateDecisionScoreV2({
     opportunityScoreV2,
@@ -52,6 +83,13 @@ export function buildOpportunityDecision(vehicle = {}) {
     roi,
     profit,
     discountPercent,
+    executiveBuySignalScore,
+    timelineMomentumScore,
+    marketTimingScore,
+    capitalEfficiencyScore,
+    inventoryRiskScore,
+    allocationScore,
+    successProbability,
   });
 
   const action = buildActionV2({
@@ -62,6 +100,18 @@ export function buildOpportunityDecision(vehicle = {}) {
     comparableCount,
     roi,
     profit,
+    executiveBuySignalScore,
+    executiveBuySignalLabel,
+    timelineMomentumScore,
+    timelineMomentumLabel,
+    marketTimingScore,
+    marketTimingLabel,
+    capitalEfficiencyScore,
+    inventoryRiskScore,
+    inventoryRiskLabel,
+    allocationScore,
+    allocationTier,
+    successProbability,
   });
 
   return {
@@ -74,6 +124,10 @@ export function buildOpportunityDecision(vehicle = {}) {
       opportunityScoreV2,
       valuationScore,
       comparableCount,
+      executiveBuySignalScore,
+      timelineMomentumScore,
+      marketTimingScore,
+      capitalEfficiencyScore,
     }),
     reasons: buildReasonsV2({
       action: action.action,
@@ -89,6 +143,19 @@ export function buildOpportunityDecision(vehicle = {}) {
       estimatedSellDays,
       vehicleValuation,
       marketValuation,
+      executiveBuySignalScore,
+      executiveBuySignalLabel,
+      timelineMomentumScore,
+      timelineMomentumLabel,
+      marketTimingScore,
+      marketTimingLabel,
+      capitalEfficiencyScore,
+      capitalEfficiencyLabel,
+      inventoryRiskScore,
+      inventoryRiskLabel,
+      allocationScore,
+      allocationTier,
+      successProbability,
     }),
     risks: buildRisksV2({
       qualityScore,
@@ -98,12 +165,30 @@ export function buildOpportunityDecision(vehicle = {}) {
       profit,
       discountPercent,
       sellSpeedScore,
+      executiveBuySignalScore,
+      timelineMomentumScore,
+      marketTimingScore,
+      inventoryRiskScore,
+      allocationScore,
     }),
     opportunity,
     marketValuation,
     vehicleValuation,
     comparables,
     sellSpeed,
+    executiveBuySignalScore,
+    executiveBuySignalLabel,
+    timelineMomentumScore,
+    timelineMomentumLabel,
+    marketTimingScore,
+    marketTimingLabel,
+    capitalEfficiencyScore,
+    capitalEfficiencyLabel,
+    inventoryRiskScore,
+    inventoryRiskLabel,
+    allocationScore,
+    allocationTier,
+    successProbability,
     summary: buildSummaryV2({
       action,
       decisionScore,
@@ -115,6 +200,17 @@ export function buildOpportunityDecision(vehicle = {}) {
       comparableCount,
       comparableConfidence,
       sellSpeed,
+      executiveBuySignalScore,
+      executiveBuySignalLabel,
+      timelineMomentumScore,
+      timelineMomentumLabel,
+      marketTimingScore,
+      marketTimingLabel,
+      capitalEfficiencyScore,
+      inventoryRiskScore,
+      allocationScore,
+      allocationTier,
+      successProbability,
     }),
   };
 }
@@ -138,17 +234,48 @@ function calculateDecisionScoreV2({
   roi,
   profit,
   discountPercent,
+  executiveBuySignalScore,
+  timelineMomentumScore,
+  marketTimingScore,
+  capitalEfficiencyScore,
+  inventoryRiskScore,
+  allocationScore,
+  successProbability,
 }) {
   let score = opportunityScoreV2 || 0;
 
   if (!score) {
     score = Math.round(
-      valuationScore * 0.35 +
-        qualityScore * 0.20 +
-        comparableConfidence * 0.25 +
-        sellSpeedScore * 0.20
+      valuationScore * 0.30 +
+        qualityScore * 0.16 +
+        comparableConfidence * 0.22 +
+        sellSpeedScore * 0.16 +
+        successProbability * 0.16
     );
   }
+
+  if (executiveBuySignalScore > 0) {
+    score = Math.round(score * 0.72 + executiveBuySignalScore * 0.28);
+  }
+
+  if (allocationScore > 0) {
+    score = Math.round(score * 0.86 + allocationScore * 0.14);
+  }
+
+  if (marketTimingScore > 0) {
+    score = Math.round(score * 0.90 + marketTimingScore * 0.10);
+  }
+
+  if (capitalEfficiencyScore > 0) {
+    score = Math.round(score * 0.91 + capitalEfficiencyScore * 0.09);
+  }
+
+  if (timelineMomentumScore > 0) {
+    score += Math.round((timelineMomentumScore - 50) * 0.18);
+  }
+
+  if (inventoryRiskScore >= 80) score -= 18;
+  if (inventoryRiskScore >= 65) score -= 10;
 
   if (comparableCount >= 1) score += 3;
   if (comparableCount >= 3) score += 4;
@@ -176,6 +303,18 @@ function buildActionV2({
   comparableCount,
   roi,
   profit,
+  executiveBuySignalScore,
+  executiveBuySignalLabel,
+  timelineMomentumScore,
+  timelineMomentumLabel,
+  marketTimingScore,
+  marketTimingLabel,
+  capitalEfficiencyScore,
+  inventoryRiskScore,
+  inventoryRiskLabel,
+  allocationScore,
+  allocationTier,
+  successProbability,
 }) {
   if (qualityScore > 0 && qualityScore < 60) {
     return { action: "REJECT", label: "Descartar" };
@@ -185,16 +324,59 @@ function buildActionV2({
     return { action: "WATCH", label: "Observar mercado" };
   }
 
+  if (
+    inventoryRiskLabel === "CRITICAL_RISK" ||
+    inventoryRiskScore >= 85 ||
+    marketTimingLabel === "AVOID" ||
+    timelineMomentumLabel === "AVOID_TREND"
+  ) {
+    return { action: "REJECT", label: "Descartar" };
+  }
+
+  const hasExecutiveBuy =
+    executiveBuySignalLabel === "STRONG_BUY" ||
+    executiveBuySignalLabel === "BUY" ||
+    executiveBuySignalScore >= 78;
+
   const hasStrongScore = opportunityScoreV2 >= 85 && decisionScore >= 80;
   const hasReliableEvidence =
     comparableConfidence >= 70 && comparableCount >= 2;
   const hasPositiveEconomics = roi > 0 && profit > 0;
 
-  if (hasStrongScore && hasReliableEvidence && hasPositiveEconomics) {
+  const hasModernConfirmation =
+    successProbability >= 70 ||
+    allocationScore >= 70 ||
+    allocationTier === "TIER_1" ||
+    allocationTier === "TIER_2" ||
+    capitalEfficiencyScore >= 70 ||
+    marketTimingScore >= 70 ||
+    timelineMomentumScore >= 70;
+
+  const hasModernRisk =
+    inventoryRiskScore >= 70 ||
+    marketTimingLabel === "WAIT" ||
+    timelineMomentumLabel === "DETERIORATING";
+
+  if (
+    hasExecutiveBuy &&
+    hasPositiveEconomics &&
+    decisionScore >= 75 &&
+    !hasModernRisk
+  ) {
     return { action: "BUY", label: "Comprar" };
   }
 
-  if (hasStrongScore) {
+  if (
+    hasStrongScore &&
+    hasReliableEvidence &&
+    hasPositiveEconomics &&
+    hasModernConfirmation &&
+    !hasModernRisk
+  ) {
+    return { action: "BUY", label: "Comprar" };
+  }
+
+  if (hasExecutiveBuy || hasStrongScore || hasModernConfirmation) {
     return { action: "WATCH", label: "Validar oportunidad" };
   }
 
@@ -215,12 +397,20 @@ function buildDecisionConfidenceV2({
   opportunityScoreV2,
   valuationScore,
   comparableCount,
+  executiveBuySignalScore,
+  timelineMomentumScore,
+  marketTimingScore,
+  capitalEfficiencyScore,
 }) {
   let score = Math.round(
-    qualityScore * 0.25 +
-      comparableConfidence * 0.30 +
-      opportunityScoreV2 * 0.25 +
-      valuationScore * 0.20
+    qualityScore * 0.20 +
+      comparableConfidence * 0.25 +
+      opportunityScoreV2 * 0.20 +
+      valuationScore * 0.15 +
+      executiveBuySignalScore * 0.08 +
+      timelineMomentumScore * 0.04 +
+      marketTimingScore * 0.04 +
+      capitalEfficiencyScore * 0.04
   );
 
   if (comparableCount >= 1) score += 5;
@@ -253,6 +443,19 @@ function buildReasonsV2({
   estimatedSellDays,
   vehicleValuation,
   marketValuation,
+  executiveBuySignalScore,
+  executiveBuySignalLabel,
+  timelineMomentumScore,
+  timelineMomentumLabel,
+  marketTimingScore,
+  marketTimingLabel,
+  capitalEfficiencyScore,
+  capitalEfficiencyLabel,
+  inventoryRiskScore,
+  inventoryRiskLabel,
+  allocationScore,
+  allocationTier,
+  successProbability,
 }) {
   const reasons = [];
 
@@ -298,6 +501,46 @@ function buildReasonsV2({
     reasons.push(`Confianza de valoración alta: ${comparableConfidence}/100.`);
   }
 
+  if (executiveBuySignalScore > 0) {
+    reasons.push(
+      `Señal ejecutiva moderna: ${executiveBuySignalLabel || "SIN_LABEL"} (${executiveBuySignalScore}/100).`
+    );
+  }
+
+  if (timelineMomentumScore > 0) {
+    reasons.push(
+      `Momentum temporal: ${timelineMomentumLabel || "SIN_LABEL"} (${timelineMomentumScore}/100).`
+    );
+  }
+
+  if (marketTimingScore > 0) {
+    reasons.push(
+      `Market timing: ${marketTimingLabel || "SIN_LABEL"} (${marketTimingScore}/100).`
+    );
+  }
+
+  if (capitalEfficiencyScore > 0) {
+    reasons.push(
+      `Eficiencia de capital: ${capitalEfficiencyLabel || "SIN_LABEL"} (${capitalEfficiencyScore}/100).`
+    );
+  }
+
+  if (allocationScore > 0) {
+    reasons.push(
+      `Asignación de capital: ${allocationTier || "SIN_TIER"} (${allocationScore}/100).`
+    );
+  }
+
+  if (successProbability > 0) {
+    reasons.push(`Probabilidad de éxito: ${successProbability}/100.`);
+  }
+
+  if (inventoryRiskScore >= 70) {
+    reasons.push(
+      `Riesgo de inventario elevado: ${inventoryRiskLabel || "SIN_LABEL"} (${inventoryRiskScore}/100).`
+    );
+  }
+
   if (
     action === "WATCH" &&
     opportunityScoreV2 >= 85 &&
@@ -337,6 +580,11 @@ function buildRisksV2({
   profit,
   discountPercent,
   sellSpeedScore,
+  executiveBuySignalScore,
+  timelineMomentumScore,
+  marketTimingScore,
+  inventoryRiskScore,
+  allocationScore,
 }) {
   const risks = [];
 
@@ -372,6 +620,26 @@ function buildRisksV2({
     risks.push("Riesgo de rotación lenta.");
   }
 
+  if (executiveBuySignalScore > 0 && executiveBuySignalScore < 62) {
+    risks.push("Señal ejecutiva moderna todavía débil.");
+  }
+
+  if (timelineMomentumScore > 0 && timelineMomentumScore < 45) {
+    risks.push("Momentum temporal negativo.");
+  }
+
+  if (marketTimingScore > 0 && marketTimingScore < 50) {
+    risks.push("Timing de mercado poco favorable.");
+  }
+
+  if (inventoryRiskScore >= 70) {
+    risks.push("Riesgo de inventario elevado.");
+  }
+
+  if (allocationScore > 0 && allocationScore < 50) {
+    risks.push("Baja prioridad de asignación de capital.");
+  }
+
   if (risks.length === 0) {
     risks.push("No se detectan riesgos críticos en la evaluación inicial.");
   }
@@ -390,6 +658,17 @@ function buildSummaryV2({
   comparableCount,
   comparableConfidence,
   sellSpeed,
+  executiveBuySignalScore,
+  executiveBuySignalLabel,
+  timelineMomentumScore,
+  timelineMomentumLabel,
+  marketTimingScore,
+  marketTimingLabel,
+  capitalEfficiencyScore,
+  inventoryRiskScore,
+  allocationScore,
+  allocationTier,
+  successProbability,
 }) {
   return [
     `Decisión: ${action.label}.`,
@@ -404,6 +683,27 @@ function buildSummaryV2({
     sellSpeed?.estimatedSellDays
       ? `Venta estimada: ${sellSpeed.estimatedSellDays} días.`
       : "Venta estimada: sin dato.",
+    executiveBuySignalScore > 0
+      ? `Señal ejecutiva: ${executiveBuySignalLabel || "SIN_LABEL"} (${executiveBuySignalScore}/100).`
+      : "Señal ejecutiva: sin dato.",
+    timelineMomentumScore > 0
+      ? `Momentum temporal: ${timelineMomentumLabel || "SIN_LABEL"} (${timelineMomentumScore}/100).`
+      : "Momentum temporal: sin dato.",
+    marketTimingScore > 0
+      ? `Market timing: ${marketTimingLabel || "SIN_LABEL"} (${marketTimingScore}/100).`
+      : "Market timing: sin dato.",
+    capitalEfficiencyScore > 0
+      ? `Capital efficiency: ${capitalEfficiencyScore}/100.`
+      : "Capital efficiency: sin dato.",
+    inventoryRiskScore > 0
+      ? `Inventory risk: ${inventoryRiskScore}/100.`
+      : "Inventory risk: sin dato.",
+    allocationScore > 0
+      ? `Allocation: ${allocationTier || "SIN_TIER"} (${allocationScore}/100).`
+      : "Allocation: sin dato.",
+    successProbability > 0
+      ? `Success probability: ${successProbability}/100.`
+      : "Success probability: sin dato.",
   ].join(" ");
 }
 
