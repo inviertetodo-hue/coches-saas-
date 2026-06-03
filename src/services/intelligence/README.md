@@ -220,4 +220,25 @@ Prioriza oportunidades
 ↓
 Genera alertas y decisiones BUY / WATCH / REJECT
 
-Toda la arquitectura debe evolucionar hacia ese objetivo.
+Toda la arquitectura debe evolucionar hacia ese objetivo.## Future Refactor Candidate
+
+### History.jsx
+
+`src/pages/History.jsx` currently acts as a large orchestration page.
+
+It imports many dashboard, analytics, validation, memory and opportunity services directly.
+
+Current metrics:
+
+- 506 lines
+- 6 useMemo blocks
+- more than 20 service imports
+
+Future target:
+
+```text
+History.jsx
+↓
+useHistoryIntelligence()
+↓
+dashboard/intelligence services
