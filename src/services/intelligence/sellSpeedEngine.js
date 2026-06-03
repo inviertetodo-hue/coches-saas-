@@ -5,19 +5,33 @@ export function buildSellSpeed({
   profit = 0,
   confidenceScore = 0,
 } = {}) {
-  let score = 50;
+  const normalizedSuccess = clamp(successProbability, 0, 100);
+  const normalizedExecutive = clamp(executiveScore, 0, 100);
+  const normalizedConfidence = clamp(confidenceScore, 0, 100);
+  const normalizedROI = Number(roi) || 0;
+  const normalizedProfit = Number(profit) || 0;
 
-  score += successProbability * 0.25;
-  score += executiveScore * 0.20;
-  score += confidenceScore * 0.15;
+  let score = 45;
 
-  if (roi >= 15) score += 8;
-  if (roi >= 25) score += 5;
+  score += normalizedSuccess * 0.25;
+  score += normalizedExecutive * 0.20;
+  score += normalizedConfidence * 0.20;
 
-  if (profit >= 3000) score += 6;
-  if (profit >= 6000) score += 4;
+  if (normalizedROI >= 8) score += 4;
+  if (normalizedROI >= 15) score += 5;
+  if (normalizedROI >= 25) score += 4;
 
-  score = clamp(score, 0, 100);
+  if (normalizedProfit >= 1500) score += 4;
+  if (normalizedProfit >= 3000) score += 5;
+  if (normalizedProfit >= 6000) score += 4;
+
+  if (normalizedConfidence < 50) score -= 18;
+  if (normalizedConfidence < 65) score -= 8;
+
+  if (normalizedROI < 0) score -= 15;
+  if (normalizedProfit < 0) score -= 15;
+
+  score = clamp(Math.round(score), 0, 100);
 
   const estimatedSellDays = estimateDays(score);
 
@@ -25,6 +39,7 @@ export function buildSellSpeed({
     sellSpeedScore: score,
     estimatedSellDays,
     speedLabel: getSpeedLabel(score),
+    liquiditySignal: getLiquiditySignal(score),
     summary: buildSummary(score, estimatedSellDays),
   };
 }
@@ -35,6 +50,7 @@ function estimateDays(score) {
   if (score >= 70) return 30;
   if (score >= 60) return 45;
   if (score >= 50) return 60;
+  if (score >= 40) return 75;
   return 90;
 }
 
@@ -42,6 +58,12 @@ function getSpeedLabel(score) {
   if (score >= 85) return "FAST_SELLER";
   if (score >= 60) return "NORMAL_SELLER";
   return "SLOW_SELLER";
+}
+
+function getLiquiditySignal(score) {
+  if (score >= 85) return "HIGH_LIQUIDITY";
+  if (score >= 60) return "NORMAL_LIQUIDITY";
+  return "LOW_LIQUIDITY";
 }
 
 function buildSummary(score, days) {
@@ -57,5 +79,11 @@ function buildSummary(score, days) {
 }
 
 function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return min;
+  }
+
+  return Math.min(Math.max(numericValue, min), max);
 }
