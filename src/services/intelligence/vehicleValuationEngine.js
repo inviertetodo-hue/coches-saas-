@@ -1,5 +1,5 @@
-export function buildVehicleValuation(vehicle = {}, memoryRecords = []) {
-  const comparableRecords = findComparableRecords(vehicle, memoryRecords);
+export function buildVehicleValuation(vehicle = {}, memoryRecords = [], options = {}) {
+  const comparableRecords = resolveComparableRecords(vehicle, memoryRecords, options);
 
   const price = toNumber(vehicle.price);
   const marketValue = calculateEstimatedMarketValue(vehicle, comparableRecords);
@@ -11,6 +11,7 @@ export function buildVehicleValuation(vehicle = {}, memoryRecords = []) {
     vehicle,
     comparableRecords,
     marketValue,
+    comparableQuality: options.comparables?.quality,
   });
 
   const opportunityLevel = buildOpportunityLevel({
@@ -30,6 +31,7 @@ export function buildVehicleValuation(vehicle = {}, memoryRecords = []) {
     comparableCount: comparableRecords.length,
     confidence,
     opportunityLevel,
+    comparableQuality: options.comparables?.quality || null,
     summary: buildSummary({
       vehicle,
       price,
@@ -71,6 +73,30 @@ export function buildVehicleValuationBatch(vehicles = [], memoryRecords = []) {
       .sort((a, b) => b.discountPercent - a.discountPercent)
       .slice(0, 10),
   };
+}
+
+function resolveComparableRecords(vehicle = {}, memoryRecords = [], options = {}) {
+  const externalComparables = Array.isArray(options.comparables?.bestComparables)
+    ? options.comparables.bestComparables
+    : [];
+
+  if (externalComparables.length > 0) {
+    return externalComparables
+      .filter((record) => isRealValuationRecord(record))
+      .sort((a, b) => {
+        const scoreA = toNumber(a.comparableQualityScore ?? a.comparableScore);
+        const scoreB = toNumber(b.comparableQualityScore ?? b.comparableScore);
+
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+
+        return toTimestamp(b.savedAt || b.created_at || b.updated_at) -
+          toTimestamp(a.savedAt || a.created_at || a.updated_at);
+      });
+  }
+
+  return findComparableRecords(vehicle, memoryRecords);
 }
 
 function findComparableRecords(vehicle = {}, memoryRecords = []) {
@@ -199,13 +225,20 @@ function fallbackMarketValue(vehicle = {}) {
 
   if (price <= 0) return 0;
 
-  // Sin comparables, asumimos que el precio es cercano al valor de mercado
-  // pero con un pequeño ajuste conservador
   return Math.round(price * 1.05);
 }
 
 function calculateComparableWeight(vehicle = {}, record = {}) {
   let weight = 1;
+
+  const comparableQualityScore = toNumber(
+    record.comparableQualityScore ?? record.comparableScore
+  );
+
+  if (comparableQualityScore >= 85) weight += 2;
+  if (comparableQualityScore >= 75) weight += 1.4;
+  if (comparableQualityScore >= 65) weight += 0.8;
+  if (comparableQualityScore > 0 && comparableQualityScore < 55) weight -= 0.8;
 
   const vehicleYear = toNumber(vehicle.year);
   const recordYear = toNumber(record.year);
@@ -233,7 +266,7 @@ function calculateComparableWeight(vehicle = {}, record = {}) {
 
   if (confidence >= 85) weight += 1;
   if (confidence >= 75) weight += 0.5;
-  if (confidence < 60) weight -= 0.5;
+  if (confidence > 0 && confidence < 60) weight -= 0.5;
 
   return Math.max(0.2, weight);
 }
@@ -242,6 +275,7 @@ function calculateValuationConfidence({
   vehicle,
   comparableRecords,
   marketValue,
+  comparableQuality,
 }) {
   let confidence = 20;
 
@@ -262,8 +296,26 @@ function calculateValuationConfidence({
         ) / comparableRecords.length
       : 0;
 
+  const avgComparableQuality =
+    comparableRecords.length > 0
+      ? comparableRecords.reduce(
+          (sum, item) =>
+            sum + toNumber(item.comparableQualityScore ?? item.comparableScore),
+          0
+        ) / comparableRecords.length
+      : 0;
+
   if (avgComparableConfidence >= 85) confidence += 10;
   if (avgComparableConfidence >= 75) confidence += 5;
+
+  if (avgComparableQuality >= 85) confidence += 10;
+  if (avgComparableQuality >= 75) confidence += 6;
+  if (avgComparableQuality > 0 && avgComparableQuality < 55) confidence -= 10;
+
+  const comparableQualityScore = toNumber(comparableQuality?.score);
+
+  if (comparableQualityScore >= 90) confidence += 5;
+  if (comparableQualityScore > 0 && comparableQualityScore < 55) confidence -= 5;
 
   return Math.max(0, Math.min(100, Math.round(confidence)));
 }
