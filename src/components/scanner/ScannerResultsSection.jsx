@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { buildScannerOpportunityPayload } from "../../services/intelligence/scannerPersistenceAdapter";
 
 import MarketFeedSection from "./MarketFeedSection";
 import AIInsightsSection from "./AIInsightsSection";
@@ -86,19 +87,10 @@ function SaveBestOpportunityPanel({ marketFeed, scan }) {
     setSaving(true);
     setMessage("");
 
-    const payload = {
-      title: candidate.title || scan?.query || "Scanner opportunity",
-      brand: candidate.brand || null,
-      model: candidate.model || null,
-      fuel_type: candidate.fuelType || null,
-      drivetrain: candidate.drivetrain || null,
-      performance_package: candidate.performancePackage || null,
-      country: candidate.country || scan?.country || null,
-      profit: Math.round(Number(candidate.netProfit || 0)),
-      roi: Number(candidate.netRoi || 0),
-      score: Number(candidate.finalDecision?.finalScore || 0),
-      url: candidate.url || null,
-    };
+    const payload = buildScannerOpportunityPayload({
+      candidate,
+      scan,
+    });
 
     const { error } = await supabase.from("import_analyses").insert(payload);
 
