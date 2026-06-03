@@ -1,6 +1,10 @@
+import { useState } from "react";
 import OpportunityCard from "../opportunities/OpportunityCard";
+import OpportunityDetail from "../opportunities/OpportunityDetail";
 
 export default function OpportunityIntelligencePanel({ pipeline }) {
+  const [selectedOpportunity, setSelectedOpportunity] = useState(null);
+
   if (!pipeline || pipeline.totalRecords === 0) {
     return (
       <div style={panelStyle}>
@@ -16,6 +20,9 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
   const summary = pipeline.summary || {};
   const topItems = pipeline.topOpportunities || [];
   const bestOpportunity = topItems[0] || null;
+  const bestCardOpportunity = bestOpportunity
+    ? buildCardOpportunity(bestOpportunity)
+    : null;
 
   return (
     <div style={panelStyle}>
@@ -31,10 +38,20 @@ export default function OpportunityIntelligencePanel({ pipeline }) {
         </strong>
       </div>
 
-      {bestOpportunity && (
+      {bestCardOpportunity && (
         <section style={heroSectionStyle}>
           <p style={heroEyebrowStyle}>Mejor oportunidad actual</p>
-          <OpportunityCard opportunity={buildCardOpportunity(bestOpportunity)} />
+          <OpportunityCard
+            opportunity={bestCardOpportunity}
+            onOpen={setSelectedOpportunity}
+          />
+
+          {selectedOpportunity && (
+            <section style={detailSectionStyle}>
+              <p style={detailEyebrowStyle}>Explicación completa</p>
+              <OpportunityDetail opportunity={selectedOpportunity} />
+            </section>
+          )}
         </section>
       )}
 
@@ -115,6 +132,8 @@ function buildCardOpportunity(item = {}) {
     valuation,
     vehicleValuation,
     opportunity,
+    comparables: item.comparables,
+    sellSpeed: item.sellSpeed,
   };
 }
 
@@ -288,6 +307,19 @@ const heroSectionStyle = {
 const heroEyebrowStyle = {
   margin: "0 0 10px 0",
   color: "#bbf7d0",
+  fontSize: "13px",
+  fontWeight: "950",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+};
+
+const detailSectionStyle = {
+  marginTop: "18px",
+};
+
+const detailEyebrowStyle = {
+  margin: "0 0 10px 0",
+  color: "#93c5fd",
   fontSize: "13px",
   fontWeight: "950",
   letterSpacing: "0.05em",
