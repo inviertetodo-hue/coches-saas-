@@ -1,6 +1,10 @@
+import { normalizeOpportunityAction } from "../../services/intelligence/opportunityActionNormalizer";
+
 export default function OpportunityCard({ opportunity = {}, onOpen }) {
   const decision = opportunity.decision || {};
-  const action = decision.action || opportunity.action || "WATCH";
+  const action = normalizeOpportunityAction(
+    decision.action || opportunity.action || "WATCH"
+  );
   const title = opportunity.title || "Oportunidad detectada";
 
   const profit = getNumber(
