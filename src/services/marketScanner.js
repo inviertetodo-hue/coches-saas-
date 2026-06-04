@@ -155,8 +155,42 @@ function buildSearchLinks(query, budget, countries) {
       priority,
     });
 
+    // Milanuncios: portal español sin bot protection, funciona con Jina.
+    // Solo tiene sentido para España.
+    if (country === "España") {
+      links.push({
+        source: "Milanuncios",
+        country,
+        label: `Milanuncios · ${query} · España`,
+        url: buildMilanunciosUrl(query, budget),
+        priority,
+      });
+    }
+
     return links;
   });
+}
+
+function buildMilanunciosUrl(query, budget) {
+  const brand = extractBrandSlug(query);
+  const model = extractModelSlug(query);
+  const budgetParam = budget > 0 ? `?preciomax=${budget}` : "";
+
+  // URL estructurada por marca-modelo → más resultados relevantes
+  if (brand && model) {
+    return `https://www.milanuncios.com/coches-de-segunda-mano/${brand}-${model}.htm${budgetParam}`;
+  }
+
+  if (brand) {
+    return `https://www.milanuncios.com/coches-de-segunda-mano/${brand}.htm${budgetParam}`;
+  }
+
+  const slug = query.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-");
+
+  return `https://www.milanuncios.com/coches-de-segunda-mano/${slug}.htm${budgetParam}`;
 }
 
 function buildMobileUrl(encodedQuery, budget, country) {
