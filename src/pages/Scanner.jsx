@@ -16,6 +16,9 @@ export default function Scanner() {
     maxBudget: "60000",
     country: "Europa",
     useCase: "reventa",
+    fuel: "",
+    minYear: "",
+    maxMileage: "",
   });
 
   const [searchTriggered, setSearchTriggered] = useState(false);
