@@ -1,14 +1,17 @@
 export default function ScannerHeader() {
   return (
     <div style={headerStyle}>
-      <p style={badgeStyle}>AI Automotive Opportunity Scanner</p>
+      <p style={badgeStyle}>RADAR AUTOMÁTICO DE OPORTUNIDADES</p>
 
-      <h1 style={titleStyle}>Encuentra chollos reales en Europa</h1>
+      <h1 style={titleStyle}>
+        Encuentra oportunidades de compra antes que el mercado
+      </h1>
 
       <p style={subtitleStyle}>
-        Escribe el vehículo que quieres comprar y pulsa buscar. El sistema
-        prioriza oportunidades por margen neto, precio bajo mercado, liquidez,
-        riesgo y probabilidad de venta rápida.
+        Define el vehículo que buscas y el sistema analizará el mercado para
+        detectar, valorar y priorizar las mejores oportunidades disponibles.
+        Cada resultado incluye valoración, potencial de oportunidad, riesgo y
+        recomendación de decisión.
       </p>
     </div>
   );
