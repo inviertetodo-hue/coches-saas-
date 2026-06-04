@@ -271,7 +271,7 @@ export default function History() {
       simulation,
       executive,
     };
-  }, [cleanAnalyses]);
+  }, [cleanAnalyses, marketIntelligence]);
 
   const {
     market,
@@ -374,6 +374,8 @@ export default function History() {
               opportunityChampion={opportunityChampion}
             />
 
+            <OpportunityActionCenter watchlist={watchlist} />
+
             <GlobalStatsPanel
               market={market}
               risk={risk}
@@ -451,6 +453,120 @@ export default function History() {
   );
 }
 
+function OpportunityActionCenter({ watchlist }) {
+  const items = Array.isArray(watchlist?.items) ? watchlist.items : [];
+  const actionItems = items
+    .filter((item) =>
+      ["Actuar ahora", "Validar hoy"].includes(item.watchStatus)
+    )
+    .slice(0, 3);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section style={actionCenterStyle}>
+      <div style={actionCenterHeaderStyle}>
+        <div>
+          <p style={actionEyebrowStyle}>Centro de acción</p>
+          <h2 style={actionTitleStyle}>Oportunidades que revisar hoy</h2>
+          <p style={actionSubtitleStyle}>
+            El sistema prioriza los coches que merecen atención inmediata según
+            oportunidad, confianza, margen, ROI y señales de seguimiento.
+          </p>
+        </div>
+
+        <div style={actionScoreBoxStyle}>
+          <span style={actionScoreLabelStyle}>Radar</span>
+          <strong style={actionScoreValueStyle}>
+            {watchlist?.watchlistScore || 0}/100
+          </strong>
+          <span style={actionScoreLevelStyle}>
+            {watchlist?.watchlistLevel || "Sin datos"}
+          </span>
+        </div>
+      </div>
+
+      {watchlist?.summary && (
+        <div style={actionSummaryStyle}>{watchlist.summary}</div>
+      )}
+
+      {actionItems.length === 0 ? (
+        <div style={actionEmptyStyle}>
+          No hay oportunidades urgentes ahora mismo. Mantén la watchlist activa
+          y revisa nuevos cambios de precio o señales BUY.
+        </div>
+      ) : (
+        <div style={actionGridStyle}>
+          {actionItems.map((item, index) => (
+            <ActionOpportunityCard
+              key={item.id || item.sourceId || `${item.title}-${index}`}
+              item={item}
+              index={index}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ActionOpportunityCard({ item, index }) {
+  return (
+    <article style={actionCardStyle}>
+      <div style={actionCardTopStyle}>
+        <span style={actionRankStyle}>#{index + 1}</span>
+        <span style={actionStatusStyle}>{item.watchStatus}</span>
+      </div>
+
+      <h3 style={actionCardTitleStyle}>{item.title || "Oportunidad detectada"}</h3>
+
+      <div style={actionMiniGridStyle}>
+        <ActionMiniMetric label="Score" value={`${item.watchScore || 0}/100`} />
+        <ActionMiniMetric label="Prioridad" value={item.priority || "-"} />
+        <ActionMiniMetric label="ROI" value={`${formatNumber(item.roi)}%`} />
+        <ActionMiniMetric label="Beneficio" value={formatEuro(item.profit)} />
+      </div>
+
+      {item.alert && <p style={actionAlertStyle}>🚨 {item.alert}</p>}
+
+      <p style={actionReasonStyle}>{item.reason}</p>
+
+      <p style={actionNextStyle}>
+        Próxima acción: {item.nextAction || "validar datos principales."}
+      </p>
+    </article>
+  );
+}
+
+function ActionMiniMetric({ label, value }) {
+  return (
+    <div style={actionMiniMetricStyle}>
+      <span style={actionMiniMetricLabelStyle}>{label}</span>
+      <strong style={actionMiniMetricValueStyle}>{value}</strong>
+    </div>
+  );
+}
+
+function formatEuro(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "-";
+
+  return `${Math.round(number).toLocaleString("es-ES")} €`;
+}
+
+function formatNumber(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "0";
+
+  return number.toLocaleString("es-ES", {
+    maximumFractionDigits: 1,
+  });
+}
+
 const pageStyle = {
   minHeight: "100vh",
   background:
@@ -504,4 +620,193 @@ const loadingAdvancedStyle = {
   color: "#cbd5e1",
   textAlign: "center",
   fontWeight: "700",
+};
+
+const actionCenterStyle = {
+  marginBottom: "32px",
+  padding: "26px",
+  borderRadius: "30px",
+  background:
+    "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(37,99,235,0.18), rgba(15,23,42,0.86))",
+  border: "1px solid rgba(34,197,94,0.28)",
+  boxShadow: "0 24px 80px rgba(2,6,23,0.36)",
+};
+
+const actionCenterHeaderStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  gap: "22px",
+  alignItems: "flex-start",
+  marginBottom: "18px",
+};
+
+const actionEyebrowStyle = {
+  margin: 0,
+  color: "#86efac",
+  fontWeight: "950",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontSize: "12px",
+};
+
+const actionTitleStyle = {
+  margin: "8px 0",
+  color: "white",
+  fontSize: "30px",
+};
+
+const actionSubtitleStyle = {
+  margin: 0,
+  color: "#dbeafe",
+  lineHeight: "1.6",
+  fontWeight: "750",
+  maxWidth: "760px",
+};
+
+const actionScoreBoxStyle = {
+  minWidth: "150px",
+  padding: "16px",
+  borderRadius: "22px",
+  background: "rgba(2,6,23,0.58)",
+  border: "1px solid rgba(148,163,184,0.18)",
+  textAlign: "center",
+};
+
+const actionScoreLabelStyle = {
+  display: "block",
+  color: "#93c5fd",
+  fontSize: "12px",
+  fontWeight: "900",
+};
+
+const actionScoreValueStyle = {
+  display: "block",
+  color: "white",
+  fontSize: "30px",
+  marginTop: "6px",
+};
+
+const actionScoreLevelStyle = {
+  display: "block",
+  color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "900",
+  marginTop: "4px",
+};
+
+const actionSummaryStyle = {
+  padding: "14px 16px",
+  borderRadius: "18px",
+  background: "rgba(2,6,23,0.45)",
+  border: "1px solid rgba(148,163,184,0.14)",
+  color: "#d1fae5",
+  fontWeight: "850",
+  lineHeight: "1.5",
+  marginBottom: "18px",
+};
+
+const actionEmptyStyle = {
+  padding: "16px",
+  borderRadius: "18px",
+  background: "rgba(2,6,23,0.42)",
+  border: "1px solid rgba(148,163,184,0.14)",
+  color: "#cbd5e1",
+  lineHeight: "1.5",
+  fontWeight: "800",
+};
+
+const actionGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+  gap: "16px",
+};
+
+const actionCardStyle = {
+  padding: "18px",
+  borderRadius: "22px",
+  background: "rgba(2,6,23,0.62)",
+  border: "1px solid rgba(148,163,184,0.16)",
+};
+
+const actionCardTopStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "10px",
+  alignItems: "center",
+  marginBottom: "12px",
+};
+
+const actionRankStyle = {
+  color: "#93c5fd",
+  fontWeight: "950",
+};
+
+const actionStatusStyle = {
+  padding: "7px 10px",
+  borderRadius: "999px",
+  background: "rgba(34,197,94,0.16)",
+  border: "1px solid rgba(34,197,94,0.25)",
+  color: "#bbf7d0",
+  fontSize: "12px",
+  fontWeight: "950",
+};
+
+const actionCardTitleStyle = {
+  margin: "0 0 14px",
+  color: "white",
+  fontSize: "20px",
+  lineHeight: 1.25,
+};
+
+const actionMiniGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+  gap: "10px",
+  marginBottom: "12px",
+};
+
+const actionMiniMetricStyle = {
+  padding: "10px",
+  borderRadius: "14px",
+  background: "rgba(15,23,42,0.75)",
+  border: "1px solid rgba(148,163,184,0.10)",
+};
+
+const actionMiniMetricLabelStyle = {
+  display: "block",
+  color: "#94a3b8",
+  fontSize: "11px",
+  fontWeight: "800",
+  marginBottom: "4px",
+};
+
+const actionMiniMetricValueStyle = {
+  color: "#f8fafc",
+  fontWeight: "950",
+};
+
+const actionAlertStyle = {
+  color: "#fde68a",
+  background: "rgba(245,158,11,0.12)",
+  border: "1px solid rgba(245,158,11,0.22)",
+  borderRadius: "14px",
+  padding: "10px 12px",
+  fontWeight: "900",
+  lineHeight: "1.45",
+  margin: "0 0 10px 0",
+};
+
+const actionReasonStyle = {
+  color: "#bfdbfe",
+  fontWeight: "800",
+  lineHeight: "1.45",
+  margin: "0 0 10px 0",
+};
+
+const actionNextStyle = {
+  color: "#d1fae5",
+  margin: 0,
+  fontSize: "13px",
+  lineHeight: "1.45",
+  fontWeight: "850",
 };
