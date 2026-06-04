@@ -1,6 +1,6 @@
 export const SIDEBAR_CONTENT = {
   objective: {
-    label: "Objetivo",
-    text: "Detectar los mejores coches disponibles en Europa para comprar mejor que el mercado.",
+    label: "Radar automático",
+    text: "Buscar, valorar y priorizar oportunidades reales de compra antes que el mercado.",
   },
 };

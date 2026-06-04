@@ -1,24 +1,38 @@
 import { ROUTE_PATHS } from "./routePaths";
 
-export const NAVIGATION_ITEMS = [
+export const NAVIGATION_SECTIONS = [
   {
-    id: "scanner",
-    label: "🔎 Scanner IA",
-    path: ROUTE_PATHS.scanner,
+    id: "main",
+    label: "Principal",
+    items: [
+      {
+        id: "scanner",
+        label: "🎯 Buscar Oportunidades",
+        path: ROUTE_PATHS.scanner,
+      },
+      {
+        id: "history",
+        label: "📊 Inteligencia Avanzada",
+        path: ROUTE_PATHS.history,
+      },
+    ],
   },
   {
-    id: "importer",
-    label: "🔗 Importador IA",
-    path: ROUTE_PATHS.importer,
-  },
-  {
-    id: "bulk-import",
-    label: "🌍 Bulk Import",
-    path: ROUTE_PATHS.bulkImport,
-  },
-  {
-    id: "history",
-    label: "📊 Inteligencia Mercado",
-    path: ROUTE_PATHS.history,
+    id: "advanced",
+    label: "Herramientas avanzadas",
+    items: [
+      {
+        id: "importer",
+        label: "🔗 Importador",
+        path: ROUTE_PATHS.importer,
+      },
+      {
+        id: "bulk-import",
+        label: "🌍 Bulk Import",
+        path: ROUTE_PATHS.bulkImport,
+      },
+    ],
   },
 ];
+
+export const NAVIGATION_ITEMS = NAVIGATION_SECTIONS.flatMap((section) => section.items);
