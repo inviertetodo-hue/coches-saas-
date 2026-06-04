@@ -5,18 +5,36 @@ export default function WatchlistPanel({ watchlist }) {
     ? watchlist.items.slice(0, 12)
     : [];
 
-  const urgentItems = items.filter((item) => getWatchStatus(item) === "Negociar").length;
-  const callItems = items.filter((item) => getWatchStatus(item) === "Llamar").length;
-  const averageScore = calculateAverage(items, "score");
+  const alerts = Array.isArray(watchlist?.alerts) ? watchlist.alerts : [];
+
+  const urgentItems = items.filter(
+    (item) => item.watchStatus === "Actuar ahora"
+  ).length;
+
+  const validationItems = items.filter(
+    (item) => item.watchStatus === "Validar hoy"
+  ).length;
+
+  const watchItems = items.filter(
+    (item) => item.watchStatus === "Vigilar precio"
+  ).length;
+
+  const averageWatchScore = calculateAverage(items, "watchScore");
 
   return (
     <div style={containerStyle}>
-      <h2 style={titleStyle}>📋 AI Watchlist V2</h2>
+      <h2 style={titleStyle}>📋 Watchlist de Oportunidades</h2>
 
       <p style={subtitleStyle}>
-        Lista inteligente de seguimiento para detectar coches que merecen vigilancia,
-        llamada, negociación o descarte rápido.
+        Seguimiento inteligente de oportunidades para saber qué coches conviene
+        revisar ahora, validar hoy o vigilar por cambios de precio.
       </p>
+
+      {watchlist?.summary && (
+        <div style={summaryStyle}>
+          <strong>Resumen:</strong> {watchlist.summary}
+        </div>
+      )}
 
       <div style={gridStyle}>
         <MetricCard
@@ -25,66 +43,84 @@ export default function WatchlistPanel({ watchlist }) {
         />
 
         <MetricCard
-          label="Watchlist Level"
+          label="Nivel"
           value={watchlist?.watchlistLevel || "-"}
         />
 
         <MetricCard
-          label="Candidates"
+          label="En seguimiento"
           value={items.length}
         />
 
         <MetricCard
           label="Score medio"
-          value={`${averageScore}/100`}
+          value={`${averageWatchScore}/100`}
         />
       </div>
 
       <div style={statusGridStyle}>
         <StatusCard
-          title="Negociar"
+          title="Actuar ahora"
           value={urgentItems}
-          text="Candidatos con señales fuertes para actuar."
+          text="Oportunidades candidatas a contacto inmediato."
         />
 
         <StatusCard
-          title="Llamar"
-          value={callItems}
-          text="Buenos candidatos para validar datos."
+          title="Validar hoy"
+          value={validationItems}
+          text="Coches que necesitan confirmar datos antes de decidir."
         />
 
         <StatusCard
-          title="Vigilar"
-          value={items.length - urgentItems - callItems}
-          text="Casos útiles para seguimiento posterior."
+          title="Vigilar precio"
+          value={watchItems}
+          text="Casos útiles para seguir bajadas o cambios de señal."
         />
       </div>
 
+      {alerts.length > 0 && (
+        <div style={sectionStyle}>
+          <p style={sectionTitleStyle}>🚨 Alertas de seguimiento</p>
+
+          {alerts.map((item, index) => (
+            <div key={`${item}-${index}`} style={alertCardStyle}>
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={sectionStyle}>
-        <p style={sectionTitleStyle}>🧠 Watchlist Insights</p>
+        <p style={sectionTitleStyle}>🧠 Insights de Watchlist</p>
 
         {!watchlist?.insights?.length && (
-          <p style={emptyStyle}>Aún no hay insights suficientes para la watchlist.</p>
+          <p style={emptyStyle}>
+            Aún no hay insights suficientes para la watchlist.
+          </p>
         )}
 
         {watchlist?.insights?.map((item, index) => (
-          <div key={index} style={insightCardStyle}>
+          <div key={`${item}-${index}`} style={insightCardStyle}>
             {item}
           </div>
         ))}
       </div>
 
       <div style={sectionStyle}>
-        <p style={sectionTitleStyle}>📌 Candidates To Watch</p>
+        <p style={sectionTitleStyle}>📌 Oportunidades en seguimiento</p>
 
         {items.length === 0 && (
           <p style={emptyStyle}>
-            Todavía no hay candidatos para seguimiento.
+            Todavía no hay oportunidades suficientemente claras para seguimiento.
           </p>
         )}
 
         {items.map((item, index) => (
-          <WatchItem key={item.id || `${item.title}-${index}`} item={item} index={index} />
+          <WatchItem
+            key={item.id || item.sourceId || `${item.title}-${index}`}
+            item={item}
+            index={index}
+          />
         ))}
       </div>
     </div>
@@ -92,35 +128,50 @@ export default function WatchlistPanel({ watchlist }) {
 }
 
 function WatchItem({ item, index }) {
-  const score = Number(item.score || 0);
+  const watchScore = Number(item.watchScore || item.score || 0);
   const roi = Number(item.roi || 0);
   const profit = Number(item.profit || 0);
-  const status = getWatchStatus(item);
-  const priority = getPriority(score, roi, profit);
+  const discountAmount = Number(item.discountAmount || 0);
+  const status = item.watchStatus || "Observación";
+  const priority = item.priority || "Media";
+  const nextAction = item.nextAction || getFallbackNextAction(status);
 
   return (
     <div style={itemCardStyle}>
       <div style={itemHeaderStyle}>
         <div>
-          <p style={rankStyle}>#{index + 1} · Prioridad {priority}</p>
-          <h3 style={itemTitleStyle}>{item.title || "Candidato sin título"}</h3>
+          <p style={rankStyle}>
+            #{index + 1} · Prioridad {priority} · {item.action || "WATCH"}
+          </p>
+
+          <h3 style={itemTitleStyle}>{item.title || "Oportunidad sin título"}</h3>
         </div>
 
         <span style={statusPillStyle}>{status}</span>
       </div>
 
       <div style={miniGridStyle}>
-        <MiniMetric label="Score" value={`${score}/100`} />
-        <MiniMetric label="ROI" value={`${roi}%`} />
-        <MiniMetric label="Beneficio" value={`${profit} €`} />
+        <MiniMetric label="Watch Score" value={`${watchScore}/100`} />
+        <MiniMetric label="ROI" value={`${formatNumber(roi)}%`} />
+        <MiniMetric label="Beneficio" value={formatEuro(profit)} />
+        <MiniMetric
+          label="Descuento"
+          value={discountAmount > 0 ? formatEuro(discountAmount) : "-"}
+        />
       </div>
 
+      {item.alert && (
+        <p style={itemAlertStyle}>
+          🚨 {item.alert}
+        </p>
+      )}
+
       <p style={reasonStyle}>
-        {item.reason || buildFallbackReason(score, roi, profit)}
+        {item.reason || buildFallbackReason(watchScore, roi, profit)}
       </p>
 
       <p style={nextActionStyle}>
-        Próxima acción: {getNextAction(status)}
+        Próxima acción: {nextAction}
       </p>
     </div>
   );
@@ -145,43 +196,20 @@ function StatusCard({ title, value, text }) {
   );
 }
 
-function getWatchStatus(item) {
-  const score = Number(item?.score || 0);
-  const roi = Number(item?.roi || 0);
-  const profit = Number(item?.profit || 0);
-
-  if (score >= 85 && roi >= 25 && profit >= 2500) {
-    return "Negociar";
+function getFallbackNextAction(status) {
+  if (status === "Actuar ahora") {
+    return "contactar rápido y validar disponibilidad.";
   }
 
-  if (score >= 75 && roi >= 15) {
-    return "Llamar";
+  if (status === "Validar hoy") {
+    return "pedir historial, fotos, daños y precio final.";
   }
 
-  if (score >= 60) {
-    return "Vigilar";
+  if (status === "Vigilar precio") {
+    return "seguir precio y comparar con nuevas oportunidades.";
   }
 
-  return "Descartar";
-}
-
-function getPriority(score, roi, profit) {
-  const value = Math.round(
-    score * 0.5 +
-    Math.min(roi, 40) * 0.8 +
-    Math.min(profit / 100, 40) * 0.4
-  );
-
-  if (value >= 85) return "Alta";
-  if (value >= 65) return "Media";
-  return "Baja";
-}
-
-function getNextAction(status) {
-  if (status === "Negociar") return "contactar rápido y validar margen real";
-  if (status === "Llamar") return "pedir detalles, historial y disponibilidad";
-  if (status === "Vigilar") return "seguir precio y comparar con mercado";
-  return "no priorizar salvo cambio de precio";
+  return "no priorizar salvo cambio relevante.";
 }
 
 function buildFallbackReason(score, roi, profit) {
@@ -190,10 +218,10 @@ function buildFallbackReason(score, roi, profit) {
   }
 
   if (score >= 75) {
-    return `Candidato interesante, pero necesita validación adicional antes de compra.`;
+    return "Candidato interesante, pero necesita validación adicional antes de compra.";
   }
 
-  return `Candidato para observación, no para acción inmediata.`;
+  return "Candidato para observación, no para acción inmediata.";
 }
 
 function calculateAverage(items, field) {
@@ -206,6 +234,24 @@ function calculateAverage(items, field) {
   if (!values.length) return 0;
 
   return Math.round(values.reduce((acc, value) => acc + value, 0) / values.length);
+}
+
+function formatEuro(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "-";
+
+  return `${Math.round(number).toLocaleString("es-ES")} €`;
+}
+
+function formatNumber(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "0";
+
+  return number.toLocaleString("es-ES", {
+    maximumFractionDigits: 1,
+  });
 }
 
 const containerStyle = {
@@ -222,7 +268,18 @@ const subtitleStyle = {
   color: "#cbd5e1",
   lineHeight: "1.55",
   marginTop: 0,
-  marginBottom: "24px",
+  marginBottom: "18px",
+};
+
+const summaryStyle = {
+  background: "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(37,99,235,0.14))",
+  border: "1px solid rgba(34,197,94,0.24)",
+  padding: "16px 18px",
+  borderRadius: "18px",
+  color: "#d1fae5",
+  fontWeight: "850",
+  lineHeight: "1.55",
+  marginBottom: "22px",
 };
 
 const gridStyle = {
@@ -275,6 +332,17 @@ const sectionTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
   marginBottom: "14px",
+};
+
+const alertCardStyle = {
+  background: "rgba(245,158,11,0.14)",
+  border: "1px solid rgba(245,158,11,0.28)",
+  color: "#fde68a",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  marginBottom: "12px",
+  fontWeight: "900",
+  lineHeight: "1.45",
 };
 
 const insightCardStyle = {
@@ -349,6 +417,17 @@ const miniMetricLabelStyle = {
 const miniMetricValueStyle = {
   color: "#f8fafc",
   fontSize: "14px",
+};
+
+const itemAlertStyle = {
+  color: "#fde68a",
+  background: "rgba(245,158,11,0.12)",
+  border: "1px solid rgba(245,158,11,0.22)",
+  borderRadius: "14px",
+  padding: "10px 12px",
+  fontWeight: "900",
+  lineHeight: "1.45",
+  margin: "0 0 10px 0",
 };
 
 const reasonStyle = {
