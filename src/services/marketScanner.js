@@ -1,7 +1,7 @@
 export function buildMarketScan({
   query = "",
   maxBudget = "",
-  country = "Alemania",
+  country = "España",
   useCase = "reventa",
 }) {
   const cleanQuery = String(query || "").trim();
@@ -40,7 +40,7 @@ function buildEmptyScan() {
     searchLinks: [],
     buyingLogic: [],
     summary:
-      "Introduce un modelo para empezar a buscar oportunidades reales en Europa.",
+      "Introduce un modelo para empezar a buscar oportunidades reales en Milanuncios y mercado europeo.",
   };
 }
 
@@ -112,6 +112,7 @@ function detectSearchIntent(query) {
 function buildCountryTargets(country) {
   if (country === "Europa") {
     return [
+      "España",
       "Alemania",
       "Holanda",
       "Bélgica",
@@ -121,11 +122,10 @@ function buildCountryTargets(country) {
       "Luxemburgo",
       "Suecia",
       "Dinamarca",
-      "España",
     ];
   }
 
-  return [country || "Alemania"];
+  return [country || "España"];
 }
 
 function buildSearchLinks(query, budget, countries) {
@@ -134,7 +134,19 @@ function buildSearchLinks(query, budget, countries) {
     const priority = getCountryPriority(country);
     const links = [];
 
-    // mobile.de solo sirve para Alemania — devuelve ~385 chars para otros países
+    // Milanuncios primero: fuente prioritaria inicial para España.
+    // Mantener mobile.de y AutoScout24 para futuras fases europeas.
+    if (country === "España") {
+      links.push({
+        source: "Milanuncios",
+        country,
+        label: `Milanuncios · ${query} · España`,
+        url: buildMilanunciosUrl(query, budget),
+        priority: "Alta",
+      });
+    }
+
+    // mobile.de solo sirve para Alemania — devuelve ~385 chars para otros países.
     if (country === "Alemania") {
       links.push({
         source: "mobile.de",
@@ -145,7 +157,8 @@ function buildSearchLinks(query, budget, countries) {
       });
     }
 
-    // AutoScout: siempre usar autoscout24.de con cy= para el país.
+    // AutoScout: mantener como fuente europea secundaria.
+    // Siempre usar autoscout24.de con cy= para el país.
     // Los dominios .nl/.be/.fr devuelven muro de cookies, sin listados.
     links.push({
       source: "AutoScout24",
@@ -154,18 +167,6 @@ function buildSearchLinks(query, budget, countries) {
       url: buildAutoscoutUrl(query, budget, country),
       priority,
     });
-
-    // Milanuncios: portal español sin bot protection, funciona con Jina.
-    // Solo tiene sentido para España.
-    if (country === "España") {
-      links.push({
-        source: "Milanuncios",
-        country,
-        label: `Milanuncios · ${query} · España`,
-        url: buildMilanunciosUrl(query, budget),
-        priority,
-      });
-    }
 
     return links;
   });
@@ -176,7 +177,7 @@ function buildMilanunciosUrl(query, budget) {
   const model = extractModelSlug(query);
   const budgetParam = budget > 0 ? `?preciomax=${budget}` : "";
 
-  // URL estructurada por marca-modelo → más resultados relevantes
+  // URL estructurada por marca-modelo → más resultados relevantes.
   if (brand && model) {
     return `https://www.milanuncios.com/coches-de-segunda-mano/${brand}-${model}.htm${budgetParam}`;
   }
@@ -185,8 +186,10 @@ function buildMilanunciosUrl(query, budget) {
     return `https://www.milanuncios.com/coches-de-segunda-mano/${brand}.htm${budgetParam}`;
   }
 
-  const slug = query.toLowerCase()
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+  const slug = query
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-");
 
@@ -201,19 +204,14 @@ function buildMobileUrl(encodedQuery, budget, country) {
 }
 
 function buildAutoscoutUrl(rawQuery, budget, country) {
-  // AutoScout ignora el parámetro q= y devuelve todo el catálogo.
-  // La búsqueda real usa la ruta estructurada: /lst/{marca}/{modelo}?fuel=EB&cy=D
   const query = String(rawQuery || "").replace(/%20/g, " ").trim();
   const countryCode = getAutoscoutCountryCode(country);
-  const countryDomain = getAutoscoutDomain(country);
   const budgetParam = budget > 0 ? `&price_to=${budget}` : "";
 
   const brand = extractBrandSlug(query);
   const model = extractModelSlug(query);
   const fuelParam = extractFuelParam(query);
 
-  // Siempre usar autoscout24.de — los otros dominios (.nl/.be/.fr) devuelven
-  // muro de cookies sin contenido. El parámetro cy= filtra por país correctamente.
   if (brand && model) {
     return `https://www.autoscout24.de/lst/${brand}/${model}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
   }
@@ -222,7 +220,6 @@ function buildAutoscoutUrl(rawQuery, budget, country) {
     return `https://www.autoscout24.de/lst/${brand}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
   }
 
-  // Fallback solo si no detectamos marca (casos raros)
   const encoded = encodeURIComponent(query);
   return `https://www.autoscout24.de/lst?atype=C&cy=${countryCode}&ustate=N%2CU&q=${encoded}${budgetParam}`;
 }
@@ -283,7 +280,14 @@ function extractModelSlug(query) {
   if (text.includes("gla")) return "gla-(alle)";
   if (text.includes("glb")) return "glb";
   if (text.includes("gls")) return "gls";
-  if (text.match(/clase\s*c/) || text.match(/klasse\s*c/) || text.includes("c 300") || text.includes("c300")) return "c-klasse";
+  if (
+    text.match(/clase\s*c/) ||
+    text.match(/klasse\s*c/) ||
+    text.includes("c 300") ||
+    text.includes("c300")
+  ) {
+    return "c-klasse";
+  }
   if (text.match(/clase\s*e/) || text.includes("e 300")) return "e-klasse";
 
   // VW
@@ -317,10 +321,11 @@ function extractModelSlug(query) {
 function extractFuelParam(query) {
   const text = query.toLowerCase();
 
-  // PHEV: Elektro/Benzin en AutoScout = fuel=EB
   const isPhev =
     text.includes("phev") ||
     text.includes("hybrid") ||
+    text.includes("hibrido") ||
+    text.includes("híbrido") ||
     text.includes("45e") ||
     text.includes("50e") ||
     text.includes("30e") ||
@@ -333,41 +338,24 @@ function extractFuelParam(query) {
     text.includes("e-hybrid") ||
     text.includes("ehybrid") ||
     text.includes("recharge") ||
-    text.includes("plug") ||
-    text.includes("phev");
+    text.includes("plug");
 
   if (isPhev) return "&fuel=EB";
 
-  // EV puro
-  if (text.includes("electric") || text.includes("eléctrico") || text.includes("ev") || text.includes("electrico")) {
+  if (
+    text.includes("electric") ||
+    text.includes("eléctrico") ||
+    text.includes("ev") ||
+    text.includes("electrico")
+  ) {
     return "&fuel=E";
   }
 
-  // Diesel
   if (text.includes("diesel") || text.includes("tdi") || text.includes("dci")) {
     return "&fuel=D";
   }
 
   return "";
-}
-
-function getAutoscoutDomain(country) {
-  const map = {
-    Alemania: "de",
-    Holanda: "nl",
-    Bélgica: "be",
-    Belgica: "be",
-    Francia: "fr",
-    Italia: "it",
-    Austria: "at",
-    Luxemburgo: "lu",
-    Suecia: "se",
-    Dinamarca: "dk",
-    España: "es",
-    Espana: "es",
-  };
-
-  return map[country] || "de";
 }
 
 function buildBuyingLogic({ semantic, budget, useCase }) {
@@ -390,9 +378,9 @@ function buildBuyingLogic({ semantic, budget, useCase }) {
   });
 
   logic.push({
-    title: "Mercados prioritarios",
+    title: "Fuente prioritaria inicial",
     text:
-      "El escaneo europeo prioriza Alemania, Holanda, Bélgica, Francia e Italia, y amplía cobertura hacia Austria, Luxemburgo, Suecia, Dinamarca y España.",
+      "Milanuncios queda como primera fuente de oportunidades en España. Mobile.de y AutoScout24 se mantienen preparados para ampliar cobertura europea después.",
     type: "positive",
   });
 
@@ -441,6 +429,8 @@ function buildScanSummary(query, country, budget, semantic) {
   if (country) parts.push(`en ${country}`);
   if (budget > 0) parts.push(`hasta ${formatMoney(budget)}`);
 
+  parts.push("priorizando Milanuncios");
+
   if (semantic.isPremium && semantic.isPhev && semantic.isSuv) {
     parts.push("con perfil de oportunidad premium líquida");
   } else if (semantic.isPerformance) {
@@ -452,6 +442,7 @@ function buildScanSummary(query, country, budget, semantic) {
 
 function getCountryPriority(country) {
   const highPriority = [
+    "España",
     "Alemania",
     "Holanda",
     "Bélgica",
