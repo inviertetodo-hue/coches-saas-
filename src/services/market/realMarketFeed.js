@@ -209,6 +209,7 @@ function parseAutoscoutListingsFromText({
     incompatible: 0,
     genericTitle: 0,
     accepted: 0,
+    incompatibleReasons: [],  // motivos exactos para debugging
   };
 
   blocks.forEach((block, index) => {
@@ -264,6 +265,9 @@ function parseAutoscoutListingsFromText({
 
     if (!validation.isCompatible) {
       rejectionLog.incompatible += 1;
+      if (validation.rejectionReason) {
+        rejectionLog.incompatibleReasons.push(validation.rejectionReason);
+      }
       return;
     }
 
@@ -555,13 +559,15 @@ function validateVehicleCompatibility({
 }) {
   const text = normalize(query);
   const warnings = [];
+  const rejectionReasons = [];
   const budget = Number(maxBudget || 0);
 
   if (budget > 0 && price > budget) {
     return {
       isCompatible: false,
       score: 0,
-      warnings: [`Precio ${price} por encima del presupuesto ${budget}.`],
+      warnings: [`Precio ${price} > presupuesto ${budget}.`],
+      rejectionReason: `precio_sobre_presupuesto: ${price} > ${budget}`,
     };
   }
 
@@ -582,12 +588,14 @@ function validateVehicleCompatibility({
 
   if (mileage > 250000) {
     warnings.push("Kilometraje alto.");
+    rejectionReasons.push(`km_alto: ${mileage}`);
     score -= 20;
   }
 
   if (
     text.includes("45e") ||
     text.includes("50e") ||
+    text.includes("30e") ||
     text.includes("300de") ||
     text.includes("tfsie") ||
     text.includes("tfsi e")
@@ -595,15 +603,24 @@ function validateVehicleCompatibility({
     if (fuelType === "PHEV") {
       score += 20;
     } else {
-      warnings.push(`Motorización PHEV no confirmada: ${fuelType || "desconocida"}.`);
+      warnings.push(`PHEV no confirmado: fuelType="${fuelType || "vacío"}".`);
+      rejectionReasons.push(`fuel_no_phev: detectado="${fuelType || "vacío"}"`);
       score -= 30;
     }
   }
 
+  const finalScore = clamp(score, 0, 100);
+  const isCompatible = finalScore >= 55;
+
+  if (!isCompatible && rejectionReasons.length === 0) {
+    rejectionReasons.push(`score_bajo: ${finalScore}/100`);
+  }
+
   return {
-    isCompatible: clamp(score, 0, 100) >= 55,
-    score: clamp(score, 0, 100),
+    isCompatible,
+    score: finalScore,
     warnings,
+    rejectionReason: rejectionReasons.join("; ") || null,
   };
 }
 

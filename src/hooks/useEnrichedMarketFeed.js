@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "../lib/supabase";
-import { generateMockMarketFeed } from "../services/mockMarketFeed";
 import { analyzeCar } from "../services/profitAnalyzer";
 import { analyzeComparableMarket } from "../services/comparableIntelligence";
 import { analyzeVehicleMemory } from "../services/vehicleMemoryEngine";
@@ -63,23 +62,16 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         maxListings: 20,
       });
 
-      const hasRealListings = realResult.listings.length > 0;
-
-      const rawFeed = hasRealListings
-        ? {
-            total: realResult.listings.length,
-            opportunities: realResult.listings,
-            insights: [],
-            sourceMode: "real-feed",
-            realFeedErrors: realResult.errors,
-            realFeedDiagnostics: realResult.diagnostics,
-          }
-        : {
-            ...generateMockMarketFeed(scan),
-            sourceMode: "mock-fallback",
-            realFeedErrors: realResult.errors,
-            realFeedDiagnostics: realResult.diagnostics,
-          };
+      const rawFeed = {
+        total: realResult.listings.length,
+        opportunities: realResult.listings,
+        insights: [],
+        sourceMode: realResult.listings.length > 0 ? "real-feed" : "real-feed-empty",
+        realFeedErrors: realResult.errors,
+        realFeedDiagnostics: Array.isArray(realResult.diagnostics)
+          ? realResult.diagnostics
+          : [],
+      };
 
       const modelRule = findModelRule(form.query || scan.query);
 
@@ -92,9 +84,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       function enrichDeal(item) {
         const estimatedMarketPrice =
           item.estimatedMarketPrice ||
-          Math.round(
-            Number(item.price || 0) * Number(item.marketMultiplier || 1.12)
-          );
+          Math.round(Number(item.price || 0) * Number(item.marketMultiplier || 1.12));
 
         const analysis =
           item.analysis ||
@@ -203,7 +193,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             ? {
                 rule: modelRule.key,
                 status: "passed",
-                phase: "6.4",
+                phase: "diagnostic-real-feed",
               }
             : null,
         };
@@ -230,6 +220,11 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       }));
 
       const best = opportunities[0] || null;
+      const modelSpecificFilter = buildModelSpecificFilter({
+        modelRule,
+        before: rawFeed.opportunities.length,
+        after: opportunities.length,
+      });
 
       const nextFeed = {
         ...rawFeed,
@@ -237,38 +232,17 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         opportunities,
         best,
         insights: buildRuntimeInsights(opportunities, rawFeed.sourceMode),
-        realFeedDiagnostics: {
-          ...(rawFeed.realFeedDiagnostics || {}),
-          modelSpecificFilter: modelRule
-            ? {
-                active: true,
-                phase: "6.4",
-                rule: modelRule.key,
-                before: rawFeed.opportunities.length,
-                after: opportunities.length,
-                discarded: rawFeed.opportunities.length - opportunities.length,
-                checks: {
-                  fuel: modelRule.fuel || null,
-                  minKw: modelRule.minKw || null,
-                  maxKw: modelRule.maxKw || null,
-                  minYear: modelRule.minYear || null,
-                  maxMileage: modelRule.maxMileage || null,
-                  minPrice: modelRule.minPrice || null,
-                  maxPrice: modelRule.maxPrice || null,
-                },
-              }
-            : {
-                active: false,
-              },
-        },
+        realFeedDiagnostics: rawFeed.realFeedDiagnostics,
+        modelSpecificFilter,
         opportunityEnginePreview,
         opportunityEngineSummary: {
           total: opportunityEnginePreview.length,
           bestScore: opportunityEnginePreview[0]?.opportunityScore || 0,
           bestLevel: opportunityEnginePreview[0]?.opportunityLevel || "NONE",
-          mode: hasRealListings
-            ? "real-feed-ranking"
-            : "mock-fallback-ranking",
+          mode:
+            rawFeed.sourceMode === "real-feed"
+              ? "real-feed-ranking"
+              : "real-feed-empty-ranking",
         },
       };
 
@@ -294,6 +268,32 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   return marketFeed;
 }
 
+function buildModelSpecificFilter({ modelRule, before, after }) {
+  if (!modelRule) {
+    return {
+      active: false,
+    };
+  }
+
+  return {
+    active: true,
+    phase: "diagnostic-real-feed",
+    rule: modelRule.key,
+    before,
+    after,
+    discarded: before - after,
+    checks: {
+      fuel: modelRule.fuel || null,
+      minKw: modelRule.minKw || null,
+      maxKw: modelRule.maxKw || null,
+      minYear: modelRule.minYear || null,
+      maxMileage: modelRule.maxMileage || null,
+      minPrice: modelRule.minPrice || null,
+      maxPrice: modelRule.maxPrice || null,
+    },
+  };
+}
+
 function findModelRule(query) {
   const normalizedQuery = normalizeForModelRule(query);
 
@@ -316,11 +316,12 @@ function validateSpecificModelRule(item, rule) {
   const mileage = inferMileage(item);
   const price = inferPrice(item);
 
-  if (rule.fuel && fuel !== rule.fuel) return false;
+  if (rule.fuel && fuel && fuel !== rule.fuel) return false;
 
-  if (!Number.isFinite(kw)) return false;
-  if (typeof rule.minKw === "number" && kw < rule.minKw) return false;
-  if (typeof rule.maxKw === "number" && kw > rule.maxKw) return false;
+  if (Number.isFinite(kw)) {
+    if (typeof rule.minKw === "number" && kw < rule.minKw) return false;
+    if (typeof rule.maxKw === "number" && kw > rule.maxKw) return false;
+  }
 
   if (!Number.isFinite(year)) return false;
   if (typeof rule.minYear === "number" && year < rule.minYear) return false;
@@ -558,6 +559,14 @@ function estimateImportCosts(car) {
 
 function buildRuntimeInsights(opportunities, sourceMode) {
   if (!opportunities.length) {
+    if (sourceMode === "real-feed-empty") {
+      return [
+        "No hay oportunidades reales compatibles ahora mismo.",
+        "El feed real respondió, pero ningún anuncio sobrevivió al parser y filtros actuales.",
+        "Revisa el diagnóstico por fuente para saber si falló fetch, parser o compatibilidad.",
+      ];
+    }
+
     return ["No hay oportunidades suficientes para comparar."];
   }
 
@@ -566,7 +575,7 @@ function buildRuntimeInsights(opportunities, sourceMode) {
   const sourceLabel =
     sourceMode === "real-feed"
       ? "Feed real experimental"
-      : "Feed demo hasta conectar datos reales";
+      : "Feed real sin oportunidades compatibles";
 
   return [
     `📡 Modo de datos: ${sourceLabel}.`,

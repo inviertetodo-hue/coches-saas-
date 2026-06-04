@@ -131,27 +131,31 @@ function buildCountryTargets(country) {
 function buildSearchLinks(query, budget, countries) {
   return countries.flatMap((country) => {
     const encoded = encodeURIComponent(query);
-
-    const mobileUrl = buildMobileUrl(encoded, budget, country);
-    const autoscoutUrl = buildAutoscoutUrl(encoded, budget, country);
     const priority = getCountryPriority(country);
+    const links = [];
 
-    return [
-      {
+    // mobile.de solo sirve para Alemania — devuelve ~385 chars para otros países
+    if (country === "Alemania") {
+      links.push({
         source: "mobile.de",
         country,
         label: `mobile.de · ${query} · ${country}`,
-        url: mobileUrl,
+        url: buildMobileUrl(encoded, budget, country),
         priority,
-      },
-      {
-        source: "AutoScout24",
-        country,
-        label: `AutoScout24 · ${query} · ${country}`,
-        url: autoscoutUrl,
-        priority,
-      },
-    ];
+      });
+    }
+
+    // AutoScout: siempre usar autoscout24.de con cy= para el país.
+    // Los dominios .nl/.be/.fr devuelven muro de cookies, sin listados.
+    links.push({
+      source: "AutoScout24",
+      country,
+      label: `AutoScout24 · ${query} · ${country}`,
+      url: buildAutoscoutUrl(query, budget, country),
+      priority,
+    });
+
+    return links;
   });
 }
 
@@ -174,18 +178,19 @@ function buildAutoscoutUrl(rawQuery, budget, country) {
   const model = extractModelSlug(query);
   const fuelParam = extractFuelParam(query);
 
+  // Siempre usar autoscout24.de — los otros dominios (.nl/.be/.fr) devuelven
+  // muro de cookies sin contenido. El parámetro cy= filtra por país correctamente.
   if (brand && model) {
-    // URL estructurada: la que realmente filtra
-    return `https://www.autoscout24.${countryDomain}/lst/${brand}/${model}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
+    return `https://www.autoscout24.de/lst/${brand}/${model}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
   }
 
   if (brand) {
-    return `https://www.autoscout24.${countryDomain}/lst/${brand}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
+    return `https://www.autoscout24.de/lst/${brand}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
   }
 
   // Fallback solo si no detectamos marca (casos raros)
   const encoded = encodeURIComponent(query);
-  return `https://www.autoscout24.com/lst?atype=C&cy=${countryCode}&ustate=N%2CU&q=${encoded}${budgetParam}`;
+  return `https://www.autoscout24.de/lst?atype=C&cy=${countryCode}&ustate=N%2CU&q=${encoded}${budgetParam}`;
 }
 
 function extractBrandSlug(query) {
