@@ -28,6 +28,14 @@ export default function OpportunityCard({ opportunity = {}, onOpen }) {
       opportunity.qualityScore
   );
 
+  const executiveBuySignalScore = getNumber(opportunity.executiveBuySignalScore);
+  const executiveBuySignalLabel =
+    opportunity.executiveBuySignalLabel || "SIN_DATO";
+
+  const timelineMomentumScore = getNumber(opportunity.timelineMomentumScore);
+  const timelineMomentumLabel =
+    opportunity.timelineMomentumLabel || "SIN_DATO";
+
   const price = getNumber(opportunity.price ?? opportunity.purchasePrice);
   const estimatedMarketValue = getNumber(
     opportunity.estimatedMarketValue ??
@@ -57,9 +65,7 @@ export default function OpportunityCard({ opportunity = {}, onOpen }) {
           {badge.icon} {action}
         </span>
 
-        <span style={confidenceStyle}>
-          Confianza {confidenceScore || 0}%
-        </span>
+        <span style={confidenceStyle}>Confianza {confidenceScore || 0}%</span>
       </div>
 
       <h3 style={titleStyle}>{title}</h3>
@@ -76,6 +82,18 @@ export default function OpportunityCard({ opportunity = {}, onOpen }) {
           highlight={profit > 0}
         />
         <Metric label="ROI" value={`${formatNumber(roi)}%`} />
+        <Metric
+          label="Executive"
+          value={`${executiveBuySignalLabel} ${formatNumber(
+            executiveBuySignalScore
+          )}/100`}
+        />
+        <Metric
+          label="Momentum"
+          value={`${timelineMomentumLabel} ${formatNumber(
+            timelineMomentumScore
+          )}/100`}
+        />
       </div>
 
       <p style={reasonStyle}>{reason}</p>
@@ -218,17 +236,17 @@ const metricValueStyle = {
 const reasonStyle = {
   margin: 0,
   color: "#dbeafe",
-  lineHeight: 1.6,
-  fontWeight: "700",
+  lineHeight: "1.55",
+  fontSize: "14px",
 };
 
 const buttonStyle = {
   marginTop: "18px",
   width: "100%",
-  padding: "14px 18px",
-  borderRadius: "16px",
   border: "none",
-  background: "linear-gradient(135deg,#2563eb,#16a34a)",
+  borderRadius: "18px",
+  padding: "13px 16px",
+  background: "linear-gradient(135deg,#2563eb,#22c55e)",
   color: "white",
   fontWeight: "950",
   cursor: "pointer",
