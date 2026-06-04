@@ -47,7 +47,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         message:
           parsedListings.length > 0
             ? `${parsedListings.length} anuncios normalizados detectados.`
-            : "Fetch correcto, pero el normalizador no encontró anuncios completos.",
+            : "Fetch correcto, pero el normalizador no encontró anuncios completos o compatibles.",
       });
 
       allListings.push(...parsedListings);
@@ -180,8 +180,6 @@ function parseAutoscoutListingsFromText({
   semantic,
 }) {
   const blocks = splitAutoscoutTextIntoListingBlocks(text);
-  const queryBrand = detectBrand(query);
-  const queryModel = detectModel(query, query);
   const listings = [];
 
   blocks.forEach((block, index) => {
@@ -205,8 +203,6 @@ function parseAutoscoutListingsFromText({
     const identity = buildListingIdentityFromContext({
       block: normalizedBlock,
       query,
-      queryBrand,
-      queryModel,
       fuelType,
       year,
       power,
@@ -224,6 +220,9 @@ function parseAutoscoutListingsFromText({
     const validation = validateVehicleCompatibility({
       query,
       semantic,
+      listingBrand: identity.brand,
+      listingModel: identity.model,
+      title: identity.title,
       price,
       mileage,
       year,
@@ -255,7 +254,7 @@ function parseAutoscoutListingsFromText({
       country,
       fuelType,
       drivetrain: detectDrivetrain(blockText),
-      bodyType: detectBodyType(`${blockText} ${query}`),
+      bodyType: detectBodyType(blockText),
       performancePackage: detectPerformancePackage(blockText),
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
@@ -272,7 +271,7 @@ function parseAutoscoutListingsFromText({
         hasPower: Boolean(powerKw),
         estimatedMileage: false,
         estimatedYear: false,
-        sourceFormat: "autoscout-r-jina-block-v2",
+        sourceFormat: "autoscout-r-jina-identity-safe-v3",
       },
       raw: {
         block: normalizedBlock,
@@ -340,31 +339,24 @@ function normalizeBlockLines(block = []) {
 function buildListingIdentityFromContext({
   block,
   query,
-  queryBrand,
-  queryModel,
   fuelType,
   year,
   power,
   index,
 }) {
-  const brandFromBlock = detectBrand(block.join(" "));
-  const modelFromBlock = detectModel(block.join(" "), query);
+  const blockText = block.join(" ");
+  const titleCandidate = findBestTitleLine({ block, query });
+  const identityText = titleCandidate || blockText;
 
-  const brand = queryBrand || brandFromBlock;
-  const model = queryModel || modelFromBlock;
-
-  const titleCandidate = findBestTitleLine({
-    block,
-    brand,
-    model,
-    query,
-  });
+  const brandFromListing = detectBrand(identityText) || detectBrand(blockText);
+  const modelFromListing =
+    detectModelFromListing(identityText) || detectModelFromListing(blockText);
 
   const title =
     titleCandidate ||
     buildAutoscoutTitle({
-      brand,
-      model,
+      brand: brandFromListing,
+      model: modelFromListing,
       fuelType,
       year,
       power,
@@ -372,37 +364,34 @@ function buildListingIdentityFromContext({
     });
 
   return {
-    brand,
-    model,
+    brand: brandFromListing,
+    model: modelFromListing,
     title,
   };
 }
 
-function findBestTitleLine({ block, brand, model, query }) {
+function findBestTitleLine({ block, query }) {
   const candidates = block.filter((line) =>
-    looksLikePotentialListingTitle({ line, brand, model, query })
+    looksLikePotentialListingTitle({ line, query })
   );
 
   const withBrandAndModel = candidates.find((line) => {
-    const text = normalize(line);
-    return normalize(brand) && normalize(model)
-      ? text.includes(normalize(brand)) && text.includes(normalize(model))
-      : false;
+    const brand = detectBrand(line);
+    const model = detectModelFromListing(line);
+
+    return Boolean(brand && model);
   });
 
   if (withBrandAndModel) return cleanTitle(withBrandAndModel);
 
-  const withModel = candidates.find((line) => {
-    const text = normalize(line);
-    return normalize(model) ? text.includes(normalize(model)) : false;
-  });
+  const withModel = candidates.find((line) => detectModelFromListing(line));
 
   if (withModel) return cleanTitle(withModel);
 
   return "";
 }
 
-function looksLikePotentialListingTitle({ line, brand, model, query }) {
+function looksLikePotentialListingTitle({ line, query }) {
   const text = normalize(line);
 
   if (!line || line.length < 5 || line.length > 160) return false;
@@ -417,17 +406,17 @@ function looksLikePotentialListingTitle({ line, brand, model, query }) {
   if (isGenericOrDealerTitle(line)) return false;
   if (text.includes("http")) return false;
 
-  const normalizedBrand = normalize(brand);
-  const normalizedModel = normalize(model);
-  const normalizedQuery = normalize(query);
+  const listingBrand = detectBrand(line);
+  const listingModel = detectModelFromListing(line);
 
-  if (normalizedBrand && text.includes(normalizedBrand)) return true;
-  if (normalizedModel && text.includes(normalizedModel)) return true;
+  if (listingBrand && listingModel) return true;
+  if (listingModel) return true;
 
-  return normalizedQuery
+  const queryParts = normalize(query)
     .split(" ")
-    .filter((part) => part.length >= 3)
-    .some((part) => text.includes(part));
+    .filter((part) => part.length >= 3);
+
+  return queryParts.some((part) => text.includes(part));
 }
 
 function buildAutoscoutTitle({ brand, model, fuelType, year, power, index }) {
@@ -454,7 +443,6 @@ function parseGenericListingsFromText({
 }) {
   const lines = toUsefulLines(text);
   const listings = [];
-  const queryBrand = detectBrand(query);
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = cleanText(lines[index]);
@@ -469,14 +457,19 @@ function parseGenericListingsFromText({
     const year = extractYear(blockText);
     const powerKw = extractPowerKw(blockText);
     const fuelType = detectFuelType(blockText);
+    const brand = detectBrand(line) || detectBrand(blockText);
+    const model = detectModelFromListing(line) || detectModelFromListing(blockText);
 
-    if (!price || !mileage || !year) {
+    if (!price || !mileage || !year || !brand || !model) {
       continue;
     }
 
     const validation = validateVehicleCompatibility({
       query,
       semantic,
+      listingBrand: brand,
+      listingModel: model,
+      title: line,
       price,
       mileage,
       year,
@@ -492,8 +485,8 @@ function parseGenericListingsFromText({
     listings.push({
       id: buildListingId({ source, country, line, price, mileage, year }),
       title: cleanTitle(line),
-      brand: detectBrand(line) || queryBrand,
-      model: detectModel(line, query),
+      brand,
+      model,
       price,
       km: mileage,
       mileage,
@@ -517,7 +510,7 @@ function parseGenericListingsFromText({
         hasPower: Boolean(powerKw),
         estimatedMileage: false,
         estimatedYear: false,
-        sourceFormat: "generic-r-jina",
+        sourceFormat: "generic-r-jina-identity-safe-v3",
       },
     });
   }
@@ -528,6 +521,9 @@ function parseGenericListingsFromText({
 function validateVehicleCompatibility({
   query,
   semantic,
+  listingBrand,
+  listingModel,
+  title,
   price,
   mileage,
   year,
@@ -535,7 +531,12 @@ function validateVehicleCompatibility({
   powerKw,
   maxBudget,
 }) {
-  const text = normalize(query);
+  const queryText = normalize(query);
+  const titleText = normalize(title);
+  const listingBrandText = normalize(listingBrand);
+  const listingModelText = normalize(listingModel);
+  const queryBrand = detectBrand(queryText);
+  const queryModel = detectModelFromListing(queryText);
   const warnings = [];
   const budget = Number(maxBudget || 0);
 
@@ -547,20 +548,49 @@ function validateVehicleCompatibility({
     };
   }
 
-  let score = 40;
-
-  if (detectBrand(text)) score += 20;
-
-  const targetModel = detectModel(text, text);
-  if (targetModel && text.includes(normalize(targetModel))) score += 20;
-
-  if (semantic?.isPremium) score += 5;
-  if (semantic?.isSuv) score += 5;
-  if (semantic?.isPhev) score += 5;
+  let score = 35;
 
   if (price > 0) score += 5;
   if (mileage > 0) score += 5;
   if (year >= 2012) score += 5;
+  if (powerKw > 0) score += 3;
+
+  if (queryBrand) {
+    if (listingBrandText === normalize(queryBrand)) {
+      score += 25;
+    } else {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: [
+          `Marca incompatible: búsqueda ${queryBrand}, anuncio ${listingBrand || "sin marca"}.`,
+        ],
+      };
+    }
+  }
+
+  if (queryModel) {
+    if (listingModelText === normalize(queryModel)) {
+      score += 25;
+    } else {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: [
+          `Modelo incompatible: búsqueda ${queryModel}, anuncio ${listingModel || "sin modelo"}.`,
+        ],
+      };
+    }
+  } else if (queryText) {
+    const queryTokens = queryText.split(" ").filter((part) => part.length >= 3);
+    const hasQueryToken = queryTokens.some((part) => titleText.includes(part));
+
+    if (hasQueryToken) score += 12;
+  }
+
+  if (semantic?.isPremium) score += 5;
+  if (semantic?.isSuv) score += 5;
+  if (semantic?.isPhev) score += 5;
 
   if (mileage > 250000) {
     warnings.push("Kilometraje alto.");
@@ -568,17 +598,18 @@ function validateVehicleCompatibility({
   }
 
   if (
-    text.includes("45e") ||
-    text.includes("50e") ||
-    text.includes("300de") ||
-    text.includes("tfsie") ||
-    text.includes("tfsi e")
+    queryText.includes("45e") ||
+    queryText.includes("50e") ||
+    queryText.includes("300de") ||
+    queryText.includes("300e") ||
+    queryText.includes("tfsie") ||
+    queryText.includes("tfsi e")
   ) {
     if (fuelType === "PHEV") {
-      score += 20;
+      score += 15;
     } else {
       warnings.push(`Motorización PHEV no confirmada: ${fuelType || "desconocida"}.`);
-      score -= 30;
+      score -= 25;
     }
   }
 
@@ -740,9 +771,11 @@ function looksLikeVehicleTitle(line, query) {
   if (isDealerLine(line)) return false;
   if (isGenericOrDealerTitle(line)) return false;
 
-  const brand = detectBrand(queryText).toLowerCase();
+  const brand = detectBrand(line);
+  const model = detectModelFromListing(line);
 
-  if (brand && text.includes(brand)) return true;
+  if (brand && model) return true;
+  if (model) return true;
 
   return queryText
     .split(" ")
@@ -808,12 +841,20 @@ function detectBrand(value) {
   if (text.includes("hyundai")) return "Hyundai";
   if (text.includes("kia")) return "Kia";
   if (text.includes("nissan")) return "Nissan";
+  if (text.includes("ford")) return "Ford";
+  if (text.includes("opel")) return "Opel";
+  if (text.includes("fiat")) return "Fiat";
+  if (text.includes("honda")) return "Honda";
+  if (text.includes("mazda")) return "Mazda";
+  if (text.includes("tesla")) return "Tesla";
+  if (text.includes("byd")) return "BYD";
+  if (text.includes("mg")) return "MG";
 
   return "";
 }
 
-function detectModel(title, query) {
-  const text = normalize(`${title} ${query}`);
+function detectModelFromListing(value) {
+  const text = normalize(value);
 
   const models = [
     "a1",
@@ -865,25 +906,22 @@ function detectModel(title, query) {
     "tucson",
     "sportage",
     "qashqai",
+    "focus",
+    "fiesta",
+    "astra",
+    "corsa",
+    "500",
+    "civic",
+    "cx 5",
+    "cx5",
+    "model 3",
+    "model y",
+    "zs",
+    "mg4",
+    "atto 3",
   ];
 
-  const detected = models.find((model) => text.includes(model));
-
-  if (detected) return detected;
-
-  const cleanedQuery = cleanText(query);
-  const normalizedQuery = normalize(cleanedQuery);
-
-  if (
-    normalizedQuery &&
-    !["audi", "bmw", "porsche", "volvo", "mercedes", "volkswagen"].includes(
-      normalizedQuery
-    )
-  ) {
-    return cleanedQuery;
-  }
-
-  return "";
+  return models.find((model) => text.includes(model)) || "";
 }
 
 function detectFuelType(text) {
