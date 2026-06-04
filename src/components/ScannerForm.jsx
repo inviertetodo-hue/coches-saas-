@@ -19,50 +19,58 @@ export default function ScannerForm({
 
   return (
     <div style={cardStyle}>
-      <label style={labelStyle}>Vehículo objetivo</label>
+      <div style={formGridStyle}>
+        <div>
+          <label style={labelStyle}>Vehículo objetivo</label>
+          <input value={form.query} onChange={(event) => updateField("query", event.target.value)} placeholder="Audi A3, BMW X5 45e..." style={inputStyle} />
+        </div>
 
-      <input
-        value={form.query}
-        onChange={(event) => updateField("query", event.target.value)}
-        placeholder="BMW X5 45e, Audi Q7..."
-        style={inputStyle}
-      />
+        <div>
+          <label style={labelStyle}>Presupuesto máximo</label>
+          <input value={form.maxBudget} onChange={(event) => updateField("maxBudget", event.target.value)} placeholder="25000" style={inputStyle} />
+        </div>
 
-      <label style={labelStyle}>Presupuesto máximo</label>
+        <div>
+          <label style={labelStyle}>Combustible</label>
+          <select value={form.fuel || ""} onChange={(event) => updateField("fuel", event.target.value)} style={inputStyle}>
+            <option value="">Cualquiera</option>
+            <option value="gasolina">Gasolina</option>
+            <option value="diesel">Diésel</option>
+            <option value="hibrido">Híbrido</option>
+            <option value="phev">PHEV</option>
+            <option value="electrico">Eléctrico</option>
+          </select>
+        </div>
 
-      <input
-        value={form.maxBudget}
-        onChange={(event) =>
-          updateField("maxBudget", event.target.value)
-        }
-        placeholder="60000"
-        style={inputStyle}
-      />
+        <div>
+          <label style={labelStyle}>Año desde</label>
+          <input value={form.minYear || ""} onChange={(event) => updateField("minYear", event.target.value)} placeholder="2020" inputMode="numeric" style={inputStyle} />
+        </div>
 
-      <label style={labelStyle}>Mercado</label>
+        <div>
+          <label style={labelStyle}>Km máximo</label>
+          <input value={form.maxMileage || ""} onChange={(event) => updateField("maxMileage", event.target.value)} placeholder="90000" inputMode="numeric" style={inputStyle} />
+        </div>
 
-      <select
-        value={form.country}
-        onChange={(event) => updateField("country", event.target.value)}
-        style={inputStyle}
-      >
-        {markets.map((market) => (
-          <option key={market} value={market}>
-            {market}
-          </option>
-        ))}
-      </select>
+        <div>
+          <label style={labelStyle}>Mercado</label>
+          <select value={form.country} onChange={(event) => updateField("country", event.target.value)} style={inputStyle}>
+            {markets.map((market) => (
+              <option key={market} value={market}>
+                {market}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <label style={labelStyle}>Objetivo</label>
-
-      <select
-        value={form.useCase}
-        onChange={(event) => updateField("useCase", event.target.value)}
-        style={inputStyle}
-      >
-        <option value="reventa">Reventa</option>
-        <option value="quedarmelo">Quedármelo</option>
-      </select>
+        <div style={fullWidthStyle}>
+          <label style={labelStyle}>Objetivo</label>
+          <select value={form.useCase} onChange={(event) => updateField("useCase", event.target.value)} style={inputStyle}>
+            <option value="reventa">Reventa</option>
+            <option value="quedarmelo">Quedármelo</option>
+          </select>
+        </div>
+      </div>
 
       <button onClick={handleSearch} style={searchButtonStyle}>
         🔎 Buscar oportunidades IA
@@ -78,9 +86,19 @@ const cardStyle = {
   border: "1px solid rgba(148,163,184,0.16)",
 };
 
+const formGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+  gap: "16px",
+};
+
+const fullWidthStyle = {
+  gridColumn: "1 / -1",
+};
+
 const labelStyle = {
   display: "block",
-  marginTop: "16px",
+  marginTop: "0",
   marginBottom: "8px",
   color: "#cbd5e1",
   fontWeight: "800",
