@@ -233,6 +233,11 @@ function OpportunityRow({ item, index }) {
   const comparables = item.comparables || {};
   const sellSpeed = item.sellSpeed || {};
 
+  const executiveBuySignalScore = Number(item.executiveBuySignalScore || 0);
+  const executiveBuySignalLabel = item.executiveBuySignalLabel || "SIN_DATO";
+  const timelineMomentumScore = Number(item.timelineMomentumScore || 0);
+  const timelineMomentumLabel = item.timelineMomentumLabel || "SIN_DATO";
+
   const scoreV2 =
     opportunity.scoreV2 ||
     opportunity.opportunityScoreV2 ||
@@ -285,6 +290,12 @@ function OpportunityRow({ item, index }) {
           </span>
           <span style={tagStyle}>
             Valoración {valuation.valuationLabel || "sin dato"}
+          </span>
+          <span style={tagStyle}>
+            Ejecutiva {executiveBuySignalLabel} {formatNumber(executiveBuySignalScore)}/100
+          </span>
+          <span style={tagStyle}>
+            Momentum {timelineMomentumLabel} {formatNumber(timelineMomentumScore)}/100
           </span>
         </div>
 
