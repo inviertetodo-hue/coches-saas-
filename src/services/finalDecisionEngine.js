@@ -77,6 +77,24 @@ export function buildFinalDealDecision(item = {}) {
       modelModifier,
       learningModifier,
     }),
+
+    nextAction: buildNextAction({
+      action,
+      netProfit,
+      netRoi,
+      riskScore,
+      liquidityScore,
+    }),
+
+    userSummary: buildUserSummary({
+      action,
+      finalScore,
+      netProfit,
+      netRoi,
+      riskLevel,
+      riskScore,
+      liquidityScore,
+    }),
   };
 }
 
@@ -142,9 +160,9 @@ function getFinalAction({
 
 function getActionLabel(action) {
   const labels = {
-    CONTACTAR_PRIMERO: "Contactar primero",
-    VIGILAR: "Vigilar",
-    EVITAR: "Evitar",
+    CONTACTAR_PRIMERO: "Contactar hoy",
+    VIGILAR: "Vigilar precio",
+    EVITAR: "No priorizar",
     DESCARTAR: "Descartar",
   };
 
@@ -163,28 +181,92 @@ function buildExplanation({
   learningModifier,
 }) {
   const modifierText = modelModifier.active
-    ? ` Ajuste modelo: ${modelModifier.finalScoreModifier > 0 ? "+" : ""}${modelModifier.finalScoreModifier}.`
+    ? ` Ajuste del modelo: ${modelModifier.finalScoreModifier > 0 ? "+" : ""}${modelModifier.finalScoreModifier}.`
     : "";
 
   const learningText = learningModifier.active
-    ? ` Aprendizaje histórico: ${learningModifier.learningBonus > 0 ? "+" : ""}${learningModifier.learningBonus} por ${learningModifier.model} (${learningModifier.confidence.toLowerCase()}).`
+    ? ` Memoria histórica: ${learningModifier.learningBonus > 0 ? "+" : ""}${learningModifier.learningBonus} por ${learningModifier.model} (${learningModifier.confidence.toLowerCase()}).`
     : "";
 
   if (action === "CONTACTAR_PRIMERO") {
-    return `Prioridad alta: score final ${finalScore}/100, margen neto ${formatMoney(
+    return `Candidata fuerte para contactar hoy: margen neto estimado de ${formatMoney(
       netProfit
-    )}, ROI ${netRoi}% y riesgo ${riskLevel.toLowerCase()}.${modifierText}${learningText}`;
+    )}, ROI ${netRoi}%, liquidez ${liquidityScore}/100 y riesgo controlado (${riskLevel.toLowerCase()}).${modifierText}${learningText}`;
   }
 
   if (action === "VIGILAR") {
-    return `Interesante pero no urgente: score final ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} y liquidez ${liquidityScore}/100.${modifierText}${learningText}`;
+    return `Conviene vigilarla: la señal es interesante, pero todavía no justifica actuar de inmediato. Score ${finalScore}/100, liquidez ${liquidityScore}/100 y riesgo ${riskLevel.toLowerCase()}.`;
   }
 
   if (action === "EVITAR") {
-    return `No priorizar: riesgo ${riskLevel.toLowerCase()} (${riskScore}/100), ROI ${netRoi}% y liquidez ${liquidityScore}/100.${modifierText}${learningText}`;
+    return `No conviene priorizarla ahora: el riesgo, la liquidez o el ROI no compensan suficientemente. Riesgo ${riskLevel.toLowerCase()} (${riskScore}/100), ROI ${netRoi}% y liquidez ${liquidityScore}/100.`;
   }
 
-  return `Descartar: score final ${finalScore}/100 y riesgo ${riskLevel.toLowerCase()} (${riskScore}/100).${modifierText}${learningText}`;
+  return `No comprar ahora: el margen neto o el riesgo no compensan la operación. Score ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} (${riskScore}/100), margen ${formatMoney(
+    netProfit
+  )} y ROI ${netRoi}%.${modifierText}${learningText}`;
+}
+
+function buildNextAction({
+  action,
+  netProfit,
+  netRoi,
+  riskScore,
+  liquidityScore,
+}) {
+  if (action === "CONTACTAR_PRIMERO") {
+    return "Llamar hoy, confirmar disponibilidad, historial, daños, propietarios y precio final puesto en España.";
+  }
+
+  if (action === "VIGILAR") {
+    return "Guardar en seguimiento y revisar si baja de precio o mejora la señal de mercado.";
+  }
+
+  if (action === "EVITAR") {
+    return "No gastar tiempo ahora salvo que el precio baje claramente o aparezcan mejores datos.";
+  }
+
+  if (netProfit <= 0) {
+    return "Descartar por margen neto insuficiente después de costes.";
+  }
+
+  if (netRoi < 0) {
+    return "Descartar porque el ROI estimado es negativo.";
+  }
+
+  if (riskScore >= 70) {
+    return "Descartar por riesgo operativo demasiado alto.";
+  }
+
+  if (liquidityScore < 50) {
+    return "Descartar por liquidez insuficiente.";
+  }
+
+  return "Descartar y buscar una alternativa con mejor margen, menor riesgo o más liquidez.";
+}
+
+function buildUserSummary({
+  action,
+  finalScore,
+  netProfit,
+  netRoi,
+  riskLevel,
+  riskScore,
+  liquidityScore,
+}) {
+  if (action === "CONTACTAR_PRIMERO") {
+    return `Oportunidad accionable: ${formatMoney(netProfit)} de margen estimado, ROI ${netRoi}% y liquidez ${liquidityScore}/100.`;
+  }
+
+  if (action === "VIGILAR") {
+    return `Oportunidad para seguimiento: score ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} y liquidez ${liquidityScore}/100.`;
+  }
+
+  if (action === "EVITAR") {
+    return `No prioritaria: ROI ${netRoi}%, riesgo ${riskScore}/100 y liquidez ${liquidityScore}/100.`;
+  }
+
+  return `Descartada por ahora: margen ${formatMoney(netProfit)}, ROI ${netRoi}% y riesgo ${riskScore}/100.`;
 }
 
 function formatMoney(value) {
