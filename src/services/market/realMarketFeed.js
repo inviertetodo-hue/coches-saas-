@@ -25,7 +25,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
       const readerUrl = buildReaderUrl(link.url);
       const text = await fetchSearchText(link.url);
 
-      const parsedListings = parseListingsFromText({
+      const { listings: parsedListings, rejectionLog } = parseListingsFromText({
         text,
         source: link.source,
         country: link.country,
@@ -44,10 +44,11 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         textSample: text.slice(0, 1200),
         parsedCount: parsedListings.length,
         durationMs: Date.now() - startedAt,
+        rejectionLog,
         message:
           parsedListings.length > 0
             ? `${parsedListings.length} anuncios normalizados detectados.`
-            : "Fetch correcto, pero el normalizador no encontró anuncios completos o compatibles.",
+            : buildNoResultsMessage(rejectionLog),
       });
 
       allListings.push(...parsedListings);
@@ -67,6 +68,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         textSample: "",
         parsedCount: 0,
         durationMs: Date.now() - startedAt,
+        rejectionLog: null,
         message: error.message,
       });
     }
@@ -80,6 +82,24 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
     errors,
     diagnostics,
   };
+}
+
+function buildNoResultsMessage(rejectionLog) {
+  if (!rejectionLog) return "Fetch correcto, pero el normalizador no encontró anuncios completos.";
+
+  const parts = [];
+
+  if (rejectionLog.totalBlocks === 0) {
+    parts.push("No se detectaron bloques de anuncios en el texto.");
+    parts.push("Posible causa: AutoScout cambió el formato de imágenes o r.jina.ai devolvió texto sin bloques.");
+  } else {
+    parts.push(`${rejectionLog.totalBlocks} bloques detectados.`);
+    if (rejectionLog.noData > 0) parts.push(`${rejectionLog.noData} sin precio/km/año.`);
+    if (rejectionLog.incompatible > 0) parts.push(`${rejectionLog.incompatible} incompatibles con la búsqueda.`);
+    if (rejectionLog.genericTitle > 0) parts.push(`${rejectionLog.genericTitle} con título genérico/dealer.`);
+  }
+
+  return parts.join(" ");
 }
 
 async function fetchSearchText(url) {
@@ -121,15 +141,13 @@ function buildReaderUrl(url) {
     throw new Error("URL vacía.");
   }
 
-  if (cleanUrl.startsWith("https://")) {
-    return `https://r.jina.ai/http://${cleanUrl.replace("https://", "")}`;
+  // r.jina.ai acepta la URL completa incluyendo el esquema original.
+  // No degradar https:// a http:// — AutoScout y otros portales redirigen o bloquean http.
+  if (cleanUrl.startsWith("https://") || cleanUrl.startsWith("http://")) {
+    return `https://r.jina.ai/${cleanUrl}`;
   }
 
-  if (cleanUrl.startsWith("http://")) {
-    return `https://r.jina.ai/http://${cleanUrl.replace("http://", "")}`;
-  }
-
-  return `https://r.jina.ai/http://${cleanUrl}`;
+  return `https://r.jina.ai/https://${cleanUrl}`;
 }
 
 function safeBuildReaderUrl(url) {
@@ -180,7 +198,18 @@ function parseAutoscoutListingsFromText({
   semantic,
 }) {
   const blocks = splitAutoscoutTextIntoListingBlocks(text);
+  const queryBrand = detectBrand(query);
+  const queryModel = detectModelFromQuery(query);
   const listings = [];
+
+  // Contadores de rechazo para diagnóstico
+  const rejectionLog = {
+    totalBlocks: blocks.length,
+    noData: 0,
+    incompatible: 0,
+    genericTitle: 0,
+    accepted: 0,
+  };
 
   blocks.forEach((block, index) => {
     const normalizedBlock = normalizeBlockLines(block);
@@ -196,33 +225,35 @@ function parseAutoscoutListingsFromText({
     const imageUrl = extractFirstImageUrl(block.join("\n"));
     const sourceUrl = extractFirstUrl(blockText);
 
+    // Datos básicos son obligatorios — sin estos no podemos valorar el coche
     if (!price || !mileage || !year) {
+      rejectionLog.noData += 1;
       return;
     }
 
-    const identity = buildListingIdentityFromContext({
-      block: normalizedBlock,
-      query,
-      fuelType,
-      year,
-      power,
-      index,
-    });
+    // Construir identidad: intentar detectar del bloque, fallback al query
+    const brandFromBlock = detectBrand(blockText);
+    const modelFromBlock = detectModelFromText(blockText, query);
 
-    if (!identity.brand || !identity.model) {
-      return;
-    }
+    // FIX CRÍTICO: si no detectamos marca/modelo del bloque, usamos los del query.
+    // Antes esto rechazaba anuncios válidos. Ahora los acepta con confianza reducida.
+    const brand = brandFromBlock || queryBrand;
+    const model = modelFromBlock || queryModel;
 
-    if (isGenericOrDealerTitle(identity.title)) {
+    // Construir título desde el bloque o sintético desde los datos disponibles
+    const titleFromBlock = findBestTitleLine({ block: normalizedBlock, brand, model, query });
+    const title =
+      titleFromBlock ||
+      buildAutoscoutTitle({ brand, model, fuelType, year, power, index });
+
+    if (isGenericOrDealerTitle(title)) {
+      rejectionLog.genericTitle += 1;
       return;
     }
 
     const validation = validateVehicleCompatibility({
       query,
       semantic,
-      listingBrand: identity.brand,
-      listingModel: identity.model,
-      title: identity.title,
       price,
       mileage,
       year,
@@ -232,21 +263,24 @@ function parseAutoscoutListingsFromText({
     });
 
     if (!validation.isCompatible) {
+      rejectionLog.incompatible += 1;
       return;
     }
+
+    rejectionLog.accepted += 1;
 
     listings.push({
       id: buildListingId({
         source,
         country,
-        line: identity.title,
+        line: title,
         price,
         mileage,
         year,
       }),
-      title: identity.title,
-      brand: identity.brand,
-      model: identity.model,
+      title,
+      brand,
+      model,
       price,
       km: mileage,
       mileage,
@@ -254,7 +288,7 @@ function parseAutoscoutListingsFromText({
       country,
       fuelType,
       drivetrain: detectDrivetrain(blockText),
-      bodyType: detectBodyType(blockText),
+      bodyType: detectBodyType(`${blockText} ${query}`),
       performancePackage: detectPerformancePackage(blockText),
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
@@ -262,6 +296,8 @@ function parseAutoscoutListingsFromText({
       url: sourceUrl,
       imageUrl,
       isRealData: true,
+      // Indica si la identidad vino del bloque o fue heredada del query
+      identitySource: brandFromBlock && modelFromBlock ? "block" : "query-fallback",
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -271,7 +307,7 @@ function parseAutoscoutListingsFromText({
         hasPower: Boolean(powerKw),
         estimatedMileage: false,
         estimatedYear: false,
-        sourceFormat: "autoscout-r-jina-identity-safe-v3",
+        sourceFormat: "autoscout-r-jina-block-v2",
       },
       raw: {
         block: normalizedBlock,
@@ -279,7 +315,7 @@ function parseAutoscoutListingsFromText({
     });
   });
 
-  return listings;
+  return { listings, rejectionLog };
 }
 
 function splitAutoscoutTextIntoListingBlocks(text) {
@@ -318,12 +354,17 @@ function isRealListingImageBlock(block = []) {
   const firstLine = block[0] || "";
 
   if (!firstLine.startsWith("![Image")) return false;
-  if (firstLine.includes("seal-images")) return false;
-  if (!firstLine.includes("listing-images")) return false;
 
-  const text = block.join(" ");
+  // Excluir logos, sellos y banners — no son anuncios de vehículos
+  const lowerFirst = firstLine.toLowerCase();
+  if (lowerFirst.includes("seal-images")) return false;
+  if (lowerFirst.includes("logo")) return false;
+  if (lowerFirst.includes("banner")) return false;
 
-  return Boolean(extractPrice(text) && extractMileage(text));
+  // FIX: antes se requería "listing-images" que es frágil ante cambios de CDN.
+  // Ahora solo verificamos que el bloque tenga datos de precio y km.
+  const blockText = block.join(" ");
+  return Boolean(extractPrice(blockText) && extractMileage(blockText));
 }
 
 function normalizeBlockLines(block = []) {
@@ -336,87 +377,61 @@ function normalizeBlockLines(block = []) {
     .filter((line) => !line.includes("seal-images"));
 }
 
-function buildListingIdentityFromContext({
-  block,
-  query,
-  fuelType,
-  year,
-  power,
-  index,
-}) {
-  const blockText = block.join(" ");
-  const titleCandidate = findBestTitleLine({ block, query });
-  const identityText = titleCandidate || blockText;
-
-  const brandFromListing = detectBrand(identityText) || detectBrand(blockText);
-  const modelFromListing =
-    detectModelFromListing(identityText) || detectModelFromListing(blockText);
-
-  const title =
-    titleCandidate ||
-    buildAutoscoutTitle({
-      brand: brandFromListing,
-      model: modelFromListing,
-      fuelType,
-      year,
-      power,
-      index,
-    });
-
-  return {
-    brand: brandFromListing,
-    model: modelFromListing,
-    title,
-  };
-}
-
-function findBestTitleLine({ block, query }) {
+function findBestTitleLine({ block, brand, model, query }) {
+  // FIX: antes se rechazaban líneas que contenían año o tipo de combustible.
+  // Los títulos reales de AutoScout SUELEN incluirlos: "BMW X5 xDrive45e 2021 Hybrid"
+  // Ahora el criterio es: la línea menciona marca o modelo y no es basura.
   const candidates = block.filter((line) =>
-    looksLikePotentialListingTitle({ line, query })
+    looksLikePotentialListingTitle({ line, brand, model, query })
   );
 
   const withBrandAndModel = candidates.find((line) => {
-    const brand = detectBrand(line);
-    const model = detectModelFromListing(line);
-
-    return Boolean(brand && model);
+    const text = normalize(line);
+    return normalize(brand) && normalize(model)
+      ? text.includes(normalize(brand)) && text.includes(normalize(model))
+      : false;
   });
 
   if (withBrandAndModel) return cleanTitle(withBrandAndModel);
 
-  const withModel = candidates.find((line) => detectModelFromListing(line));
+  const withModel = candidates.find((line) => {
+    const text = normalize(line);
+    return normalize(model) ? text.includes(normalize(model)) : false;
+  });
 
   if (withModel) return cleanTitle(withModel);
+
+  const withBrand = candidates.find((line) => {
+    const text = normalize(line);
+    return normalize(brand) ? text.includes(normalize(brand)) : false;
+  });
+
+  if (withBrand) return cleanTitle(withBrand);
 
   return "";
 }
 
-function looksLikePotentialListingTitle({ line, query }) {
+function looksLikePotentialListingTitle({ line, brand, model, query }) {
   const text = normalize(line);
 
-  if (!line || line.length < 5 || line.length > 160) return false;
-  if (extractPrice(line)) return false;
-  if (extractMileage(line)) return false;
-  if (extractYear(line)) return false;
-  if (extractPowerKw(line)) return false;
-  if (detectFuelType(line)) return false;
+  if (!line || line.length < 4 || line.length > 200) return false;
   if (isBlockedLine(line)) return false;
-  if (isEquipmentLine(line)) return false;
   if (isDealerLine(line)) return false;
   if (isGenericOrDealerTitle(line)) return false;
   if (text.includes("http")) return false;
 
-  const listingBrand = detectBrand(line);
-  const listingModel = detectModelFromListing(line);
+  // La línea debe mencionar la marca, el modelo o alguna palabra del query
+  const normalizedBrand = normalize(brand);
+  const normalizedModel = normalize(model);
+  const normalizedQuery = normalize(query);
 
-  if (listingBrand && listingModel) return true;
-  if (listingModel) return true;
+  if (normalizedBrand && text.includes(normalizedBrand)) return true;
+  if (normalizedModel && normalizedModel.length >= 2 && text.includes(normalizedModel)) return true;
 
-  const queryParts = normalize(query)
+  return normalizedQuery
     .split(" ")
-    .filter((part) => part.length >= 3);
-
-  return queryParts.some((part) => text.includes(part));
+    .filter((part) => part.length >= 3)
+    .some((part) => text.includes(part));
 }
 
 function buildAutoscoutTitle({ brand, model, fuelType, year, power, index }) {
@@ -443,6 +458,14 @@ function parseGenericListingsFromText({
 }) {
   const lines = toUsefulLines(text);
   const listings = [];
+  const queryBrand = detectBrand(query);
+  const rejectionLog = {
+    totalBlocks: 0,
+    noData: 0,
+    incompatible: 0,
+    genericTitle: 0,
+    accepted: 0,
+  };
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = cleanText(lines[index]);
@@ -451,25 +474,23 @@ function parseGenericListingsFromText({
       continue;
     }
 
+    rejectionLog.totalBlocks += 1;
+
     const blockText = lines.slice(index, index + 20).join(" ");
     const price = extractPrice(blockText);
     const mileage = extractMileage(blockText);
     const year = extractYear(blockText);
     const powerKw = extractPowerKw(blockText);
     const fuelType = detectFuelType(blockText);
-    const brand = detectBrand(line) || detectBrand(blockText);
-    const model = detectModelFromListing(line) || detectModelFromListing(blockText);
 
-    if (!price || !mileage || !year || !brand || !model) {
+    if (!price || !mileage || !year) {
+      rejectionLog.noData += 1;
       continue;
     }
 
     const validation = validateVehicleCompatibility({
       query,
       semantic,
-      listingBrand: brand,
-      listingModel: model,
-      title: line,
       price,
       mileage,
       year,
@@ -479,14 +500,17 @@ function parseGenericListingsFromText({
     });
 
     if (!validation.isCompatible) {
+      rejectionLog.incompatible += 1;
       continue;
     }
+
+    rejectionLog.accepted += 1;
 
     listings.push({
       id: buildListingId({ source, country, line, price, mileage, year }),
       title: cleanTitle(line),
-      brand,
-      model,
+      brand: detectBrand(line) || queryBrand,
+      model: detectModelFromText(line, query),
       price,
       km: mileage,
       mileage,
@@ -501,6 +525,7 @@ function parseGenericListingsFromText({
       source,
       url: extractFirstUrl(blockText),
       isRealData: true,
+      identitySource: "block",
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -510,20 +535,17 @@ function parseGenericListingsFromText({
         hasPower: Boolean(powerKw),
         estimatedMileage: false,
         estimatedYear: false,
-        sourceFormat: "generic-r-jina-identity-safe-v3",
+        sourceFormat: "generic-r-jina",
       },
     });
   }
 
-  return listings;
+  return { listings, rejectionLog };
 }
 
 function validateVehicleCompatibility({
   query,
   semantic,
-  listingBrand,
-  listingModel,
-  title,
   price,
   mileage,
   year,
@@ -531,12 +553,7 @@ function validateVehicleCompatibility({
   powerKw,
   maxBudget,
 }) {
-  const queryText = normalize(query);
-  const titleText = normalize(title);
-  const listingBrandText = normalize(listingBrand);
-  const listingModelText = normalize(listingModel);
-  const queryBrand = detectBrand(queryText);
-  const queryModel = detectModelFromListing(queryText);
+  const text = normalize(query);
   const warnings = [];
   const budget = Number(maxBudget || 0);
 
@@ -548,49 +565,20 @@ function validateVehicleCompatibility({
     };
   }
 
-  let score = 35;
+  let score = 40;
 
-  if (price > 0) score += 5;
-  if (mileage > 0) score += 5;
-  if (year >= 2012) score += 5;
-  if (powerKw > 0) score += 3;
+  if (detectBrand(text)) score += 20;
 
-  if (queryBrand) {
-    if (listingBrandText === normalize(queryBrand)) {
-      score += 25;
-    } else {
-      return {
-        isCompatible: false,
-        score: 0,
-        warnings: [
-          `Marca incompatible: búsqueda ${queryBrand}, anuncio ${listingBrand || "sin marca"}.`,
-        ],
-      };
-    }
-  }
-
-  if (queryModel) {
-    if (listingModelText === normalize(queryModel)) {
-      score += 25;
-    } else {
-      return {
-        isCompatible: false,
-        score: 0,
-        warnings: [
-          `Modelo incompatible: búsqueda ${queryModel}, anuncio ${listingModel || "sin modelo"}.`,
-        ],
-      };
-    }
-  } else if (queryText) {
-    const queryTokens = queryText.split(" ").filter((part) => part.length >= 3);
-    const hasQueryToken = queryTokens.some((part) => titleText.includes(part));
-
-    if (hasQueryToken) score += 12;
-  }
+  const targetModel = detectModelFromQuery(text);
+  if (targetModel && text.includes(normalize(targetModel))) score += 20;
 
   if (semantic?.isPremium) score += 5;
   if (semantic?.isSuv) score += 5;
   if (semantic?.isPhev) score += 5;
+
+  if (price > 0) score += 5;
+  if (mileage > 0) score += 5;
+  if (year >= 2012) score += 5;
 
   if (mileage > 250000) {
     warnings.push("Kilometraje alto.");
@@ -598,18 +586,17 @@ function validateVehicleCompatibility({
   }
 
   if (
-    queryText.includes("45e") ||
-    queryText.includes("50e") ||
-    queryText.includes("300de") ||
-    queryText.includes("300e") ||
-    queryText.includes("tfsie") ||
-    queryText.includes("tfsi e")
+    text.includes("45e") ||
+    text.includes("50e") ||
+    text.includes("300de") ||
+    text.includes("tfsie") ||
+    text.includes("tfsi e")
   ) {
     if (fuelType === "PHEV") {
-      score += 15;
+      score += 20;
     } else {
       warnings.push(`Motorización PHEV no confirmada: ${fuelType || "desconocida"}.`);
-      score -= 25;
+      score -= 30;
     }
   }
 
@@ -618,6 +605,112 @@ function validateVehicleCompatibility({
     score: clamp(score, 0, 100),
     warnings,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Detección de modelo — dos funciones separadas:
+//   detectModelFromQuery: extrae el modelo de la búsqueda del usuario
+//   detectModelFromText: intenta detectar el modelo dentro del texto de un bloque
+// ---------------------------------------------------------------------------
+
+function detectModelFromQuery(query) {
+  const text = normalize(query);
+
+  // Variantes PHEV con motor específico (más específico primero)
+  const variantPatterns = [
+    // BMW X5
+    { pattern: /x5\s*(xdrive)?\s*45e/,    result: "X5 xDrive45e" },
+    { pattern: /x5\s*(xdrive)?\s*30e/,    result: "X5 xDrive30e" },
+    { pattern: /x5\s*(xdrive)?\s*50e/,    result: "X5 xDrive50e" },
+    // BMW X3
+    { pattern: /x3\s*(xdrive)?\s*30e/,    result: "X3 xDrive30e" },
+    // Audi Q7
+    { pattern: /q7\s*tfsi\s*e/,           result: "Q7 TFSI e" },
+    { pattern: /q7\s*tfsie/,              result: "Q7 TFSI e" },
+    // Mercedes GLC
+    { pattern: /glc\s*300\s*de/,          result: "GLC 300de" },
+    { pattern: /glc\s*300\s*e/,           result: "GLC 300e" },
+    // BMW Serie
+    { pattern: /serie\s*[135]/,           result: text.match(/serie\s*([135])/)?.[0] || "" },
+  ];
+
+  for (const { pattern, result } of variantPatterns) {
+    if (pattern.test(text) && result) return result;
+  }
+
+  // Modelos base
+  const baseModels = [
+    "x1", "x2", "x3", "x4", "x5", "x6", "x7",
+    "a1", "a3", "a4", "a5", "a6", "a7", "a8",
+    "q2", "q3", "q5", "q7", "q8",
+    "glc", "gle", "glb", "gla", "gls",
+    "xc40", "xc60", "xc90", "v60", "v90", "s60", "s90",
+    "911", "macan", "cayenne", "panamera", "taycan",
+    "golf", "tiguan", "passat", "polo", "touareg", "arteon",
+    "octavia", "kodiaq", "superb",
+    "leon", "ateca", "tarraco",
+    "clio", "megane", "kadjar", "koleos",
+    "3008", "5008", "2008", "308", "208",
+    "tucson", "santa fe",
+    "sportage", "sorento",
+    "qashqai", "juke",
+    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 6", "serie 7",
+  ];
+
+  const detected = baseModels.find((m) => text.includes(normalize(m)));
+  if (detected) return detected;
+
+  // Último recurso: usar el query limpio como modelo si no es solo una marca
+  const cleanedQuery = cleanText(query);
+  const onlyBrand = ["audi", "bmw", "porsche", "volvo", "mercedes", "volkswagen", "renault", "peugeot"].includes(normalize(cleanedQuery));
+  if (!onlyBrand && cleanedQuery) return cleanedQuery;
+
+  return "";
+}
+
+function detectModelFromText(text, query) {
+  // Intenta detectar el modelo dentro de un bloque de texto del anuncio.
+  // Si no puede, devuelve vacío (el caller usará el fallback del query).
+  const combined = normalize(`${text} ${query}`);
+
+  const variantPatterns = [
+    { pattern: /x5\s*(xdrive)?\s*45e/,    result: "X5 xDrive45e" },
+    { pattern: /x5\s*(xdrive)?\s*30e/,    result: "X5 xDrive30e" },
+    { pattern: /x5\s*(xdrive)?\s*50e/,    result: "X5 xDrive50e" },
+    { pattern: /x3\s*(xdrive)?\s*30e/,    result: "X3 xDrive30e" },
+    { pattern: /q7\s*tfsi\s*e/,           result: "Q7 TFSI e" },
+    { pattern: /q7\s*tfsie/,              result: "Q7 TFSI e" },
+    { pattern: /glc\s*300\s*de/,          result: "GLC 300de" },
+    { pattern: /glc\s*300\s*e/,           result: "GLC 300e" },
+  ];
+
+  for (const { pattern, result } of variantPatterns) {
+    if (pattern.test(combined)) return result;
+  }
+
+  const baseModels = [
+    "x1", "x2", "x3", "x4", "x5", "x6", "x7",
+    "a1", "a3", "a4", "a5", "a6", "a7", "a8",
+    "q2", "q3", "q5", "q7", "q8",
+    "glc", "gle", "glb", "gla", "gls",
+    "xc40", "xc60", "xc90", "v60", "v90", "s60", "s90",
+    "911", "macan", "cayenne", "panamera", "taycan",
+    "golf", "tiguan", "passat", "polo", "touareg",
+    "octavia", "kodiaq", "superb",
+    "leon", "ateca", "tarraco",
+    "clio", "megane", "kadjar",
+    "3008", "5008", "2008", "308", "208",
+    "tucson", "santa fe",
+    "sportage", "sorento",
+    "qashqai", "juke",
+  ];
+
+  return baseModels.find((m) => combined.includes(normalize(m))) || "";
+}
+
+// Legacy alias — mantener compatibilidad con código que llame a detectModel
+function detectModel(title, query) {
+  return detectModelFromText(title, query) || detectModelFromQuery(query);
 }
 
 function toUsefulLines(text) {
@@ -687,7 +780,6 @@ function isDealerLine(line) {
     "stock fuera",
     "garantia",
     "dto",
-    "oferta",
     "precio justo",
     "super oferta",
     "sin comparacion",
@@ -707,7 +799,6 @@ function isGenericOrDealerTitle(title) {
     "anuncios de",
     "autoscout24",
     "url source",
-    "image",
     "precio justo",
     "super oferta",
     "sin comparacion",
@@ -720,13 +811,15 @@ function isGenericOrDealerTitle(title) {
 
 function cleanTitle(value) {
   return cleanText(value)
-    .replace(/\*\*/g, "")
+    .replace(/^#+\s*/, "")   // quita "### " del inicio
+    .replace(/\*\*/g, "")    // quita negrita markdown
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function extractRegistration(text) {
-  const match = String(text).match(/\b(0[1-9]|1[0-2])\/(20\d{2})\b/);
+  // AutoScout Alemania usa MM-YYYY (ej: "10-2022"), no MM/YYYY
+  const match = String(text).match(/\b(0[1-9]|1[0-2])[-/](20\d{2})\b/);
 
   if (!match) return null;
 
@@ -764,18 +857,16 @@ function looksLikeVehicleTitle(line, query) {
   const text = normalize(line);
   const queryText = normalize(query);
 
-  if (line.length < 4 || line.length > 160) return false;
+  if (line.length < 4 || line.length > 200) return false;
   if (!queryText) return false;
   if (isBlockedLine(line)) return false;
   if (isEquipmentLine(line)) return false;
   if (isDealerLine(line)) return false;
   if (isGenericOrDealerTitle(line)) return false;
 
-  const brand = detectBrand(line);
-  const model = detectModelFromListing(line);
+  const brand = detectBrand(queryText).toLowerCase();
 
-  if (brand && model) return true;
-  if (model) return true;
+  if (brand && text.includes(brand)) return true;
 
   return queryText
     .split(" ")
@@ -793,7 +884,13 @@ function extractPrice(text) {
 
   for (const pattern of patterns) {
     const match = String(text).match(pattern);
-    if (match?.[1]) return safeNumber(match[1]);
+
+    if (match?.[1]) {
+      const price = safeNumber(match[1]);
+
+      // Sanity check: precios de coches entre 1.000 y 500.000
+      if (price >= 1000 && price <= 500000) return price;
+    }
   }
 
   return 0;
@@ -843,97 +940,41 @@ function detectBrand(value) {
   if (text.includes("nissan")) return "Nissan";
   if (text.includes("ford")) return "Ford";
   if (text.includes("opel")) return "Opel";
+  if (text.includes("citroen") || text.includes("citroën")) return "Citroën";
   if (text.includes("fiat")) return "Fiat";
-  if (text.includes("honda")) return "Honda";
+  if (text.includes("alfa romeo") || text.includes("alfaromeo")) return "Alfa Romeo";
   if (text.includes("mazda")) return "Mazda";
+  if (text.includes("honda")) return "Honda";
+  if (text.includes("subaru")) return "Subaru";
+  if (text.includes("mitsubishi")) return "Mitsubishi";
+  if (text.includes("lexus")) return "Lexus";
+  if (text.includes("land rover") || text.includes("landrover")) return "Land Rover";
+  if (text.includes("jaguar")) return "Jaguar";
   if (text.includes("tesla")) return "Tesla";
-  if (text.includes("byd")) return "BYD";
-  if (text.includes("mg")) return "MG";
 
   return "";
-}
-
-function detectModelFromListing(value) {
-  const text = normalize(value);
-
-  const models = [
-    "a1",
-    "a3",
-    "a4",
-    "a5",
-    "a6",
-    "a7",
-    "q2",
-    "q3",
-    "q5",
-    "q7",
-    "q8",
-    "x1",
-    "x3",
-    "x5",
-    "x6",
-    "serie 1",
-    "serie 3",
-    "serie 5",
-    "panamera",
-    "boxster",
-    "cayman",
-    "macan",
-    "cayenne",
-    "911",
-    "glc",
-    "gle",
-    "clase a",
-    "classe a",
-    "xc60",
-    "xc90",
-    "v60",
-    "v90",
-    "208",
-    "308",
-    "3008",
-    "5008",
-    "golf",
-    "tiguan",
-    "passat",
-    "polo",
-    "octavia",
-    "fabia",
-    "leon",
-    "ibiza",
-    "clio",
-    "megane",
-    "tucson",
-    "sportage",
-    "qashqai",
-    "focus",
-    "fiesta",
-    "astra",
-    "corsa",
-    "500",
-    "civic",
-    "cx 5",
-    "cx5",
-    "model 3",
-    "model y",
-    "zs",
-    "mg4",
-    "atto 3",
-  ];
-
-  return models.find((model) => text.includes(model)) || "";
 }
 
 function detectFuelType(text) {
   const value = normalize(text);
 
+  // PHEV — AutoScout Alemania usa "Elektro/Benzin" o "Elektro/Diesel"
+  if (value.includes("elektro/benzin")) return "PHEV";
+  if (value.includes("elektro/diesel")) return "PHEV";
   if (value.includes("electric/gasoline")) return "PHEV";
   if (value.includes("electric/diesel")) return "PHEV";
   if (value.includes("plug-in") || value.includes("plug in")) return "PHEV";
-  if (value.includes("hybrid") || value.includes("híbrido") || value.includes("phev")) return "PHEV";
+  if (value.includes("phev")) return "PHEV";
+  if (value.includes("hybrid") || value.includes("hibrid")) return "PHEV";
+
+  // Diesel
   if (value.includes("diesel") || value.includes("tdi") || value.includes("dci")) return "Diesel";
-  if (value.includes("electric") || value.includes("eléctrico")) return "Electric";
-  if (value.includes("petrol") || value.includes("gasoline") || value.includes("gasolina") || value.includes("tsi")) return "Gasolina";
+
+  // Eléctrico puro
+  if (value.includes("elektro") || value.includes("electric") || value.includes("electrico")) return "Electric";
+
+  // Gasolina
+  if (value.includes("benzin") || value.includes("petrol") || value.includes("gasoline") || value.includes("gasolina") || value.includes("tsi")) return "Gasolina";
 
   return "";
 }
@@ -1048,5 +1089,5 @@ function normalize(value) {
   return cleanText(value)
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[̀-ͯ]/g, "");
 }

@@ -162,11 +162,173 @@ function buildMobileUrl(encodedQuery, budget, country) {
   return `https://suchen.mobile.de/fahrzeuge/search.html?dam=false&isSearchRequest=true&ms=&ref=quickSearch&s=Car&sb=rel&vc=Car&cn=${countryCode}&q=${encodedQuery}${budgetParam}`;
 }
 
-function buildAutoscoutUrl(encodedQuery, budget, country) {
+function buildAutoscoutUrl(rawQuery, budget, country) {
+  // AutoScout ignora el parámetro q= y devuelve todo el catálogo.
+  // La búsqueda real usa la ruta estructurada: /lst/{marca}/{modelo}?fuel=EB&cy=D
+  const query = String(rawQuery || "").replace(/%20/g, " ").trim();
   const countryCode = getAutoscoutCountryCode(country);
+  const countryDomain = getAutoscoutDomain(country);
   const budgetParam = budget > 0 ? `&price_to=${budget}` : "";
 
-  return `https://www.autoscout24.com/lst?atype=C&cy=${countryCode}&desc=0&sort=standard&ustate=N%2CU&q=${encodedQuery}${budgetParam}`;
+  const brand = extractBrandSlug(query);
+  const model = extractModelSlug(query);
+  const fuelParam = extractFuelParam(query);
+
+  if (brand && model) {
+    // URL estructurada: la que realmente filtra
+    return `https://www.autoscout24.${countryDomain}/lst/${brand}/${model}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
+  }
+
+  if (brand) {
+    return `https://www.autoscout24.${countryDomain}/lst/${brand}?atype=C&cy=${countryCode}&ustate=N%2CU${fuelParam}${budgetParam}`;
+  }
+
+  // Fallback solo si no detectamos marca (casos raros)
+  const encoded = encodeURIComponent(query);
+  return `https://www.autoscout24.com/lst?atype=C&cy=${countryCode}&ustate=N%2CU&q=${encoded}${budgetParam}`;
+}
+
+function extractBrandSlug(query) {
+  const text = query.toLowerCase();
+
+  if (text.includes("bmw")) return "bmw";
+  if (text.includes("audi")) return "audi";
+  if (text.includes("mercedes")) return "mercedes-benz";
+  if (text.includes("volkswagen") || text.includes("vw")) return "volkswagen";
+  if (text.includes("volvo")) return "volvo";
+  if (text.includes("porsche")) return "porsche";
+  if (text.includes("seat")) return "seat";
+  if (text.includes("skoda") || text.includes("škoda")) return "skoda";
+  if (text.includes("peugeot")) return "peugeot";
+  if (text.includes("renault")) return "renault";
+  if (text.includes("toyota")) return "toyota";
+  if (text.includes("hyundai")) return "hyundai";
+  if (text.includes("kia")) return "kia";
+  if (text.includes("nissan")) return "nissan";
+  if (text.includes("ford")) return "ford";
+  if (text.includes("opel")) return "opel";
+
+  return "";
+}
+
+function extractModelSlug(query) {
+  const text = query.toLowerCase();
+
+  // BMW
+  if (text.includes("x1")) return "x1";
+  if (text.includes("x2")) return "x2";
+  if (text.includes("x3")) return "x3";
+  if (text.includes("x4")) return "x4";
+  if (text.includes("x5")) return "x5";
+  if (text.includes("x6")) return "x6";
+  if (text.includes("x7")) return "x7";
+  if (text.match(/serie\s*1/) || text.match(/1\s*series/)) return "1er";
+  if (text.match(/serie\s*3/) || text.match(/3\s*series/)) return "3er";
+  if (text.match(/serie\s*5/) || text.match(/5\s*series/)) return "5er";
+
+  // Audi
+  if (text.includes("a1")) return "a1";
+  if (text.includes("a3")) return "a3";
+  if (text.includes("a4")) return "a4";
+  if (text.includes("a5")) return "a5";
+  if (text.includes("a6")) return "a6";
+  if (text.includes("q2")) return "q2";
+  if (text.includes("q3")) return "q3";
+  if (text.includes("q5")) return "q5";
+  if (text.includes("q7")) return "q7";
+  if (text.includes("q8")) return "q8";
+
+  // Mercedes
+  if (text.includes("glc")) return "glc-(alle)";
+  if (text.includes("gle")) return "gle-(alle)";
+  if (text.includes("gla")) return "gla-(alle)";
+  if (text.includes("glb")) return "glb";
+  if (text.includes("gls")) return "gls";
+  if (text.match(/clase\s*c/) || text.match(/klasse\s*c/) || text.includes("c 300") || text.includes("c300")) return "c-klasse";
+  if (text.match(/clase\s*e/) || text.includes("e 300")) return "e-klasse";
+
+  // VW
+  if (text.includes("golf")) return "golf";
+  if (text.includes("tiguan")) return "tiguan";
+  if (text.includes("passat")) return "passat";
+  if (text.includes("polo")) return "polo";
+  if (text.includes("touareg")) return "touareg";
+
+  // Volvo
+  if (text.includes("xc90")) return "xc90";
+  if (text.includes("xc60")) return "xc60";
+  if (text.includes("xc40")) return "xc40";
+  if (text.includes("v90")) return "v90";
+  if (text.includes("v60")) return "v60";
+
+  // Skoda
+  if (text.includes("octavia")) return "octavia";
+  if (text.includes("kodiaq")) return "kodiaq";
+  if (text.includes("superb")) return "superb";
+
+  // Porsche
+  if (text.includes("cayenne")) return "cayenne";
+  if (text.includes("macan")) return "macan";
+  if (text.includes("panamera")) return "panamera";
+  if (text.includes("taycan")) return "taycan";
+
+  return "";
+}
+
+function extractFuelParam(query) {
+  const text = query.toLowerCase();
+
+  // PHEV: Elektro/Benzin en AutoScout = fuel=EB
+  const isPhev =
+    text.includes("phev") ||
+    text.includes("hybrid") ||
+    text.includes("45e") ||
+    text.includes("50e") ||
+    text.includes("30e") ||
+    text.includes("300de") ||
+    text.includes("300e") ||
+    text.includes("350de") ||
+    text.includes("tfsie") ||
+    text.includes("tfsi e") ||
+    text.includes("tfsi-e") ||
+    text.includes("e-hybrid") ||
+    text.includes("ehybrid") ||
+    text.includes("recharge") ||
+    text.includes("plug") ||
+    text.includes("phev");
+
+  if (isPhev) return "&fuel=EB";
+
+  // EV puro
+  if (text.includes("electric") || text.includes("eléctrico") || text.includes("ev") || text.includes("electrico")) {
+    return "&fuel=E";
+  }
+
+  // Diesel
+  if (text.includes("diesel") || text.includes("tdi") || text.includes("dci")) {
+    return "&fuel=D";
+  }
+
+  return "";
+}
+
+function getAutoscoutDomain(country) {
+  const map = {
+    Alemania: "de",
+    Holanda: "nl",
+    Bélgica: "be",
+    Belgica: "be",
+    Francia: "fr",
+    Italia: "it",
+    Austria: "at",
+    Luxemburgo: "lu",
+    Suecia: "se",
+    Dinamarca: "dk",
+    España: "es",
+    Espana: "es",
+  };
+
+  return map[country] || "de";
 }
 
 function buildBuyingLogic({ semantic, budget, useCase }) {
