@@ -117,34 +117,174 @@ const MODEL_PATTERNS = [
 ];
 
 const MOBILE_DE_MS_REFERENCE = {
+  // Audi
+  "1900": {
+    brand: "Audi",
+    models: {
+      "8":  "A3",
+      "9":  "A4",
+      "10": "A5",
+      "11": "A6",
+      "12": "A7",
+      "13": "A8",
+      "25": "Q3",
+      "26": "Q5",
+      "27": "Q7",
+      "28": "Q8",
+      "38": "e-tron",
+      "41": "Q4 e-tron",
+      "5":  "A1",
+    },
+  },
+  // BMW
+  "3500": {
+    brand: "BMW",
+    models: {
+      "2":  "Serie 1",
+      "3":  "Serie 2",
+      "4":  "Serie 3",
+      "5":  "Serie 4",
+      "6":  "Serie 5",
+      "7":  "Serie 6",
+      "8":  "Serie 7",
+      "19": "X1",
+      "20": "X2",
+      "21": "X3",
+      "22": "X4",
+      "23": "X5",
+      "24": "X6",
+      "25": "X7",
+      "36": "iX",
+      "37": "i4",
+    },
+  },
+  // Mercedes-Benz
+  "17200": {
+    brand: "Mercedes-Benz",
+    models: {
+      "6":  "Clase A",
+      "7":  "Clase B",
+      "8":  "Clase C",
+      "10": "Clase E",
+      "13": "Clase S",
+      "25": "GLA",
+      "26": "GLB",
+      "27": "GLC",
+      "28": "GLE",
+      "29": "GLS",
+      "44": "EQA",
+      "45": "EQB",
+      "46": "EQC",
+    },
+  },
+  // Volkswagen
   "25200": {
     brand: "Volkswagen",
     models: {
       "14": "Golf",
+      "18": "Polo",
+      "19": "Passat",
+      "32": "Tiguan",
+      "33": "Touareg",
+      "38": "ID.3",
+      "39": "ID.4",
+      "42": "T-Roc",
     },
   },
+  // SEAT
+  "22900": {
+    brand: "SEAT",
+    models: {
+      "8":  "Ibiza",
+      "10": "Leon",
+      "19": "Ateca",
+      "22": "Arona",
+    },
+  },
+  // Skoda
+  "24100": {
+    brand: "Skoda",
+    models: {
+      "5":  "Fabia",
+      "9":  "Octavia",
+      "12": "Superb",
+      "20": "Kodiaq",
+      "21": "Karoq",
+      "24": "Kamiq",
+    },
+  },
+  // Peugeot
   "18700": {
     brand: "Peugeot",
     models: {
       "47": "3008",
+      "48": "5008",
+      "44": "2008",
+      "39": "208",
+      "40": "308",
     },
   },
+  // Hyundai
   "11600": {
     brand: "Hyundai",
     models: {
       "27": "Tucson",
+      "28": "Santa Fe",
+      "33": "Ioniq 5",
+      "34": "Ioniq 6",
     },
   },
+  // Kia
   "13200": {
     brand: "Kia",
     models: {
       "25": "Sportage",
+      "26": "Sorento",
+      "30": "EV6",
+      "29": "Niro",
     },
   },
+  // Nissan
   "19300": {
     brand: "Nissan",
     models: {
       "26": "Qashqai",
+      "27": "Juke",
+      "30": "Leaf",
+      "31": "Ariya",
+    },
+  },
+  // Toyota
+  "24900": {
+    brand: "Toyota",
+    models: {
+      "22": "Corolla",
+      "24": "Yaris",
+      "31": "RAV4",
+      "35": "C-HR",
+      "36": "Camry",
+    },
+  },
+  // Renault
+  "21200": {
+    brand: "Renault",
+    models: {
+      "14": "Clio",
+      "15": "Megane",
+      "22": "Kadjar",
+      "25": "Koleos",
+      "30": "Zoe",
+    },
+  },
+  // Porsche
+  "20100": {
+    brand: "Porsche",
+    models: {
+      "2":  "911",
+      "5":  "Cayenne",
+      "6":  "Macan",
+      "7":  "Panamera",
+      "10": "Taycan",
     },
   },
 };
