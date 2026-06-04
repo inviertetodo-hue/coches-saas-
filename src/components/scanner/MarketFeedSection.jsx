@@ -230,6 +230,37 @@ function SourceDiagnosticsPanel({ diagnostics }) {
 
               <p style={diagnosticMessageStyle}>{item.message || "Sin mensaje."}</p>
 
+              {Array.isArray(rejectionLog.incompatibleReasons) &&
+                rejectionLog.incompatibleReasons.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "10px",
+                      borderRadius: "12px",
+                      background: "rgba(239,68,68,0.12)",
+                      border: "1px solid rgba(239,68,68,0.22)",
+                    }}
+                  >
+                    <strong style={{ color: "#fecaca" }}>
+                      Motivos de rechazo
+                    </strong>
+
+                    {rejectionLog.incompatibleReasons.map((reason, idx) => (
+                      <div
+                        key={`${reason}-${idx}`}
+                        style={{
+                          marginTop: "6px",
+                          color: "#fecaca",
+                          fontFamily: "monospace",
+                          fontSize: "12px",
+                        }}
+                      >
+                        ↳ {reason}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
               {item.textSample && (
                 <details style={sampleDetailsStyle}>
                   <summary style={sampleSummaryStyle}>Ver muestra Jina</summary>
