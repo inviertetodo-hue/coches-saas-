@@ -1,3 +1,5 @@
+import { VEHICLE_CATALOG } from "../vehicleCatalog";
+
 const REAL_FEED_TIMEOUT_MS = 7000;
 const MAX_LINKS_TO_TRY = 3;
 
@@ -852,68 +854,17 @@ function validateVehicleCompatibility({
 function detectModelFromQuery(query) {
   const text = normalize(query);
 
-  // Variantes PHEV con motor específico (más específico primero)
-  const variantPatterns = [
-    // BMW X5
-    { pattern: /x5\s*(xdrive)?\s*45e/,    result: "X5 xDrive45e" },
-    { pattern: /x5\s*(xdrive)?\s*30e/,    result: "X5 xDrive30e" },
-    { pattern: /x5\s*(xdrive)?\s*50e/,    result: "X5 xDrive50e" },
-    // BMW X3
-    { pattern: /x3\s*(xdrive)?\s*30e/,    result: "X3 xDrive30e" },
-    // Audi Q7
-    { pattern: /q7\s*tfsi\s*e/,           result: "Q7 TFSI e" },
-    { pattern: /q7\s*tfsie/,              result: "Q7 TFSI e" },
-    // Mercedes GLC
-    { pattern: /glc\s*300\s*de/,          result: "GLC 300de" },
-    { pattern: /glc\s*300\s*e/,           result: "GLC 300e" },
-    // BMW Serie
-    { pattern: /serie\s*[135]/,           result: text.match(/serie\s*([135])/)?.[0] || "" },
-  ];
+  const variantModel = detectVariantModel(text);
+  if (variantModel) return variantModel;
 
-  for (const { pattern, result } of variantPatterns) {
-    if (pattern.test(text) && result) return result;
-  }
+  const catalogModel = detectCatalogModel(text);
+  if (catalogModel) return catalogModel;
 
-  // Modelos base
-  const baseModels = [
-    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 6", "serie 7",
-    "x1", "x2", "x3", "x4", "x5", "x6", "x7",
-    "a1", "a3", "a4", "a5", "a6", "a7", "a8",
-    "q2", "q3", "q4", "q5", "q7", "q8",
-    "glc", "gle", "glb", "gla", "gls", "clase a", "clase b", "clase c", "clase e",
-    "xc40", "xc60", "xc90", "v40", "v60", "v90", "s60", "s90",
-    "911", "macan", "cayenne", "panamera", "taycan",
-    "golf", "tiguan", "passat", "polo", "touareg", "arteon", "t-roc", "t-cross", "id.3", "id.4",
-    "fabia", "scala", "octavia", "kamiq", "karoq", "kodiaq", "superb", "enyaq",
-    "ibiza", "leon", "arona", "ateca", "tarraco",
-    "clio", "captur", "megane", "kadjar", "koleos", "austral", "arkana", "espace",
-    "208", "308", "408", "508", "2008", "3008", "5008", "rifter",
-    "focus", "fiesta", "puma", "kuga", "mondeo", "mustang mach-e",
-    "i10", "i20", "i30", "kona", "tucson", "santa fe", "ioniq 5", "ioniq 6",
-    "picanto", "rio", "ceed", "xceed", "niro", "sportage", "sorento", "ev6",
-    "micra", "juke", "qashqai", "x-trail", "ariya",
-    "corsa", "astra", "mokka", "crossland", "grandland", "insignia",
-    "sandero", "logan", "duster", "jogger", "spring",
-    "yaris", "corolla", "c-hr", "rav4", "camry", "prius",
-    "500", "500x", "tipo", "panda",
-    "c3", "c4", "c5 aircross", "berlingo",
-    "cx-3", "cx-30", "cx-5", "mazda2", "mazda3", "mazda6",
-    "civic", "hr-v", "cr-v", "jazz",
-    "model 3", "model y", "model s", "model x",
-    "mg4", "zs", "hs", "euniq", "atto 3", "seal", "dolphin",
-  ];
-
-  const detected = baseModels.find((m) => text.includes(normalize(m)));
-  if (detected) return detected;
-
-  // Último recurso: usar el query limpio como modelo si no es solo una marca
   const cleanedQuery = cleanText(query);
-  const onlyBrand = [
-    "audi", "bmw", "porsche", "volvo", "mercedes", "volkswagen", "vw",
-    "renault", "peugeot", "skoda", "seat", "toyota", "hyundai", "kia",
-    "nissan", "ford", "opel", "citroen", "citroën", "fiat", "mazda",
-    "honda", "dacia", "tesla", "mg", "byd"
-  ].includes(normalize(cleanedQuery));
+  const onlyBrand = getCatalogBrands()
+    .map(normalize)
+    .includes(normalize(cleanedQuery));
+
   if (!onlyBrand && cleanedQuery) return cleanedQuery;
 
   return "";
@@ -924,53 +875,12 @@ function detectModelFromText(text, query) {
 }
 
 function detectModelFromTextOnly(text) {
-  // Detecta modelo SOLO desde el anuncio. No mezcla con la búsqueda del usuario.
   const combined = normalize(text);
 
-  const variantPatterns = [
-    { pattern: /x5\s*(xdrive)?\s*45e/,    result: "X5 xDrive45e" },
-    { pattern: /x5\s*(xdrive)?\s*30e/,    result: "X5 xDrive30e" },
-    { pattern: /x5\s*(xdrive)?\s*50e/,    result: "X5 xDrive50e" },
-    { pattern: /x3\s*(xdrive)?\s*30e/,    result: "X3 xDrive30e" },
-    { pattern: /q7\s*tfsi\s*e/,           result: "Q7 TFSI e" },
-    { pattern: /q7\s*tfsie/,              result: "Q7 TFSI e" },
-    { pattern: /glc\s*300\s*de/,          result: "GLC 300de" },
-    { pattern: /glc\s*300\s*e/,           result: "GLC 300e" },
-  ];
+  const variantModel = detectVariantModel(combined);
+  if (variantModel) return variantModel;
 
-  for (const { pattern, result } of variantPatterns) {
-    if (pattern.test(combined)) return result;
-  }
-
-  const baseModels = [
-    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 6", "serie 7",
-    "x1", "x2", "x3", "x4", "x5", "x6", "x7",
-    "a1", "a3", "a4", "a5", "a6", "a7", "a8",
-    "q2", "q3", "q4", "q5", "q7", "q8",
-    "glc", "gle", "glb", "gla", "gls", "clase a", "clase b", "clase c", "clase e",
-    "xc40", "xc60", "xc90", "v40", "v60", "v90", "s60", "s90",
-    "911", "macan", "cayenne", "panamera", "taycan",
-    "golf", "tiguan", "passat", "polo", "touareg", "arteon", "t-roc", "t-cross", "id.3", "id.4",
-    "fabia", "scala", "octavia", "kamiq", "karoq", "kodiaq", "superb", "enyaq",
-    "ibiza", "leon", "arona", "ateca", "tarraco",
-    "clio", "captur", "megane", "kadjar", "koleos", "austral", "arkana", "espace",
-    "208", "308", "408", "508", "2008", "3008", "5008", "rifter",
-    "focus", "fiesta", "puma", "kuga", "mondeo", "mustang mach-e",
-    "i10", "i20", "i30", "kona", "tucson", "santa fe", "ioniq 5", "ioniq 6",
-    "picanto", "rio", "ceed", "xceed", "niro", "sportage", "sorento", "ev6",
-    "micra", "juke", "qashqai", "x-trail", "ariya",
-    "corsa", "astra", "mokka", "crossland", "grandland", "insignia",
-    "sandero", "logan", "duster", "jogger", "spring",
-    "yaris", "corolla", "c-hr", "rav4", "camry", "prius",
-    "500", "500x", "tipo", "panda",
-    "c3", "c4", "c5 aircross", "berlingo",
-    "cx-3", "cx-30", "cx-5", "mazda2", "mazda3", "mazda6",
-    "civic", "hr-v", "cr-v", "jazz",
-    "model 3", "model y", "model s", "model x",
-    "mg4", "zs", "hs", "euniq", "atto 3", "seal", "dolphin",
-  ];
-
-  return baseModels.find((m) => combined.includes(normalize(m))) || "";
+  return detectCatalogModel(combined);
 }
 
 // Legacy alias — mantener compatibilidad con código que llame a detectModel
@@ -978,51 +888,55 @@ function detectModel(title, query) {
   return detectModelFromTextOnly(title) || detectModelFromQuery(query);
 }
 
+function detectVariantModel(text) {
+  const normalizedText = normalize(text);
+
+  const variantPatterns = [
+    { pattern: /x5\s*(xdrive)?\s*45e/, result: "X5 xDrive45e" },
+    { pattern: /x5\s*(xdrive)?\s*30e/, result: "X5 xDrive30e" },
+    { pattern: /x5\s*(xdrive)?\s*50e/, result: "X5 xDrive50e" },
+    { pattern: /x3\s*(xdrive)?\s*30e/, result: "X3 xDrive30e" },
+    { pattern: /q7\s*tfsi\s*e/, result: "Q7 TFSI e" },
+    { pattern: /q7\s*tfsie/, result: "Q7 TFSI e" },
+    { pattern: /glc\s*300\s*de/, result: "GLC 300de" },
+    { pattern: /glc\s*300\s*e/, result: "GLC 300e" },
+    { pattern: /serie\s*[135]/, result: normalizedText.match(/serie\s*([135])/)?.[0] || "" },
+  ];
+
+  return variantPatterns.find((item) => item.pattern.test(normalizedText))?.result || "";
+}
+
+function detectCatalogModel(text) {
+  const normalizedText = normalize(text);
+
+  const models = getCatalogModels();
+
+  const detected = models.find((model) => {
+    const normalizedModel = normalize(model);
+
+    return normalizedModel && normalizedText.includes(normalizedModel);
+  });
+
+  return detected || "";
+}
+
+function getCatalogBrands() {
+  return Object.keys(VEHICLE_CATALOG);
+}
+
+function getCatalogModels() {
+  return Object.values(VEHICLE_CATALOG)
+    .flat()
+    .sort((a, b) => normalize(b).length - normalize(a).length);
+}
+
 function normalizeModelForStrictMatch(value) {
   const text = normalize(value);
 
-  const patterns = [
-    { pattern: /x5/, result: "x5" },
-    { pattern: /x1/, result: "x1" },
-    { pattern: /x2/, result: "x2" },
-    { pattern: /x3/, result: "x3" },
-    { pattern: /x4/, result: "x4" },
-    { pattern: /x6/, result: "x6" },
-    { pattern: /x7/, result: "x7" },
+  const catalogModel = detectCatalogModel(text);
+  if (catalogModel) return normalize(catalogModel);
 
-    { pattern: /a1/, result: "a1" },
-    { pattern: /a3/, result: "a3" },
-    { pattern: /a4/, result: "a4" },
-    { pattern: /a5/, result: "a5" },
-    { pattern: /a6/, result: "a6" },
-    { pattern: /a7/, result: "a7" },
-    { pattern: /a8/, result: "a8" },
-
-    { pattern: /q2/, result: "q2" },
-    { pattern: /q3/, result: "q3" },
-    { pattern: /q5/, result: "q5" },
-    { pattern: /q7/, result: "q7" },
-    { pattern: /q8/, result: "q8" },
-
-    { pattern: /glc/, result: "glc" },
-    { pattern: /gle/, result: "gle" },
-    { pattern: /glb/, result: "glb" },
-    { pattern: /gla/, result: "gla" },
-    { pattern: /gls/, result: "gls" },
-
-    { pattern: /octavia/, result: "octavia" },
-    { pattern: /kodiaq/, result: "kodiaq" },
-    { pattern: /superb/, result: "superb" },
-    { pattern: /corolla/, result: "corolla" },
-    { pattern: /rav4/, result: "rav4" },
-    { pattern: /3008/, result: "3008" },
-    { pattern: /5008/, result: "5008" },
-    { pattern: /2008/, result: "2008" },
-    { pattern: /208/, result: "208" },
-    { pattern: /308/, result: "308" },
-  ];
-
-  return patterns.find((item) => item.pattern.test(text))?.result || text;
+  return text;
 }
 
 function toUsefulLines(text) {
