@@ -1046,7 +1046,7 @@ function validateVehicleCompatibility({
         warnings: [
           `Modelo incompatible: objetivo="${targetModel}", detectado="${detectedModel}".`,
         ],
-        rejectionReason: `modelo_incompatible: objetivo="${targetModel}", detectado="${detectedModel}"`,
+        rejectionReason: `modelo_incompatible: objetivo="${targetModel}", detectado="${detectedModel}", targetBase="${targetBaseModel}", detectedBase="${detectedBaseModel}"`,
       };
     } else {
       score += 25;
