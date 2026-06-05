@@ -230,6 +230,30 @@ function SourceDiagnosticsPanel({ diagnostics }) {
 
               <p style={diagnosticMessageStyle}>{item.message || "Sin mensaje."}</p>
 
+              {item.healthMetrics && (
+                <div style={healthMetricsStyle}>
+                  <DiagnosticMetric
+                    label="Aceptación"
+                    value={`${item.healthMetrics.acceptanceRate || 0}%`}
+                  />
+
+                  <DiagnosticMetric
+                    label="Rechazo"
+                    value={`${item.healthMetrics.rejectionRate || 0}%`}
+                  />
+
+                  <DiagnosticMetric
+                    label="Rechazados"
+                    value={item.healthMetrics.rejected || 0}
+                  />
+
+                  <DiagnosticMetric
+                    label="Filtro top"
+                    value={item.healthMetrics.topBlockingFilter || "-"}
+                  />
+                </div>
+              )}
+
               {buildRadarHealthRecommendation(item.rejectionSummary) && (
                 <div style={healthRecommendationStyle}>
                   <strong style={{ color: "#bbf7d0" }}>
@@ -456,6 +480,13 @@ const diagnosticMetricLabelStyle = {
   color: "#94a3b8",
   fontSize: "11px",
   fontWeight: "800",
+};
+
+const healthMetricsStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+  gap: "8px",
+  marginTop: "12px",
 };
 
 const healthRecommendationStyle = {

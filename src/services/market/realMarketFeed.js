@@ -48,6 +48,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         durationMs: Date.now() - startedAt,
         rejectionLog,
         rejectionSummary: buildRejectionSummary(rejectionLog),
+        healthMetrics: buildFeedHealthMetrics(rejectionLog),
         message:
           parsedListings.length > 0
             ? `${parsedListings.length} anuncios normalizados detectados.`
@@ -84,6 +85,38 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
     listings,
     errors,
     diagnostics,
+  };
+}
+
+function buildFeedHealthMetrics(rejectionLog) {
+  const totalBlocks = Number(rejectionLog?.totalBlocks || 0);
+  const accepted = Number(rejectionLog?.accepted || 0);
+  const noData = Number(rejectionLog?.noData || 0);
+  const incompatible = Number(rejectionLog?.incompatible || 0);
+  const genericTitle = Number(rejectionLog?.genericTitle || 0);
+  const rejected = noData + incompatible + genericTitle;
+
+  const acceptanceRate =
+    totalBlocks > 0 ? Math.round((accepted / totalBlocks) * 100) : 0;
+
+  const rejectionRate =
+    totalBlocks > 0 ? Math.round((rejected / totalBlocks) * 100) : 0;
+
+  const rejectionSummary = buildRejectionSummary(rejectionLog);
+  const [topBlockingFilter, topBlockingCount] =
+    Object.entries(rejectionSummary).sort((a, b) => b[1] - a[1])[0] || [];
+
+  return {
+    totalBlocks,
+    accepted,
+    rejected,
+    noData,
+    incompatible,
+    genericTitle,
+    acceptanceRate,
+    rejectionRate,
+    topBlockingFilter: topBlockingFilter || "",
+    topBlockingCount: topBlockingCount || 0,
   };
 }
 
