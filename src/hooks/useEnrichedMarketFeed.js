@@ -412,6 +412,14 @@ async function saveBestRealOpportunityToMarketMemory({
   savedScanRef.current = saveKey;
   window.sessionStorage.setItem(sessionKey, "saved");
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return;
+  }
+
   const payload = buildScannerOpportunityPayload({
     candidate: bestCandidate,
     scan,
