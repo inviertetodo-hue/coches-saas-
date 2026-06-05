@@ -1,5 +1,5 @@
-const REAL_FEED_TIMEOUT_MS = 20000;
-const MAX_LINKS_TO_TRY = 8;
+const REAL_FEED_TIMEOUT_MS = 7000;
+const MAX_LINKS_TO_TRY = 3;
 
 export async function fetchRealMarketListings(scan = {}, options = {}) {
   const maxListings = Number(options.maxListings || 20);
