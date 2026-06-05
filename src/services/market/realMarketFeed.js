@@ -570,6 +570,7 @@ function parseAutoscoutListingsFromText({
       powerKw,
       maxBudget,
       blockText: title,
+      trustQueryModel: true,
     });
 
     if (!validation.isCompatible) {
@@ -867,6 +868,7 @@ function validateVehicleCompatibility({
   powerKw,
   maxBudget,
   blockText = "",
+  trustQueryModel = false,
 }) {
   const text = normalize(query);
   const warnings = [];
@@ -897,7 +899,7 @@ function validateVehicleCompatibility({
       score -= 15;
       warnings.push(`Modelo no confirmado en anuncio: objetivo="${targetModel}".`);
       rejectionReasons.push(`modelo_no_confirmado: objetivo="${targetModel}"`);
-    } else if (targetBaseModel && detectedBaseModel !== targetBaseModel) {
+    } else if (!trustQueryModel && targetBaseModel && detectedBaseModel !== targetBaseModel) {
       return {
         isCompatible: false,
         score: 0,
