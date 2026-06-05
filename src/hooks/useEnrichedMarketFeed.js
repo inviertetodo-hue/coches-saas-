@@ -11,35 +11,6 @@ import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 import { findOpportunities } from "../services/search/opportunityFinder";
 import { fetchRealMarketListings } from "../services/market/realMarketFeed";
 
-const MODEL_RULES = {
-  "bmw x5 45e": {
-    fuel: "PHEV",
-    minKw: 250,
-    maxKw: 330,
-    minYear: 2019,
-    maxMileage: 180000,
-    minPrice: 25000,
-    maxPrice: 90000,
-  },
-  "audi q7 tfsie": {
-    fuel: "PHEV",
-    minKw: 250,
-    maxKw: 350,
-    minYear: 2019,
-    maxMileage: 190000,
-    minPrice: 30000,
-    maxPrice: 95000,
-  },
-  "mercedes glc 300de": {
-    fuel: "PHEV",
-    minKw: 180,
-    maxKw: 260,
-    minYear: 2019,
-    maxMileage: 180000,
-    minPrice: 28000,
-    maxPrice: 85000,
-  },
-};
 
 export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   const [marketFeed, setMarketFeed] = useState(null);
@@ -73,13 +44,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           : [],
       };
 
-      const modelRule = findModelRule(form.query || scan.query);
-
-      const modelFilteredOpportunities = modelRule
-        ? rawFeed.opportunities.filter((item) =>
-            validateSpecificModelRule(item, modelRule)
-          )
-        : rawFeed.opportunities;
+      const modelFilteredOpportunities = rawFeed.opportunities;
 
       function enrichDeal(item) {
         const estimatedMarketPrice =
@@ -220,11 +185,13 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       }));
 
       const best = opportunities[0] || null;
-      const modelSpecificFilter = buildModelSpecificFilter({
-        modelRule,
+      const modelSpecificFilter = {
+        active: false,
+        phase: "universal-real-feed",
         before: rawFeed.opportunities.length,
         after: opportunities.length,
-      });
+        discarded: 0,
+      };
 
       const nextFeed = {
         ...rawFeed,
@@ -266,76 +233,6 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   }, [form.query, form.maxBudget, scan, searchTriggered]);
 
   return marketFeed;
-}
-
-function buildModelSpecificFilter({ modelRule, before, after }) {
-  if (!modelRule) {
-    return {
-      active: false,
-    };
-  }
-
-  return {
-    active: true,
-    phase: "diagnostic-real-feed",
-    rule: modelRule.key,
-    before,
-    after,
-    discarded: before - after,
-    checks: {
-      fuel: modelRule.fuel || null,
-      minKw: modelRule.minKw || null,
-      maxKw: modelRule.maxKw || null,
-      minYear: modelRule.minYear || null,
-      maxMileage: modelRule.maxMileage || null,
-      minPrice: modelRule.minPrice || null,
-      maxPrice: modelRule.maxPrice || null,
-    },
-  };
-}
-
-function findModelRule(query) {
-  const normalizedQuery = normalizeForModelRule(query);
-
-  const match = Object.entries(MODEL_RULES).find(([key]) =>
-    normalizedQuery.includes(normalizeForModelRule(key))
-  );
-
-  if (!match) return null;
-
-  return {
-    key: match[0],
-    ...match[1],
-  };
-}
-
-function validateSpecificModelRule(item, rule) {
-  const fuel = inferFuelType(item);
-  const kw = inferKw(item);
-  const year = inferYear(item);
-  const mileage = inferMileage(item);
-  const price = inferPrice(item);
-
-  if (rule.fuel && fuel && fuel !== rule.fuel) return false;
-
-  if (Number.isFinite(kw)) {
-    if (typeof rule.minKw === "number" && kw < rule.minKw) return false;
-    if (typeof rule.maxKw === "number" && kw > rule.maxKw) return false;
-  }
-
-  if (!Number.isFinite(year)) return false;
-  if (typeof rule.minYear === "number" && year < rule.minYear) return false;
-
-  if (!Number.isFinite(mileage)) return false;
-  if (typeof rule.maxMileage === "number" && mileage > rule.maxMileage) {
-    return false;
-  }
-
-  if (!Number.isFinite(price)) return false;
-  if (typeof rule.minPrice === "number" && price < rule.minPrice) return false;
-  if (typeof rule.maxPrice === "number" && price > rule.maxPrice) return false;
-
-  return true;
 }
 
 function inferFuelType(item) {
