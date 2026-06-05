@@ -12,7 +12,9 @@ import { useMarketTrendProfile } from "../hooks/useMarketTrendProfile";
 
 export default function Scanner() {
   const [form, setForm] = useState({
-    query: "BMW X5 45e",
+    brand: "bmw",
+    model: "x5",
+    query: "BMW X5",
     maxBudget: "60000",
     country: "Europa",
     useCase: "reventa",

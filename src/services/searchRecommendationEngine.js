@@ -1,104 +1,4 @@
-const SEARCH_LANES = [
-  {
-    id: "bmw-x5-45e",
-    label: "BMW X5 45e",
-    segment: "premium-phev-suv",
-    budgetMin: 43000,
-    budgetMax: 62000,
-    countries: ["Alemania", "Holanda", "Bélgica"],
-    liquidity: "Alta",
-    risk: "Medio",
-    marginPotential: "Alto",
-    basePriority: 92,
-    keywords: ["bmw", "x5", "45e", "phev", "híbrido", "suv"],
-    reason:
-      "SUV premium PHEV con demanda fuerte, ticket alto defendible y margen potencial si aparece por debajo de mercado con buen historial.",
-  },
-  {
-    id: "mercedes-glc-300de-300e",
-    label: "Mercedes GLC 300de / 300e",
-    segment: "premium-phev-suv",
-    budgetMin: 38000,
-    budgetMax: 57000,
-    countries: ["Alemania", "Bélgica", "Holanda"],
-    liquidity: "Alta",
-    risk: "Medio",
-    marginPotential: "Alto",
-    basePriority: 90,
-    keywords: ["mercedes", "glc", "300de", "300e", "phev", "híbrido"],
-    reason:
-      "Modelo muy buscado para uso familiar y empresa. Buena combinación de liquidez, imagen premium y oportunidades en mercados europeos grandes.",
-  },
-  {
-    id: "audi-q7-tfsie",
-    label: "Audi Q7 TFSIe",
-    segment: "large-premium-phev-suv",
-    budgetMin: 52000,
-    budgetMax: 76000,
-    countries: ["Alemania", "Holanda"],
-    liquidity: "Media",
-    risk: "Medio-alto",
-    marginPotential: "Alto",
-    basePriority: 82,
-    keywords: ["audi", "q7", "tfsie", "tfsi", "phev", "quattro"],
-    reason:
-      "Puede dejar margen alto, pero exige más capital, mejor filtrado y comprador claro por su ticket y coste de rotación.",
-  },
-  {
-    id: "bmw-serie-3-diesel-auto",
-    label: "BMW Serie 3 diésel automático",
-    segment: "premium-diesel-sedan",
-    budgetMin: 22000,
-    budgetMax: 42000,
-    countries: ["Alemania", "Bélgica", "Francia"],
-    liquidity: "Alta",
-    risk: "Bajo-medio",
-    marginPotential: "Medio-alto",
-    basePriority: 86,
-    keywords: ["bmw", "serie 3", "320d", "330d", "diesel", "automático"],
-    reason:
-      "Producto líquido, fácil de comparar y con demanda estable. Interesante para rotación más rápida con riesgo controlado.",
-  },
-  {
-    id: "mercedes-clase-a-auto",
-    label: "Mercedes Clase A automático",
-    segment: "premium-compact",
-    budgetMin: 19000,
-    budgetMax: 36000,
-    countries: ["Alemania", "Francia", "Bélgica"],
-    liquidity: "Alta",
-    risk: "Bajo-medio",
-    marginPotential: "Medio",
-    basePriority: 84,
-    keywords: ["mercedes", "clase a", "a180", "a200", "automático"],
-    reason:
-      "Alta demanda de entrada a marca premium. Buen candidato para rotación si el precio, kilómetros y acabado cuadran.",
-  },
-  {
-    id: "toyota-hibridos",
-    label: "Toyota híbridos",
-    segment: "reliable-hybrid",
-    budgetMin: 15000,
-    budgetMax: 34000,
-    countries: ["España", "Francia", "Bélgica", "Alemania"],
-    liquidity: "Muy alta",
-    risk: "Bajo",
-    marginPotential: "Medio",
-    basePriority: 88,
-    keywords: ["toyota", "hybrid", "híbrido", "corolla", "rav4", "c-hr"],
-    reason:
-      "Liquidez muy fuerte, riesgo bajo y público comprador amplio. Ideal cuando se prioriza seguridad y velocidad de salida.",
-  },
-];
-
 const AVOID_LANES = [
-  {
-    id: "expensive-performance",
-    label: "Performance caro sin comprador claro",
-    risk: "Alto",
-    reason:
-      "El margen aparente puede ser grande, pero la liquidez suele ser menor y el comprador final es más específico.",
-  },
   {
     id: "too-cheap-listings",
     label: "Anuncios demasiado baratos",
@@ -114,6 +14,13 @@ const AVOID_LANES = [
       "Sin kilómetros, año, versión, historial o equipamiento claro, la IA debe bajar confianza y evitar recomendar compra agresiva.",
   },
   {
+    id: "negative-margin",
+    label: "Operaciones con margen neto negativo",
+    risk: "Crítico",
+    reason:
+      "Aunque el coche parezca barato, si el margen neto calculado es negativo o muy bajo, no debe priorizarse para compra.",
+  },
+  {
     id: "slow-luxury",
     label: "Lujo caro de baja rotación",
     risk: "Medio-alto",
@@ -127,92 +34,139 @@ export function buildSearchRecommendations(input = {}) {
   const scan = input.scan || {};
   const marketFeed = input.marketFeed || null;
 
-  const query = normalizeText(form.query || scan.query || "");
-  const maxBudget = toNumber(form.maxBudget, 0);
+  const queryLabel = cleanLabel(form.query || scan.query || "vehículo buscado");
   const country = form.country || "Europa";
   const useCase = form.useCase || "reventa";
 
-  const recommendedSearches = SEARCH_LANES.map((lane) => {
-    const priority = calculatePriority({
-      lane,
-      query,
-      maxBudget,
-      country,
-      useCase,
-      scan,
-      marketFeed,
-    });
+  const liveOpportunities = Array.isArray(marketFeed?.opportunities)
+    ? marketFeed.opportunities
+    : [];
 
-    return {
-      ...lane,
-      priority,
-      budgetTarget: formatBudgetRange(lane.budgetMin, lane.budgetMax),
-      countriesTarget: lane.countries,
-      isDirectMatch: hasKeywordMatch(query, lane.keywords),
-    };
-  })
-    .sort((a, b) => b.priority - a.priority)
-    .slice(0, 6);
-
-  const avoidSearches = buildAvoidRecommendations({
-    scan,
-    maxBudget,
+  const realRecommendations = buildRecommendationsFromMarketFeed({
+    opportunities: liveOpportunities,
+    queryLabel,
+    country,
     useCase,
   });
+
+  const recommendedSearches =
+    realRecommendations.length > 0
+      ? realRecommendations
+      : buildFallbackRecommendations({ queryLabel, country, useCase });
 
   const topSearch = recommendedSearches[0];
 
   return {
-    summary: buildSummary(topSearch, country, useCase),
+    summary: buildSummary({
+      topSearch,
+      queryLabel,
+      country,
+      useCase,
+      hasRealData: realRecommendations.length > 0,
+    }),
     recommendedSearches,
-    avoidSearches,
+    avoidSearches: buildAvoidRecommendations({ scan, useCase }),
   };
 }
 
-function calculatePriority({
-  lane,
-  query,
-  maxBudget,
+function buildRecommendationsFromMarketFeed({
+  opportunities,
+  queryLabel,
   country,
-  useCase,
-  scan,
-  marketFeed,
 }) {
-  let score = lane.basePriority;
+  return opportunities
+    .filter((item) => item && item.title && item.price && (item.km || item.mileage) && item.year)
+    .filter((item) => !isNoiseTitle(item.title))
+    .map((item, index) => {
+      const finalScore = Number(item.finalDecision?.finalScore || 0);
+      const opportunityScore = Number(item.opportunityScore || 0);
+      const liquidityScore = Number(item.liquidity?.liquidityScore || 0);
+      const riskScore = Number(item.dealRisk?.riskScore || 0);
+      const netRoi = Number(item.netRoi || 0);
+      const netProfit = Number(item.netProfit || 0);
 
-  if (hasKeywordMatch(query, lane.keywords)) score += 8;
-  if (country !== "Europa" && lane.countries.includes(country)) score += 5;
-  if (country !== "Europa" && !lane.countries.includes(country)) score -= 6;
+      const priority = clamp(
+        Math.round(
+          finalScore * 0.45 +
+            opportunityScore * 0.25 +
+            liquidityScore * 0.15 +
+            Math.max(0, 100 - riskScore) * 0.10 +
+            Math.min(Math.max(netRoi, 0), 20) * 0.25
+        ),
+        1,
+        100
+      );
 
-  if (maxBudget > 0) {
-    if (maxBudget >= lane.budgetMin && maxBudget <= lane.budgetMax + 5000) {
-      score += 6;
-    }
-
-    if (maxBudget < lane.budgetMin) score -= 18;
-    if (maxBudget > lane.budgetMax + 18000) score -= 4;
-  }
-
-  if (useCase === "quedarmelo" && lane.risk === "Bajo") score += 4;
-  if (useCase === "quedarmelo" && lane.risk.includes("Alto")) score -= 6;
-  if (useCase === "reventa" && lane.liquidity.includes("Alta")) score += 5;
-  if (useCase === "reventa" && lane.liquidity === "Media") score -= 3;
-
-  if (scan.semantic?.isPerformance && lane.risk.includes("Alto")) score -= 8;
-  if (scan.semantic?.isPhev && lane.segment.includes("phev")) score += 4;
-  if (scan.semantic?.isSuv && lane.segment.includes("suv")) score += 4;
-
-  if (
-    marketFeed?.best?.opportunityScore >= 80 &&
-    hasKeywordMatch(query, lane.keywords)
-  ) {
-    score += 4;
-  }
-
-  return clamp(Math.round(score), 1, 100);
+      return {
+        id: item.id || `real-opportunity-${index}`,
+        label: item.title || queryLabel,
+        segment: "real-market-opportunity",
+        priority,
+        liquidity: item.liquidity?.demand || scoreToLiquidity(liquidityScore),
+        risk: item.dealRisk?.level || scoreToRisk(riskScore),
+        marginPotential: marginToLabel({ netProfit, netRoi }),
+        budgetTarget: formatVehicleBudget(item.price),
+        countriesTarget: [item.country || country || "Europa"],
+        isDirectMatch: true,
+        reason: buildRealReason({ item, netProfit, netRoi, riskScore, liquidityScore }),
+      };
+    })
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 6);
 }
 
-function buildAvoidRecommendations({ scan, maxBudget, useCase }) {
+function buildFallbackRecommendations({ queryLabel, country }) {
+  return [
+    {
+      id: "fallback-current-query",
+      label: queryLabel,
+      segment: "current-search",
+      priority: 70,
+      liquidity: "Pendiente",
+      risk: "Pendiente",
+      marginPotential: "Pendiente",
+      budgetTarget: "Según presupuesto",
+      countriesTarget: [country || "Europa"],
+      isDirectMatch: true,
+      reason:
+        "Todavía no hay suficientes anuncios reales compatibles para priorizar oportunidades. Conviene revisar diagnóstico del feed y ampliar fuentes reales.",
+    },
+  ];
+}
+
+function buildRealReason({ item, netProfit, netRoi, riskScore, liquidityScore }) {
+  const price = Number(item.price || 0);
+  const km = Number(item.km || item.mileage || 0);
+  const year = item.year || "año no detectado";
+
+  const parts = [];
+
+  parts.push(
+    `${item.source || "Fuente real"} detecta este vehículo con precio ${formatMoney(price)}, año ${year} y ${formatKm(km)}.`
+  );
+
+  if (Number.isFinite(netProfit)) {
+    parts.push(`Margen neto estimado: ${formatMoney(netProfit)}.`);
+  }
+
+  if (Number.isFinite(netRoi)) {
+    parts.push(`ROI estimado: ${netRoi}%.`);
+  }
+
+  if (liquidityScore > 0) {
+    parts.push(`Liquidez estimada: ${liquidityScore}/100.`);
+  }
+
+  if (riskScore >= 50) {
+    parts.push("Riesgo elevado: validar historial, daños, impuestos y costes antes de contactar.");
+  } else {
+    parts.push("Riesgo controlado si documentación, historial y estado cuadran.");
+  }
+
+  return parts.join(" ");
+}
+
+function buildAvoidRecommendations({ scan, useCase }) {
   const recommendations = [...AVOID_LANES];
 
   if (scan.semantic?.isPerformance) {
@@ -225,34 +179,114 @@ function buildAvoidRecommendations({ scan, maxBudget, useCase }) {
     });
   }
 
-  if (maxBudget >= 70000 && useCase === "reventa") {
+  if (useCase === "reventa") {
     recommendations.unshift({
-      id: "high-ticket-warning",
-      label: "Ticket alto para reventa rápida",
-      risk: "Medio-alto",
+      id: "low-roi-warning",
+      label: "ROI bajo aunque el score sea alto",
+      risk: "Medio",
       reason:
-        "Por encima de 70.000 €, conviene priorizar liquidez y comprador final antes que margen teórico.",
+        "Para reventa, prioriza oportunidades con margen neto real y no solo buen precio aparente frente al mercado.",
     });
   }
 
   return recommendations.slice(0, 5);
 }
 
-function buildSummary(topSearch, country, useCase) {
+function buildSummary({
+  topSearch,
+  queryLabel,
+  country,
+  useCase,
+  hasRealData,
+}) {
   if (!topSearch) {
-    return "No hay suficientes datos para priorizar líneas de búsqueda todavía.";
+    return "No hay suficientes datos para priorizar oportunidades todavía.";
   }
 
   const objective =
     useCase === "quedarmelo" ? "compra segura" : "reventa con margen";
 
-  return `Radar IA recomienda empezar por ${topSearch.label} para ${objective} en ${country}. Prioridad ${topSearch.priority}/100 por liquidez ${topSearch.liquidity.toLowerCase()}, riesgo ${topSearch.risk.toLowerCase()} y margen potencial ${topSearch.marginPotential.toLowerCase()}.`;
+  if (hasRealData) {
+    return `Radar IA está priorizando oportunidades reales encontradas para ${queryLabel} en ${country}. Mejor candidata actual: ${topSearch.label}, prioridad ${topSearch.priority}/100, liquidez ${String(topSearch.liquidity).toLowerCase()} y riesgo ${String(topSearch.risk).toLowerCase()}.`;
+  }
+
+  return `Radar IA no tiene aún suficientes anuncios reales compatibles para ${queryLabel}. Mantiene una recomendación provisional para ${objective} en ${country}.`;
 }
 
-function hasKeywordMatch(query, keywords) {
-  if (!query) return false;
+function isNoiseTitle(title = "") {
+  const text = normalizeText(title);
 
-  return keywords.some((keyword) => query.includes(normalizeText(keyword)));
+  const noiseTerms = [
+    "häufige fragen",
+    "haeufige fragen",
+    "preguntas frecuentes",
+    "faq",
+    "autoscout24",
+    "anuncios de",
+    "coches similares",
+    "vehiculos similares",
+    "financiacion",
+    "precio justo",
+    "super oferta",
+    "sin comparacion",
+  ];
+
+  return noiseTerms.some((term) => text.includes(normalizeText(term)));
+}
+
+function scoreToLiquidity(score) {
+  if (score >= 85) return "Muy alta";
+  if (score >= 75) return "Alta";
+  if (score >= 60) return "Media";
+  return "Baja";
+}
+
+function scoreToRisk(score) {
+  if (score >= 70) return "Crítico";
+  if (score >= 50) return "Alto";
+  if (score >= 25) return "Medio";
+  return "Bajo";
+}
+
+function marginToLabel({ netProfit, netRoi }) {
+  if (netProfit >= 3000 || netRoi >= 10) return "Alto";
+  if (netProfit >= 1500 || netRoi >= 6) return "Medio-alto";
+  if (netProfit >= 500 || netRoi >= 3) return "Medio";
+  if (netProfit > 0) return "Bajo";
+  return "Negativo";
+}
+
+function formatVehicleBudget(price) {
+  const value = Number(price || 0);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return "Sin precio fiable";
+  }
+
+  const min = Math.max(0, Math.round(value * 0.92));
+  const max = Math.round(value * 1.05);
+
+  return `${min.toLocaleString("es-ES")} € - ${max.toLocaleString("es-ES")} €`;
+}
+
+function formatMoney(value) {
+  const number = Number(value || 0);
+
+  return `${Math.round(number).toLocaleString("es-ES")} €`;
+}
+
+function formatKm(value) {
+  const number = Number(value || 0);
+
+  if (!Number.isFinite(number) || number <= 0) return "km no detectados";
+
+  return `${Math.round(number).toLocaleString("es-ES")} km`;
+}
+
+function cleanLabel(value) {
+  return String(value || "")
+    .replace(/^https?:\/\/\S+/i, "vehículo buscado")
+    .trim();
 }
 
 function normalizeText(value) {
@@ -261,16 +295,6 @@ function normalizeText(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
-}
-
-function toNumber(value, fallback) {
-  const parsed = Number(String(value).replace(/[^0-9.]/g, ""));
-
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function formatBudgetRange(min, max) {
-  return `${min.toLocaleString("es-ES")} € - ${max.toLocaleString("es-ES")} €`;
 }
 
 function clamp(value, min, max) {
