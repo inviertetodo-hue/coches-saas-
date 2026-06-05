@@ -535,6 +535,7 @@ function parseAutoscoutListingsFromText({
   const queryBrand = detectBrand(query);
   const queryModel = detectModelFromQuery(query);
   const listings = [];
+  const recoverableListings = [];
 
   // Contadores de rechazo para diagnóstico
   const rejectionLog = {
