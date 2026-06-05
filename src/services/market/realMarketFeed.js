@@ -1222,6 +1222,12 @@ function getCatalogModels() {
 function normalizeModelForStrictMatch(value) {
   const text = normalize(value);
 
+  const bmwXModel = text.match(/\bx[1-7]\b/)?.[0];
+  if (bmwXModel) return bmwXModel;
+
+  const audiQModel = text.match(/\bq[2-8]\b/)?.[0];
+  if (audiQModel) return audiQModel;
+
   const catalogModel = detectCatalogModel(text);
   if (catalogModel) return normalize(catalogModel);
 
