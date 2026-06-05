@@ -874,9 +874,14 @@ function validateVehicleCompatibility({
   const budget = Number(maxBudget || 0);
 
   if (budget > 0 && price > budget) {
+    const budgetExcessPercent = Math.round(((price - budget) / budget) * 100);
+    const isRecoverable = budgetExcessPercent <= 10;
+
     return {
       isCompatible: false,
-      score: 0,
+      recoveryStatus: isRecoverable ? "RECOVERABLE" : "HARD_REJECT",
+      recoverableReason: isRecoverable ? "budget_near_miss" : "",
+      score: isRecoverable ? 50 : 0,
       warnings: [`Precio ${price} > presupuesto ${budget}.`],
       rejectionReason: `precio_sobre_presupuesto: ${price} > ${budget}`,
     };
@@ -900,6 +905,8 @@ function validateVehicleCompatibility({
     } else if (targetBaseModel && detectedBaseModel !== targetBaseModel) {
       return {
         isCompatible: false,
+        recoveryStatus: "HARD_REJECT",
+        recoverableReason: "",
         score: 0,
         warnings: [
           `Modelo incompatible: objetivo="${targetModel}", detectado="${detectedModel}".`,
@@ -949,8 +956,21 @@ function validateVehicleCompatibility({
     rejectionReasons.push(`score_bajo: ${finalScore}/100`);
   }
 
+  const recoveryStatus = isCompatible
+    ? "ACCEPTED"
+    : finalScore >= 50
+      ? "RECOVERABLE"
+      : "HARD_REJECT";
+
+  const recoverableReason =
+    recoveryStatus === "RECOVERABLE"
+      ? detectRecoverableReason(rejectionReasons, finalScore)
+      : "";
+
   return {
     isCompatible,
+    recoveryStatus,
+    recoverableReason,
     score: finalScore,
     warnings,
     rejectionReason: rejectionReasons.join("; ") || null,
@@ -962,6 +982,28 @@ function validateVehicleCompatibility({
 //   detectModelFromQuery: extrae el modelo de la búsqueda del usuario
 //   detectModelFromText: intenta detectar el modelo dentro del texto de un bloque
 // ---------------------------------------------------------------------------
+
+function detectRecoverableReason(rejectionReasons = [], score = 0) {
+  const reasons = rejectionReasons.map((reason) => String(reason || ""));
+
+  if (reasons.some((reason) => reason.startsWith("score_bajo")) && score >= 50) {
+    return "score_near_miss";
+  }
+
+  if (reasons.some((reason) => reason.startsWith("modelo_no_confirmado"))) {
+    return "model_unconfirmed";
+  }
+
+  if (reasons.some((reason) => reason.startsWith("fuel_no_phev"))) {
+    return "fuel_unconfirmed";
+  }
+
+  if (reasons.some((reason) => reason.startsWith("km_alto"))) {
+    return "mileage_near_miss";
+  }
+
+  return "general_near_miss";
+}
 
 function detectModelFromQuery(query) {
   const text = normalize(query);
