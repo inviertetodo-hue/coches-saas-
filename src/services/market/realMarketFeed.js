@@ -175,24 +175,14 @@ function buildFeedHealthMetrics(rejectionLog) {
 
 function buildRejectionSummary(rejectionLog) {
   const summary = {};
-  const modelMismatchSamples = [];
 
   const reasons = rejectionLog?.incompatibleReasons || [];
 
   reasons.forEach((reason) => {
-    const text = String(reason || "");
-    const key = text.split(":")[0].trim();
+    const key = String(reason).split(":")[0].trim();
 
     summary[key] = (summary[key] || 0) + 1;
-
-    if (key === "modelo_incompatible" && modelMismatchSamples.length < 3) {
-      modelMismatchSamples.push(text);
-    }
   });
-
-  if (modelMismatchSamples.length > 0) {
-    summary.__modelMismatchSamples = modelMismatchSamples;
-  }
 
   return summary;
 }
@@ -1056,7 +1046,7 @@ function validateVehicleCompatibility({
         warnings: [
           `Modelo incompatible: objetivo="${targetModel}", detectado="${detectedModel}".`,
         ],
-        rejectionReason: `modelo_incompatible: objetivo="${targetModel}", detectado="${detectedModel}", targetBase="${targetBaseModel}", detectedBase="${detectedBaseModel}"`,
+        rejectionReason: `modelo_incompatible: objetivo="${targetModel}", detectado="${detectedModel}"`,
       };
     } else {
       score += 25;
