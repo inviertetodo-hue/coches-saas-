@@ -47,14 +47,22 @@ export default function Scanner() {
   });
 
   useEffect(() => {
-    if (!marketFeed) return;
+    if (!loadingOverlayVisible) return;
 
-    const timeout = window.setTimeout(() => {
+    if (marketFeed) {
+      const timeout = window.setTimeout(() => {
+        setLoadingOverlayVisible(false);
+      }, 700);
+
+      return () => window.clearTimeout(timeout);
+    }
+
+    const safetyTimeout = window.setTimeout(() => {
       setLoadingOverlayVisible(false);
-    }, 700);
+    }, 12000);
 
-    return () => window.clearTimeout(timeout);
-  }, [marketFeed]);
+    return () => window.clearTimeout(safetyTimeout);
+  }, [loadingOverlayVisible, marketFeed]);
 
   function updateField(field, value) {
     setSearchTriggered(false);
