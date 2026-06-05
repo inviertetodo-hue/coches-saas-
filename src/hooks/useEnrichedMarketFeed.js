@@ -154,13 +154,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           dealRisk,
           liquidity,
           finalDecision,
-          modelSpecificValidation: modelRule
-            ? {
-                rule: modelRule.key,
-                status: "passed",
-                phase: "diagnostic-real-feed",
-              }
-            : null,
+          modelSpecificValidation: null,
         };
       }
 
