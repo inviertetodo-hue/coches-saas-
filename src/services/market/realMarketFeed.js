@@ -47,6 +47,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         parsedCount: parsedListings.length,
         durationMs: Date.now() - startedAt,
         rejectionLog,
+        rejectionSummary: buildRejectionSummary(rejectionLog),
         message:
           parsedListings.length > 0
             ? `${parsedListings.length} anuncios normalizados detectados.`
@@ -86,6 +87,21 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
   };
 }
 
+function buildRejectionSummary(rejectionLog) {
+  const summary = {};
+
+  const reasons = rejectionLog?.incompatibleReasons || [];
+
+  reasons.forEach((reason) => {
+    const key = String(reason).split(":")[0].trim();
+
+    summary[key] = (summary[key] || 0) + 1;
+  });
+
+  return summary;
+}
+
+
 function buildNoResultsMessage(rejectionLog) {
   if (!rejectionLog) return "Fetch correcto, pero el normalizador no encontró anuncios completos.";
 
@@ -99,6 +115,21 @@ function buildNoResultsMessage(rejectionLog) {
     if (rejectionLog.noData > 0) parts.push(`${rejectionLog.noData} sin precio/km/año.`);
     if (rejectionLog.incompatible > 0) parts.push(`${rejectionLog.incompatible} incompatibles con la búsqueda.`);
     if (rejectionLog.genericTitle > 0) parts.push(`${rejectionLog.genericTitle} con título genérico/dealer.`);
+
+    const summary = buildRejectionSummary(rejectionLog);
+
+    const topReasons = Object.entries(summary)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    if (topReasons.length > 0) {
+      parts.push(
+        "Motivos principales: " +
+          topReasons
+            .map(([reason, count]) => `${reason} (${count})`)
+            .join(", ")
+      );
+    }
   }
 
   return parts.join(" ");
