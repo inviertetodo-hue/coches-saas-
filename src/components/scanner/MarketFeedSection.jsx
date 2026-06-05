@@ -230,6 +230,39 @@ function SourceDiagnosticsPanel({ diagnostics }) {
 
               <p style={diagnosticMessageStyle}>{item.message || "Sin mensaje."}</p>
 
+              {item.rejectionSummary &&
+                Object.keys(item.rejectionSummary).length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "10px",
+                      borderRadius: "12px",
+                      background: "rgba(59,130,246,0.10)",
+                      border: "1px solid rgba(59,130,246,0.20)",
+                    }}
+                  >
+                    <strong style={{ color: "#93c5fd" }}>
+                      📊 Radar Health
+                    </strong>
+
+                    {Object.entries(item.rejectionSummary)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([reason, count]) => (
+                        <div
+                          key={reason}
+                          style={{
+                            marginTop: "6px",
+                            color: "#bfdbfe",
+                            fontFamily: "monospace",
+                            fontSize: "12px",
+                          }}
+                        >
+                          {reason}: {count}
+                        </div>
+                      ))}
+                  </div>
+                )}
+
               {Array.isArray(rejectionLog.incompatibleReasons) &&
                 rejectionLog.incompatibleReasons.length > 0 && (
                   <div
