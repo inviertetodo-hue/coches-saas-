@@ -265,18 +265,10 @@ function SourceDiagnosticsPanel({ diagnostics }) {
 
               {Array.isArray(rejectionLog.incompatibleReasons) &&
                 rejectionLog.incompatibleReasons.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      padding: "10px",
-                      borderRadius: "12px",
-                      background: "rgba(239,68,68,0.12)",
-                      border: "1px solid rgba(239,68,68,0.22)",
-                    }}
-                  >
-                    <strong style={{ color: "#fecaca" }}>
-                      Motivos de rechazo
-                    </strong>
+                  <details style={rejectionDetailsStyle}>
+                    <summary style={rejectionSummaryStyle}>
+                      Ver motivos individuales ({rejectionLog.incompatibleReasons.length})
+                    </summary>
 
                     {rejectionLog.incompatibleReasons.map((reason, idx) => (
                       <div
@@ -291,7 +283,7 @@ function SourceDiagnosticsPanel({ diagnostics }) {
                         ↳ {reason}
                       </div>
                     ))}
-                  </div>
+                  </details>
                 )}
 
               {item.textSample && (
@@ -415,6 +407,20 @@ const diagnosticMetricLabelStyle = {
   color: "#94a3b8",
   fontSize: "11px",
   fontWeight: "800",
+};
+
+const rejectionDetailsStyle = {
+  marginTop: "12px",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(239,68,68,0.10)",
+  border: "1px solid rgba(239,68,68,0.20)",
+};
+
+const rejectionSummaryStyle = {
+  color: "#fecaca",
+  cursor: "pointer",
+  fontWeight: "900",
 };
 
 const diagnosticMetricValueStyle = {
