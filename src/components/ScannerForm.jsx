@@ -1,5 +1,18 @@
 import { VEHICLE_CATALOG } from "../services/vehicleCatalog";
 
+const PRIORITY_BRANDS = [
+  "Audi",
+  "BMW",
+  "Ford",
+  "Mercedes",
+  "Peugeot",
+  "Renault",
+  "Seat",
+  "Skoda",
+  "Toyota",
+  "Volkswagen",
+];
+
 export default function ScannerForm({
   form,
   updateField,
@@ -19,7 +32,7 @@ export default function ScannerForm({
     "España",
   ];
 
-  const brandLabels = Object.keys(VEHICLE_CATALOG);
+  const brandLabels = buildOrderedBrandLabels(Object.keys(VEHICLE_CATALOG));
   const selectedBrandLabel =
     brandLabels.find((brand) => normalizeKey(brand) === normalizeKey(form.brand)) ||
     brandLabels[0];
@@ -185,6 +198,26 @@ export default function ScannerForm({
       </button>
     </div>
   );
+}
+
+function buildOrderedBrandLabels(allBrands) {
+  const normalizedPriority = new Set(PRIORITY_BRANDS.map(normalizeKey));
+
+  const priorityBrands = allBrands
+    .filter((brand) => normalizedPriority.has(normalizeKey(brand)))
+    .sort(compareAlphabetically);
+
+  const secondaryBrands = allBrands
+    .filter((brand) => !normalizedPriority.has(normalizeKey(brand)))
+    .sort(compareAlphabetically);
+
+  return [...priorityBrands, ...secondaryBrands];
+}
+
+function compareAlphabetically(a, b) {
+  return String(a).localeCompare(String(b), "es", {
+    sensitivity: "base",
+  });
 }
 
 function buildVehicleQuery(brand, model) {
