@@ -49,6 +49,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         rejectionLog,
         rejectionSummary: buildRejectionSummary(rejectionLog),
         healthMetrics: buildFeedHealthMetrics(rejectionLog),
+        nearMissSummary: buildNearMissSummary(rejectionLog),
         message:
           parsedListings.length > 0
             ? `${parsedListings.length} anuncios normalizados detectados.`
@@ -86,6 +87,53 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
     errors,
     diagnostics,
   };
+}
+
+function buildNearMissSummary(rejectionLog) {
+  const reasons = rejectionLog?.incompatibleReasons || [];
+
+  const summary = {
+    budgetNearMiss: 0,
+    scoreNearMiss: 0,
+    mileageNearMiss: 0,
+  };
+
+  reasons.forEach((reason) => {
+    const text = String(reason || "");
+
+    if (text.startsWith("precio_sobre_presupuesto")) {
+      const match = text.match(/precio_sobre_presupuesto:\s*(\d+)\s*>\s*(\d+)/);
+      const price = Number(match?.[1] || 0);
+      const budget = Number(match?.[2] || 0);
+
+      if (price > 0 && budget > 0 && price <= budget * 1.1) {
+        summary.budgetNearMiss += 1;
+      }
+    }
+
+    if (text.startsWith("score_bajo")) {
+      const match = text.match(/score_bajo:\s*(\d+)\/100/);
+      const score = Number(match?.[1] || 0);
+
+      if (score >= 45 && score < 55) {
+        summary.scoreNearMiss += 1;
+      }
+    }
+
+    if (text.startsWith("km_alto")) {
+      const match = text.match(/km_alto:\s*(\d+)/);
+      const mileage = Number(match?.[1] || 0);
+
+      if (mileage > 250000 && mileage <= 287500) {
+        summary.mileageNearMiss += 1;
+      }
+    }
+  });
+
+  summary.total =
+    summary.budgetNearMiss + summary.scoreNearMiss + summary.mileageNearMiss;
+
+  return summary;
 }
 
 function buildFeedHealthMetrics(rejectionLog) {

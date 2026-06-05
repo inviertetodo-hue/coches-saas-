@@ -254,6 +254,36 @@ function SourceDiagnosticsPanel({ diagnostics }) {
                 </div>
               )}
 
+              {item.nearMissSummary?.total > 0 && (
+                <div style={nearMissBoxStyle}>
+                  <strong style={{ color: "#fde68a" }}>
+                    🚨 Casi oportunidades detectadas
+                  </strong>
+
+                  <div style={nearMissGridStyle}>
+                    <DiagnosticMetric
+                      label="Por presupuesto"
+                      value={item.nearMissSummary.budgetNearMiss || 0}
+                    />
+
+                    <DiagnosticMetric
+                      label="Por score"
+                      value={item.nearMissSummary.scoreNearMiss || 0}
+                    />
+
+                    <DiagnosticMetric
+                      label="Por km"
+                      value={item.nearMissSummary.mileageNearMiss || 0}
+                    />
+
+                    <DiagnosticMetric
+                      label="Total"
+                      value={item.nearMissSummary.total || 0}
+                    />
+                  </div>
+                </div>
+              )}
+
               {buildRadarHealthRecommendation(item.rejectionSummary) && (
                 <div style={healthRecommendationStyle}>
                   <strong style={{ color: "#bbf7d0" }}>
@@ -480,6 +510,21 @@ const diagnosticMetricLabelStyle = {
   color: "#94a3b8",
   fontSize: "11px",
   fontWeight: "800",
+};
+
+const nearMissBoxStyle = {
+  marginTop: "12px",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(245,158,11,0.10)",
+  border: "1px solid rgba(245,158,11,0.22)",
+};
+
+const nearMissGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+  gap: "8px",
+  marginTop: "10px",
 };
 
 const healthMetricsStyle = {
