@@ -876,21 +876,31 @@ function detectModelFromQuery(query) {
 
   // Modelos base
   const baseModels = [
+    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 6", "serie 7",
     "x1", "x2", "x3", "x4", "x5", "x6", "x7",
     "a1", "a3", "a4", "a5", "a6", "a7", "a8",
-    "q2", "q3", "q5", "q7", "q8",
-    "glc", "gle", "glb", "gla", "gls",
-    "xc40", "xc60", "xc90", "v60", "v90", "s60", "s90",
+    "q2", "q3", "q4", "q5", "q7", "q8",
+    "glc", "gle", "glb", "gla", "gls", "clase a", "clase b", "clase c", "clase e",
+    "xc40", "xc60", "xc90", "v40", "v60", "v90", "s60", "s90",
     "911", "macan", "cayenne", "panamera", "taycan",
-    "golf", "tiguan", "passat", "polo", "touareg", "arteon",
-    "octavia", "kodiaq", "superb",
-    "leon", "ateca", "tarraco",
-    "clio", "megane", "kadjar", "koleos",
-    "3008", "5008", "2008", "308", "208",
-    "tucson", "santa fe",
-    "sportage", "sorento",
-    "qashqai", "juke",
-    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 6", "serie 7",
+    "golf", "tiguan", "passat", "polo", "touareg", "arteon", "t-roc", "t-cross", "id.3", "id.4",
+    "fabia", "scala", "octavia", "kamiq", "karoq", "kodiaq", "superb", "enyaq",
+    "ibiza", "leon", "arona", "ateca", "tarraco",
+    "clio", "captur", "megane", "kadjar", "koleos", "austral", "arkana", "espace",
+    "208", "308", "408", "508", "2008", "3008", "5008", "rifter",
+    "focus", "fiesta", "puma", "kuga", "mondeo", "mustang mach-e",
+    "i10", "i20", "i30", "kona", "tucson", "santa fe", "ioniq 5", "ioniq 6",
+    "picanto", "rio", "ceed", "xceed", "niro", "sportage", "sorento", "ev6",
+    "micra", "juke", "qashqai", "x-trail", "ariya",
+    "corsa", "astra", "mokka", "crossland", "grandland", "insignia",
+    "sandero", "logan", "duster", "jogger", "spring",
+    "yaris", "corolla", "c-hr", "rav4", "camry", "prius",
+    "500", "500x", "tipo", "panda",
+    "c3", "c4", "c5 aircross", "berlingo",
+    "cx-3", "cx-30", "cx-5", "mazda2", "mazda3", "mazda6",
+    "civic", "hr-v", "cr-v", "jazz",
+    "model 3", "model y", "model s", "model x",
+    "mg4", "zs", "hs", "euniq", "atto 3", "seal", "dolphin",
   ];
 
   const detected = baseModels.find((m) => text.includes(normalize(m)));
@@ -898,7 +908,12 @@ function detectModelFromQuery(query) {
 
   // Último recurso: usar el query limpio como modelo si no es solo una marca
   const cleanedQuery = cleanText(query);
-  const onlyBrand = ["audi", "bmw", "porsche", "volvo", "mercedes", "volkswagen", "renault", "peugeot"].includes(normalize(cleanedQuery));
+  const onlyBrand = [
+    "audi", "bmw", "porsche", "volvo", "mercedes", "volkswagen", "vw",
+    "renault", "peugeot", "skoda", "seat", "toyota", "hyundai", "kia",
+    "nissan", "ford", "opel", "citroen", "citroën", "fiat", "mazda",
+    "honda", "dacia", "tesla", "mg", "byd"
+  ].includes(normalize(cleanedQuery));
   if (!onlyBrand && cleanedQuery) return cleanedQuery;
 
   return "";
@@ -928,20 +943,31 @@ function detectModelFromTextOnly(text) {
   }
 
   const baseModels = [
+    "serie 1", "serie 2", "serie 3", "serie 4", "serie 5", "serie 6", "serie 7",
     "x1", "x2", "x3", "x4", "x5", "x6", "x7",
     "a1", "a3", "a4", "a5", "a6", "a7", "a8",
-    "q2", "q3", "q5", "q7", "q8",
-    "glc", "gle", "glb", "gla", "gls",
-    "xc40", "xc60", "xc90", "v60", "v90", "s60", "s90",
+    "q2", "q3", "q4", "q5", "q7", "q8",
+    "glc", "gle", "glb", "gla", "gls", "clase a", "clase b", "clase c", "clase e",
+    "xc40", "xc60", "xc90", "v40", "v60", "v90", "s60", "s90",
     "911", "macan", "cayenne", "panamera", "taycan",
-    "golf", "tiguan", "passat", "polo", "touareg",
-    "octavia", "kodiaq", "superb",
-    "leon", "ateca", "tarraco",
-    "clio", "megane", "kadjar",
-    "3008", "5008", "2008", "308", "208",
-    "tucson", "santa fe",
-    "sportage", "sorento",
-    "qashqai", "juke",
+    "golf", "tiguan", "passat", "polo", "touareg", "arteon", "t-roc", "t-cross", "id.3", "id.4",
+    "fabia", "scala", "octavia", "kamiq", "karoq", "kodiaq", "superb", "enyaq",
+    "ibiza", "leon", "arona", "ateca", "tarraco",
+    "clio", "captur", "megane", "kadjar", "koleos", "austral", "arkana", "espace",
+    "208", "308", "408", "508", "2008", "3008", "5008", "rifter",
+    "focus", "fiesta", "puma", "kuga", "mondeo", "mustang mach-e",
+    "i10", "i20", "i30", "kona", "tucson", "santa fe", "ioniq 5", "ioniq 6",
+    "picanto", "rio", "ceed", "xceed", "niro", "sportage", "sorento", "ev6",
+    "micra", "juke", "qashqai", "x-trail", "ariya",
+    "corsa", "astra", "mokka", "crossland", "grandland", "insignia",
+    "sandero", "logan", "duster", "jogger", "spring",
+    "yaris", "corolla", "c-hr", "rav4", "camry", "prius",
+    "500", "500x", "tipo", "panda",
+    "c3", "c4", "c5 aircross", "berlingo",
+    "cx-3", "cx-30", "cx-5", "mazda2", "mazda3", "mazda6",
+    "civic", "hr-v", "cr-v", "jazz",
+    "model 3", "model y", "model s", "model x",
+    "mg4", "zs", "hs", "euniq", "atto 3", "seal", "dolphin",
   ];
 
   return baseModels.find((m) => combined.includes(normalize(m))) || "";
