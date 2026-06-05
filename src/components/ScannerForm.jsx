@@ -1,3 +1,5 @@
+import { VEHICLE_CATALOG } from "../services/vehicleCatalog";
+
 export default function ScannerForm({
   form,
   updateField,
@@ -17,22 +19,104 @@ export default function ScannerForm({
     "España",
   ];
 
+  const brandLabels = Object.keys(VEHICLE_CATALOG);
+  const selectedBrandLabel =
+    brandLabels.find((brand) => normalizeKey(brand) === normalizeKey(form.brand)) ||
+    brandLabels[0];
+
+  const selectedBrandKey = normalizeKey(selectedBrandLabel);
+  const availableModels = VEHICLE_CATALOG[selectedBrandLabel] || [];
+
+  const selectedModel =
+    availableModels.find((model) => normalizeKey(model) === normalizeKey(form.model)) ||
+    availableModels[0] ||
+    "";
+
+  function handleBrandChange(event) {
+    const nextBrandKey = event.target.value;
+    const nextBrandLabel =
+      brandLabels.find((brand) => normalizeKey(brand) === nextBrandKey) ||
+      brandLabels[0];
+
+    const nextModel = VEHICLE_CATALOG[nextBrandLabel]?.[0] || "";
+
+    updateField("brand", nextBrandKey);
+    updateField("model", nextModel);
+    updateField("query", buildVehicleQuery(nextBrandLabel, nextModel));
+  }
+
+  function handleModelChange(event) {
+    const nextModel = event.target.value;
+
+    updateField("model", nextModel);
+    updateField("query", buildVehicleQuery(selectedBrandLabel, nextModel));
+  }
+
   return (
     <div style={cardStyle}>
       <div style={formGridStyle}>
         <div>
-          <label style={labelStyle}>Vehículo objetivo</label>
-          <input value={form.query} onChange={(event) => updateField("query", event.target.value)} placeholder="Audi A3, BMW X5 45e..." style={inputStyle} />
+          <label style={labelStyle}>Marca</label>
+
+          <select
+            value={selectedBrandKey}
+            onChange={handleBrandChange}
+            style={inputStyle}
+          >
+            {brandLabels.map((brand) => (
+              <option key={brand} value={normalizeKey(brand)}>
+                {brand}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={labelStyle}>Modelo</label>
+
+          <select
+            value={selectedModel}
+            onChange={handleModelChange}
+            style={inputStyle}
+          >
+            {availableModels.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={fullWidthStyle}>
+          <label style={labelStyle}>Vehículo objetivo generado</label>
+
+          <input
+            value={form.query}
+            readOnly
+            placeholder="Audi A3, BMW X5..."
+            style={readOnlyInputStyle}
+          />
         </div>
 
         <div>
           <label style={labelStyle}>Presupuesto máximo</label>
-          <input value={form.maxBudget} onChange={(event) => updateField("maxBudget", event.target.value)} placeholder="25000" style={inputStyle} />
+
+          <input
+            value={form.maxBudget}
+            onChange={(event) => updateField("maxBudget", event.target.value)}
+            placeholder="25000"
+            style={inputStyle}
+          />
         </div>
 
         <div>
           <label style={labelStyle}>Combustible</label>
-          <select value={form.fuel || ""} onChange={(event) => updateField("fuel", event.target.value)} style={inputStyle}>
+
+          <select
+            value={form.fuel || ""}
+            onChange={(event) => updateField("fuel", event.target.value)}
+            style={inputStyle}
+          >
             <option value="">Cualquiera</option>
             <option value="gasolina">Gasolina</option>
             <option value="diesel">Diésel</option>
@@ -44,17 +128,36 @@ export default function ScannerForm({
 
         <div>
           <label style={labelStyle}>Año desde</label>
-          <input value={form.minYear || ""} onChange={(event) => updateField("minYear", event.target.value)} placeholder="2020" inputMode="numeric" style={inputStyle} />
+
+          <input
+            value={form.minYear || ""}
+            onChange={(event) => updateField("minYear", event.target.value)}
+            placeholder="2020"
+            inputMode="numeric"
+            style={inputStyle}
+          />
         </div>
 
         <div>
           <label style={labelStyle}>Km máximo</label>
-          <input value={form.maxMileage || ""} onChange={(event) => updateField("maxMileage", event.target.value)} placeholder="90000" inputMode="numeric" style={inputStyle} />
+
+          <input
+            value={form.maxMileage || ""}
+            onChange={(event) => updateField("maxMileage", event.target.value)}
+            placeholder="90000"
+            inputMode="numeric"
+            style={inputStyle}
+          />
         </div>
 
         <div>
           <label style={labelStyle}>Mercado</label>
-          <select value={form.country} onChange={(event) => updateField("country", event.target.value)} style={inputStyle}>
+
+          <select
+            value={form.country}
+            onChange={(event) => updateField("country", event.target.value)}
+            style={inputStyle}
+          >
             {markets.map((market) => (
               <option key={market} value={market}>
                 {market}
@@ -65,7 +168,12 @@ export default function ScannerForm({
 
         <div style={fullWidthStyle}>
           <label style={labelStyle}>Objetivo</label>
-          <select value={form.useCase} onChange={(event) => updateField("useCase", event.target.value)} style={inputStyle}>
+
+          <select
+            value={form.useCase}
+            onChange={(event) => updateField("useCase", event.target.value)}
+            style={inputStyle}
+          >
             <option value="reventa">Reventa</option>
             <option value="quedarmelo">Quedármelo</option>
           </select>
@@ -77,6 +185,18 @@ export default function ScannerForm({
       </button>
     </div>
   );
+}
+
+function buildVehicleQuery(brand, model) {
+  return [brand, model].filter(Boolean).join(" ").trim();
+}
+
+function normalizeKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 const cardStyle = {
@@ -114,6 +234,12 @@ const inputStyle = {
   color: "white",
   outline: "none",
   fontWeight: "700",
+};
+
+const readOnlyInputStyle = {
+  ...inputStyle,
+  opacity: 0.82,
+  cursor: "not-allowed",
 };
 
 const searchButtonStyle = {
