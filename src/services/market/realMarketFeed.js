@@ -17,7 +17,6 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
   }
 
   const allListings = [];
-  const allRecoverableListings = [];
   const errors = [];
   const diagnostics = [];
 
@@ -28,7 +27,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
       const readerUrl = buildReaderUrl(link.url);
       const text = await fetchSearchText(link.url);
 
-      const { listings: parsedListings, recoverableListings = [], rejectionLog } = parseListingsFromText({
+      const { listings: parsedListings, rejectionLog } = parseListingsFromText({
         text,
         source: link.source,
         country: link.country,
@@ -58,7 +57,6 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
       });
 
       allListings.push(...parsedListings);
-      allRecoverableListings.push(...recoverableListings);
 
       if (allListings.length >= maxListings) break;
     } catch (error) {
@@ -82,13 +80,10 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
   }
 
   const listings = dedupeListings(allListings).slice(0, maxListings);
-  const recoveryQueue = dedupeListings(allRecoverableListings).slice(0, maxListings);
 
   return {
     mode: listings.length > 0 ? "real-feed" : "real-feed-failed",
     listings,
-    recoveryQueue,
-    recoveryQueueTotal: recoveryQueue.length,
     errors,
     diagnostics,
   };
@@ -341,7 +336,6 @@ function parseMobileDeListingsFromText({
   const queryBrand = detectBrand(query);
   const queryModel = detectModelFromQuery(query);
   const listings = [];
-  const recoverableListings = [];
 
   const rejectionLog = {
     totalBlocks: blocks.length,
@@ -400,26 +394,6 @@ function parseMobileDeListingsFromText({
       if (validation.rejectionReason) {
         rejectionLog.incompatibleReasons.push(validation.rejectionReason);
       }
-
-      if (validation.recoveryStatus === "RECOVERABLE") {
-        recoverableListings.push(buildRecoverableListing({
-          source,
-          country,
-          title,
-          brand,
-          model,
-          price,
-          mileage,
-          year,
-          fuelType,
-          powerKw,
-          blockText,
-          sourceUrl,
-          validation,
-          sourceFormat: "mobile-de-r-jina-v1",
-        }));
-      }
-
       return;
     }
 
@@ -461,7 +435,7 @@ function parseMobileDeListingsFromText({
     });
   });
 
-  return { listings, recoverableListings, rejectionLog };
+  return { listings, rejectionLog };
 }
 
 function splitMobileDeTextIntoBlocks(text) {
@@ -535,7 +509,6 @@ function parseAutoscoutListingsFromText({
   const queryBrand = detectBrand(query);
   const queryModel = detectModelFromQuery(query);
   const listings = [];
-  const recoverableListings = [];
 
   // Contadores de rechazo para diagnóstico
   const rejectionLog = {
@@ -604,27 +577,6 @@ function parseAutoscoutListingsFromText({
       if (validation.rejectionReason) {
         rejectionLog.incompatibleReasons.push(validation.rejectionReason);
       }
-
-      if (validation.recoveryStatus === "RECOVERABLE") {
-        recoverableListings.push(buildRecoverableListing({
-          source,
-          country,
-          title,
-          brand,
-          model,
-          price,
-          mileage,
-          year,
-          fuelType,
-          powerKw,
-          blockText,
-          sourceUrl,
-          imageUrl,
-          validation,
-          sourceFormat: "autoscout-r-jina-block-v2",
-        }));
-      }
-
       return;
     }
 
@@ -676,7 +628,7 @@ function parseAutoscoutListingsFromText({
     });
   });
 
-  return { listings, recoverableListings, rejectionLog };
+  return { listings, rejectionLog };
 }
 
 function splitAutoscoutTextIntoListingBlocks(text) {
@@ -819,7 +771,6 @@ function parseGenericListingsFromText({
 }) {
   const lines = toUsefulLines(text);
   const listings = [];
-  const recoverableListings = [];
   const queryBrand = detectBrand(query);
   const rejectionLog = {
     totalBlocks: 0,
@@ -864,31 +815,6 @@ function parseGenericListingsFromText({
 
     if (!validation.isCompatible) {
       rejectionLog.incompatible += 1;
-
-      if (validation.rejectionReason) {
-        rejectionLog.incompatibleReasons = rejectionLog.incompatibleReasons || [];
-        rejectionLog.incompatibleReasons.push(validation.rejectionReason);
-      }
-
-      if (validation.recoveryStatus === "RECOVERABLE") {
-        recoverableListings.push(buildRecoverableListing({
-          source,
-          country,
-          title: line,
-          brand: detectBrand(line) || queryBrand,
-          model: detectModelFromText(line, query),
-          price,
-          mileage,
-          year,
-          fuelType,
-          powerKw,
-          blockText,
-          sourceUrl: extractFirstUrl(blockText),
-          validation,
-          sourceFormat: "generic-r-jina",
-        }));
-      }
-
       continue;
     }
 
@@ -928,68 +854,7 @@ function parseGenericListingsFromText({
     });
   }
 
-  return { listings, recoverableListings, rejectionLog };
-}
-
-function buildRecoverableListing({
-  source,
-  country,
-  title,
-  brand,
-  model,
-  price,
-  mileage,
-  year,
-  fuelType,
-  powerKw,
-  blockText,
-  sourceUrl,
-  imageUrl = "",
-  validation,
-  sourceFormat,
-}) {
-  return {
-    id: buildListingId({
-      source,
-      country,
-      line: `${title || "recoverable"}-${validation.recoverableReason}`,
-      price,
-      mileage,
-      year,
-    }),
-    title: cleanTitle(title),
-    brand,
-    model,
-    price,
-    km: mileage,
-    mileage,
-    year,
-    country,
-    fuelType,
-    drivetrain: detectDrivetrain(blockText),
-    bodyType: detectBodyType(blockText),
-    performancePackage: detectPerformancePackage(blockText),
-    electrified: isElectrified(blockText),
-    marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
-    source,
-    url: sourceUrl,
-    imageUrl,
-    isRealData: true,
-    recoveryStatus: validation.recoveryStatus,
-    recoverableReason: validation.recoverableReason,
-    semanticScore: validation.score,
-    semanticWarnings: validation.warnings,
-    rejectionReason: validation.rejectionReason,
-    dataQuality: {
-      hasPrice: true,
-      hasMileage: true,
-      hasYear: true,
-      hasPower: Boolean(powerKw),
-      estimatedMileage: false,
-      estimatedYear: false,
-      sourceFormat,
-    },
-  };
+  return { listings, rejectionLog };
 }
 
 function validateVehicleCompatibility({
@@ -1009,14 +874,9 @@ function validateVehicleCompatibility({
   const budget = Number(maxBudget || 0);
 
   if (budget > 0 && price > budget) {
-    const budgetExcessPercent = Math.round(((price - budget) / budget) * 100);
-    const isRecoverable = budgetExcessPercent <= 10;
-
     return {
       isCompatible: false,
-      recoveryStatus: isRecoverable ? "RECOVERABLE" : "HARD_REJECT",
-      recoverableReason: isRecoverable ? "budget_near_miss" : "",
-      score: isRecoverable ? 50 : 0,
+      score: 0,
       warnings: [`Precio ${price} > presupuesto ${budget}.`],
       rejectionReason: `precio_sobre_presupuesto: ${price} > ${budget}`,
     };
@@ -1040,8 +900,6 @@ function validateVehicleCompatibility({
     } else if (targetBaseModel && detectedBaseModel !== targetBaseModel) {
       return {
         isCompatible: false,
-        recoveryStatus: "HARD_REJECT",
-        recoverableReason: "",
         score: 0,
         warnings: [
           `Modelo incompatible: objetivo="${targetModel}", detectado="${detectedModel}".`,
@@ -1091,21 +949,8 @@ function validateVehicleCompatibility({
     rejectionReasons.push(`score_bajo: ${finalScore}/100`);
   }
 
-  const recoveryStatus = isCompatible
-    ? "ACCEPTED"
-    : finalScore >= 50
-      ? "RECOVERABLE"
-      : "HARD_REJECT";
-
-  const recoverableReason =
-    recoveryStatus === "RECOVERABLE"
-      ? detectRecoverableReason(rejectionReasons, finalScore)
-      : "";
-
   return {
     isCompatible,
-    recoveryStatus,
-    recoverableReason,
     score: finalScore,
     warnings,
     rejectionReason: rejectionReasons.join("; ") || null,
@@ -1117,28 +962,6 @@ function validateVehicleCompatibility({
 //   detectModelFromQuery: extrae el modelo de la búsqueda del usuario
 //   detectModelFromText: intenta detectar el modelo dentro del texto de un bloque
 // ---------------------------------------------------------------------------
-
-function detectRecoverableReason(rejectionReasons = [], score = 0) {
-  const reasons = rejectionReasons.map((reason) => String(reason || ""));
-
-  if (reasons.some((reason) => reason.startsWith("score_bajo")) && score >= 50) {
-    return "score_near_miss";
-  }
-
-  if (reasons.some((reason) => reason.startsWith("modelo_no_confirmado"))) {
-    return "model_unconfirmed";
-  }
-
-  if (reasons.some((reason) => reason.startsWith("fuel_no_phev"))) {
-    return "fuel_unconfirmed";
-  }
-
-  if (reasons.some((reason) => reason.startsWith("km_alto"))) {
-    return "mileage_near_miss";
-  }
-
-  return "general_near_miss";
-}
 
 function detectModelFromQuery(query) {
   const text = normalize(query);
@@ -1221,12 +1044,6 @@ function getCatalogModels() {
 
 function normalizeModelForStrictMatch(value) {
   const text = normalize(value);
-
-  const bmwXModel = text.match(/\bx[1-7]\b/)?.[0];
-  if (bmwXModel) return bmwXModel;
-
-  const audiQModel = text.match(/\bq[2-8]\b/)?.[0];
-  if (audiQModel) return audiQModel;
 
   const catalogModel = detectCatalogModel(text);
   if (catalogModel) return normalize(catalogModel);
