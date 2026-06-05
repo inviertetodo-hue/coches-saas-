@@ -175,14 +175,24 @@ function buildFeedHealthMetrics(rejectionLog) {
 
 function buildRejectionSummary(rejectionLog) {
   const summary = {};
+  const modelMismatchSamples = [];
 
   const reasons = rejectionLog?.incompatibleReasons || [];
 
   reasons.forEach((reason) => {
-    const key = String(reason).split(":")[0].trim();
+    const text = String(reason || "");
+    const key = text.split(":")[0].trim();
 
     summary[key] = (summary[key] || 0) + 1;
+
+    if (key === "modelo_incompatible" && modelMismatchSamples.length < 3) {
+      modelMismatchSamples.push(text);
+    }
   });
+
+  if (modelMismatchSamples.length > 0) {
+    summary.__modelMismatchSamples = modelMismatchSamples;
+  }
 
   return summary;
 }
