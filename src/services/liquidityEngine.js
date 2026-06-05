@@ -47,7 +47,7 @@ const LIQUIDITY_PROFILES = [
   {
     id: "premium-phev-suv",
     label: "SUV premium PHEV",
-    keywords: ["x5", "45e", "glc", "300e", "300de", "q7", "tfsie", "phev"],
+    keywords: ["45e", "50e", "30e", "300e", "300de", "350de", "q7 tfsi e", "tfsie", "phev", "plug-in", "plug in"],
     liquidityScore: 84,
     expectedDaysToSell: 42,
     demand: "Alta",
@@ -113,12 +113,34 @@ export function buildLiquidityProfile(input = {}) {
   const price = toNumber(item.price || input.price, 0);
 
   const modelProfile = findModelLiquidityProfile(query, item);
+  const fuelType = normalizeText(item.fuelType || item.fuel || item.engine || "");
+  const isDiesel = fuelType.includes("diesel") || query.includes("diesel") || query.includes("diésel");
+  const isPhev =
+    fuelType.includes("phev") ||
+    fuelType.includes("hybrid") ||
+    fuelType.includes("hibrido") ||
+    fuelType.includes("híbrido") ||
+    query.includes("phev") ||
+    query.includes("45e") ||
+    query.includes("50e") ||
+    query.includes("300de") ||
+    query.includes("300e") ||
+    query.includes("tfsie") ||
+    query.includes("tfsi e");
 
   const matchedProfiles = LIQUIDITY_PROFILES.filter((profile) =>
     profile.keywords.some((keyword) => query.includes(normalizeText(keyword)))
   );
 
-  if (semantic.isPhev && semantic.isSuv) {
+  if (isDiesel) {
+    matchedProfiles.push(findProfile("premium-diesel-auto"));
+  }
+
+  if (isPhev) {
+    matchedProfiles.push(findProfile("premium-phev-suv"));
+  }
+
+  if (semantic.isPhev && semantic.isSuv && isPhev && !isDiesel) {
     matchedProfiles.push(findProfile("premium-phev-suv"));
   }
 

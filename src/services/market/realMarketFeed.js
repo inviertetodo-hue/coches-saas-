@@ -272,6 +272,7 @@ function parseMobileDeListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      blockText: title,
     });
 
     if (!validation.isCompatible) {
@@ -454,6 +455,7 @@ function parseAutoscoutListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      blockText: title,
     });
 
     if (!validation.isCompatible) {
@@ -694,6 +696,7 @@ function parseGenericListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      blockText: line,
     });
 
     if (!validation.isCompatible) {
@@ -749,6 +752,7 @@ function validateVehicleCompatibility({
   fuelType,
   powerKw,
   maxBudget,
+  blockText = "",
 }) {
   const text = normalize(query);
   const warnings = [];
@@ -769,7 +773,29 @@ function validateVehicleCompatibility({
   if (detectBrand(text)) score += 20;
 
   const targetModel = detectModelFromQuery(text);
-  if (targetModel && text.includes(normalize(targetModel))) score += 20;
+  const detectedModel = detectModelFromTextOnly(blockText);
+
+  if (targetModel) {
+    const targetBaseModel = normalizeModelForStrictMatch(targetModel);
+    const detectedBaseModel = normalizeModelForStrictMatch(detectedModel);
+
+    if (!detectedBaseModel) {
+      score -= 15;
+      warnings.push(`Modelo no confirmado en anuncio: objetivo="${targetModel}".`);
+      rejectionReasons.push(`modelo_no_confirmado: objetivo="${targetModel}"`);
+    } else if (targetBaseModel && detectedBaseModel !== targetBaseModel) {
+      return {
+        isCompatible: false,
+        score: 0,
+        warnings: [
+          `Modelo incompatible: objetivo="${targetModel}", detectado="${detectedModel}".`,
+        ],
+        rejectionReason: `modelo_incompatible: objetivo="${targetModel}", detectado="${detectedModel}"`,
+      };
+    } else {
+      score += 25;
+    }
+  }
 
   if (semantic?.isPremium) score += 5;
   if (semantic?.isSuv) score += 5;
@@ -879,9 +905,12 @@ function detectModelFromQuery(query) {
 }
 
 function detectModelFromText(text, query) {
-  // Intenta detectar el modelo dentro de un bloque de texto del anuncio.
-  // Si no puede, devuelve vacío (el caller usará el fallback del query).
-  const combined = normalize(`${text} ${query}`);
+  return detectModelFromTextOnly(text) || detectModelFromQuery(query);
+}
+
+function detectModelFromTextOnly(text) {
+  // Detecta modelo SOLO desde el anuncio. No mezcla con la búsqueda del usuario.
+  const combined = normalize(text);
 
   const variantPatterns = [
     { pattern: /x5\s*(xdrive)?\s*45e/,    result: "X5 xDrive45e" },
@@ -920,7 +949,54 @@ function detectModelFromText(text, query) {
 
 // Legacy alias — mantener compatibilidad con código que llame a detectModel
 function detectModel(title, query) {
-  return detectModelFromText(title, query) || detectModelFromQuery(query);
+  return detectModelFromTextOnly(title) || detectModelFromQuery(query);
+}
+
+function normalizeModelForStrictMatch(value) {
+  const text = normalize(value);
+
+  const patterns = [
+    { pattern: /x5/, result: "x5" },
+    { pattern: /x1/, result: "x1" },
+    { pattern: /x2/, result: "x2" },
+    { pattern: /x3/, result: "x3" },
+    { pattern: /x4/, result: "x4" },
+    { pattern: /x6/, result: "x6" },
+    { pattern: /x7/, result: "x7" },
+
+    { pattern: /a1/, result: "a1" },
+    { pattern: /a3/, result: "a3" },
+    { pattern: /a4/, result: "a4" },
+    { pattern: /a5/, result: "a5" },
+    { pattern: /a6/, result: "a6" },
+    { pattern: /a7/, result: "a7" },
+    { pattern: /a8/, result: "a8" },
+
+    { pattern: /q2/, result: "q2" },
+    { pattern: /q3/, result: "q3" },
+    { pattern: /q5/, result: "q5" },
+    { pattern: /q7/, result: "q7" },
+    { pattern: /q8/, result: "q8" },
+
+    { pattern: /glc/, result: "glc" },
+    { pattern: /gle/, result: "gle" },
+    { pattern: /glb/, result: "glb" },
+    { pattern: /gla/, result: "gla" },
+    { pattern: /gls/, result: "gls" },
+
+    { pattern: /octavia/, result: "octavia" },
+    { pattern: /kodiaq/, result: "kodiaq" },
+    { pattern: /superb/, result: "superb" },
+    { pattern: /corolla/, result: "corolla" },
+    { pattern: /rav4/, result: "rav4" },
+    { pattern: /3008/, result: "3008" },
+    { pattern: /5008/, result: "5008" },
+    { pattern: /2008/, result: "2008" },
+    { pattern: /208/, result: "208" },
+    { pattern: /308/, result: "308" },
+  ];
+
+  return patterns.find((item) => item.pattern.test(text))?.result || text;
 }
 
 function toUsefulLines(text) {
@@ -1014,6 +1090,27 @@ function isGenericOrDealerTitle(title) {
     "sin comparacion",
     "stock fuera",
     "financiacion",
+
+    "haufige fragen",
+    "häufige fragen",
+    "faq",
+    "preguntas frecuentes",
+    "frequently asked questions",
+
+    "coches similares",
+    "vehiculos similares",
+    "vehículos similares",
+    "anuncios similares",
+
+    "compare",
+    "comparar",
+    "vergleich",
+    "vergleichen",
+
+    "dealer page",
+    "concesionario",
+    "about this dealer",
+    "sobre este concesionario",
   ];
 
   return genericTerms.some((term) => text.includes(term));
