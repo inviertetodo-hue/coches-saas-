@@ -431,7 +431,7 @@ function getDiagnosticsList(realFeedDiagnostics) {
 
 function getStatusLabel(status) {
   if (status === "success") return "OK";
-  if (status === "error") return "Error";
+  if (status === "error") return "🚫 Bloqueado por la fuente";
   if (status === "no-results") return "Sin anuncios";
   return status || "Sin dato";
 }
