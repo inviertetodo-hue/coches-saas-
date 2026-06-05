@@ -230,6 +230,18 @@ function SourceDiagnosticsPanel({ diagnostics }) {
 
               <p style={diagnosticMessageStyle}>{item.message || "Sin mensaje."}</p>
 
+              {buildRadarHealthRecommendation(item.rejectionSummary) && (
+                <div style={healthRecommendationStyle}>
+                  <strong style={{ color: "#bbf7d0" }}>
+                    💡 Recomendación IA
+                  </strong>
+
+                  <p style={healthRecommendationTextStyle}>
+                    {buildRadarHealthRecommendation(item.rejectionSummary)}
+                  </p>
+                </div>
+              )}
+
               {item.rejectionSummary &&
                 Object.keys(item.rejectionSummary).length > 0 && (
                   <div
@@ -307,6 +319,43 @@ function DiagnosticMetric({ label, value }) {
       <strong style={diagnosticMetricValueStyle}>{value}</strong>
     </div>
   );
+}
+
+function buildRadarHealthRecommendation(rejectionSummary) {
+  if (!rejectionSummary || typeof rejectionSummary !== "object") {
+    return "";
+  }
+
+  const [mainReason, count] =
+    Object.entries(rejectionSummary).sort((a, b) => b[1] - a[1])[0] || [];
+
+  if (!mainReason || !count) return "";
+
+  if (mainReason === "modelo_incompatible") {
+    return `El filtro de modelo está bloqueando ${count} anuncios. Revisa compatibilidad y catálogo antes de tocar ranking.`;
+  }
+
+  if (mainReason === "modelo_no_confirmado") {
+    return `Hay ${count} anuncios donde el modelo no queda confirmado. El feed puede estar trayendo resultados útiles con títulos incompletos.`;
+  }
+
+  if (mainReason === "precio_sobre_presupuesto") {
+    return `El presupuesto está bloqueando ${count} anuncios. Puede convenir mostrar descartados caros o relajar el rango.`;
+  }
+
+  if (mainReason === "km_alto") {
+    return `El kilometraje está bloqueando ${count} anuncios. Revisa si el límite de km es demasiado estricto para este mercado.`;
+  }
+
+  if (mainReason === "fuel_no_phev") {
+    return `El filtro PHEV está bloqueando ${count} anuncios. Revisa detección de combustible antes de descartar oportunidades.`;
+  }
+
+  if (mainReason === "score_bajo") {
+    return `El Radar encuentra mercado, pero ${count} anuncios no alcanzan score suficiente. Revisa scoring y filtros de compatibilidad.`;
+  }
+
+  return `Motivo dominante: ${mainReason} (${count}). Prioriza revisar ese filtro antes de añadir más motores.`;
 }
 
 function getDiagnosticsList(realFeedDiagnostics) {
@@ -407,6 +456,21 @@ const diagnosticMetricLabelStyle = {
   color: "#94a3b8",
   fontSize: "11px",
   fontWeight: "800",
+};
+
+const healthRecommendationStyle = {
+  marginTop: "12px",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(34,197,94,0.10)",
+  border: "1px solid rgba(34,197,94,0.20)",
+};
+
+const healthRecommendationTextStyle = {
+  margin: "8px 0 0",
+  color: "#dcfce7",
+  fontSize: "13px",
+  lineHeight: 1.5,
 };
 
 const rejectionDetailsStyle = {
