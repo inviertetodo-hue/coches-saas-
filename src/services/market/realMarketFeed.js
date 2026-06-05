@@ -849,6 +849,24 @@ function validateVehicleCompatibility({
 //   detectModelFromText: intenta detectar el modelo dentro del texto de un bloque
 // ---------------------------------------------------------------------------
 
+
+function modelTokenMatches(text, model) {
+  const normalizedModel = normalize(model);
+  if (!text || !normalizedModel) return false;
+
+  const escaped = normalizedModel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (normalizedModel === "es") {
+    return /\blexus\s+es\b/.test(text);
+  }
+
+  if (normalizedModel === "e") {
+    return false;
+  }
+
+  return new RegExp(`(?:^|[\\s\\-\\/])${escaped}(?:[\\s\\-\\/]|$)`).test(text);
+}
+
 function detectModelFromQuery(query) {
   const text = normalize(query);
 
@@ -903,7 +921,7 @@ function detectModelFromQuery(query) {
     "mg4", "zs", "hs", "euniq", "atto 3", "seal", "dolphin",
   ];
 
-  const detected = baseModels.find((m) => text.includes(normalize(m)));
+  const detected = baseModels.find((m) => modelTokenMatches(text, m));
   if (detected) return detected;
 
   // Último recurso: usar el query limpio como modelo si no es solo una marca
@@ -970,7 +988,7 @@ function detectModelFromTextOnly(text) {
     "mg4", "zs", "hs", "euniq", "atto 3", "seal", "dolphin",
   ];
 
-  return baseModels.find((m) => combined.includes(normalize(m))) || "";
+  return baseModels.find((m) => modelTokenMatches(combined, m)) || "";
 }
 
 // Legacy alias — mantener compatibilidad con código que llame a detectModel
