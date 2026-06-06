@@ -265,7 +265,7 @@ function buildModernOpportunityScoreV3({
 
   const modernQualityScore = buildModernQualityScore(decisionSignals);
 
-  let scoreV3 = Math.round(scoreV2 * 0.62 + modernQualityScore * 0.38);
+  let scoreV3 = Math.round(scoreV2 * 0.45 + modernQualityScore * 0.55);
 
   const marketTimingScore = Number(decisionSignals.marketTimingScore || 0);
   const successProbability = Number(decisionSignals.successProbability || 0);

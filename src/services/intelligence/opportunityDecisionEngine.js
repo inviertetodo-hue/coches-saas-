@@ -277,13 +277,8 @@ function calculateDecisionScoreV2({
   if (inventoryRiskScore >= 80) score -= 18;
   if (inventoryRiskScore >= 65) score -= 10;
 
-  if (comparableCount >= 1) score += 3;
-  if (comparableCount >= 3) score += 4;
-
-  if (sellSpeedScore >= 80) score += 4;
   if (sellSpeedScore < 50 && sellSpeedScore > 0) score -= 8;
 
-  if (discountPercent >= 5) score += 4;
   if (discountPercent < 0) score -= 12;
 
   if (roi < 0) score -= 15;
@@ -301,6 +296,25 @@ function calculateDecisionScoreV2({
     decisionScore = Math.min(decisionScore, 45);
   } else if (roi <= 0) {
     decisionScore = Math.min(decisionScore, 55);
+  }
+
+  // Techo económico: reservar 95-100 para oportunidades excepcionales.
+  if (roi > 0 && roi < 3) {
+    decisionScore = Math.min(decisionScore, 60);
+  } else if (roi >= 3 && roi < 5) {
+    decisionScore = Math.min(decisionScore, 75);
+  } else if (roi >= 5 && roi < 8) {
+    decisionScore = Math.min(decisionScore, 85);
+  } else if (roi >= 8 && roi < 12) {
+    decisionScore = Math.min(decisionScore, 92);
+  }
+
+  if (profit > 0 && profit < 1000) {
+    decisionScore = Math.min(decisionScore, 62);
+  } else if (profit >= 1000 && profit < 2000) {
+    decisionScore = Math.min(decisionScore, 76);
+  } else if (profit >= 2000 && profit < 4000) {
+    decisionScore = Math.min(decisionScore, 88);
   }
 
   return decisionScore;
@@ -352,7 +366,9 @@ function buildActionV2({
   const hasStrongScore = opportunityScoreV2 >= 85 && decisionScore >= 80;
   const hasReliableEvidence =
     comparableConfidence >= 70 && comparableCount >= 2;
-  const hasPositiveEconomics = roi > 0 && profit > 0;
+  const hasPositiveEconomics =
+    roi >= 5 &&
+    profit >= 1500;
 
   const hasModernConfirmation =
     successProbability >= 70 ||
