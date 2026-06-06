@@ -13,6 +13,7 @@ export function analyzeComparableMarket(car) {
     fairPrice > 0 ? Math.round((deviationAmount / fairPrice) * 100) : 0;
 
   const confidence = calculateComparableConfidence(car);
+  const valuationSource = "synthetic_multiplier";
   const underpricingScore = calculateUnderpricingScore({
     deviationPercent,
     confidence,
@@ -24,6 +25,7 @@ export function analyzeComparableMarket(car) {
     deviationAmount: Math.round(deviationAmount),
     deviationPercent,
     confidence,
+    valuationSource,
     underpricingScore,
     label: buildComparableLabel(deviationPercent, confidence),
     insight: buildComparableInsight({
@@ -94,17 +96,19 @@ function estimateFairMarketPrice(car) {
 }
 
 function calculateComparableConfidence(car) {
-  let confidence = 35;
+  let confidence = 25;
 
-  if (car.title) confidence += 15;
-  if (car.brand) confidence += 15;
-  if (car.model) confidence += 15;
-  if (car.fuelType) confidence += 8;
-  if (car.bodyType) confidence += 6;
-  if (car.drivetrain) confidence += 4;
-  if (car.performancePackage) confidence += 4;
+  if (car.title) confidence += 10;
+  if (car.brand) confidence += 10;
+  if (car.model) confidence += 10;
+  if (car.fuelType) confidence += 6;
+  if (car.bodyType) confidence += 4;
+  if (car.drivetrain) confidence += 3;
+  if (car.performancePackage) confidence += 3;
 
-  return clampScore(confidence);
+  // Esta valoración aún no usa comparables reales del mercado.
+  // Mantenemos confianza limitada para evitar sobreprometer precisión.
+  return Math.min(clampScore(confidence), 65);
 }
 
 function calculateUnderpricingScore({ deviationPercent, confidence, car }) {
@@ -170,18 +174,18 @@ function buildComparableInsight({
   }
 
   if (deviationPercent >= 12) {
-    return `${title}: precio estimado ${deviationPercent}% por debajo del mercado comparable. Señal fuerte de oportunidad.`;
+    return `${title}: estimación provisional ${deviationPercent}% por debajo del precio de referencia calculado. Validar con anuncio original y comparables reales antes de decidir.`;
   }
 
   if (deviationPercent >= 6) {
-    return `${title}: precio algo inferior al mercado comparable. Conviene validar estado e historial.`;
+    return `${title}: estimación provisional algo inferior al precio de referencia calculado. Conviene validar estado, historial y comparables reales.`;
   }
 
   if (deviationPercent >= 0) {
-    return `${title}: precio cercano a mercado. La oportunidad depende del margen neto y la liquidez.`;
+    return `${title}: precio cercano a la referencia calculada. La oportunidad depende del margen neto, liquidez y validación del anuncio.`;
   }
 
-  return `${title}: precio por encima del mercado estimado. No parece chollo salvo configuración excepcional.`;
+  return `${title}: precio por encima de la referencia calculada. No parece chollo salvo configuración excepcional.`;
 }
 
 function buildLowConfidenceComparable() {
