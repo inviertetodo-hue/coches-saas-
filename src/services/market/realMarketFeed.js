@@ -26,6 +26,9 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
     try {
       const readerUrl = buildReaderUrl(link.url);
       const text = await fetchSearchText(link.url);
+      const autoscoutDirectUrlMap = normalize(link.source).includes("autoscout")
+        ? await fetchAutoscoutDirectUrlMap(link.url)
+        : new Map();
 
       const { listings: parsedListings, rejectionLog } = parseListingsFromText({
         text,
@@ -35,6 +38,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         maxBudget: scan.maxBudget,
         semantic: scan.semantic,
         fallbackUrl: link.url,
+        autoscoutDirectUrlMap,
       });
 
       diagnostics.push({
@@ -273,6 +277,92 @@ function safeBuildReaderUrl(url) {
   }
 }
 
+
+function buildAutoscoutDirectFetchUrl(url) {
+  if (typeof window === "undefined") return url;
+
+  try {
+    const parsed = new URL(url);
+    return `/autoscout-direct${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
+}
+
+async function fetchAutoscoutDirectUrlMap(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REAL_FEED_TIMEOUT_MS);
+
+  try {
+    const directFetchUrl = buildAutoscoutDirectFetchUrl(url);
+
+    const response = await fetch(directFetchUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+      },
+    });
+
+    if (!response.ok) return new Map();
+
+    const html = await response.text();
+    return extractAutoscoutDirectUrlMapFromHtml(html);
+  } catch {
+    return new Map();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function extractAutoscoutDirectUrlMapFromHtml(html) {
+  const nextData = extractAutoscoutNextData(html);
+  if (!nextData) return new Map();
+
+  const urlMap = new Map();
+  const decodedNextData = decodeAutoscoutJsonText(nextData);
+  const matches = [
+    ...decodedNextData.matchAll(/\/angebote\/[^"'\\\s<>{}]+?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/gi),
+  ];
+
+  matches.forEach((match) => {
+    const relativeUrl = match[0];
+    const guid = String(match[1] || "").trim();
+
+    if (guid && relativeUrl.startsWith("/angebote/")) {
+      urlMap.set(guid, `https://www.autoscout24.de${relativeUrl}`);
+    }
+  });
+
+  return urlMap;
+}
+
+function extractAutoscoutNextData(html) {
+  const match = String(html || "").match(
+    /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i
+  );
+
+  return match?.[1] || "";
+}
+
+function decodeAutoscoutJsonText(value) {
+  return String(value || "")
+    .replace(/\\u002F/g, "/")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function extractAutoscoutGuidFromImageUrl(imageUrl) {
+  const match = String(imageUrl || "").match(
+    /listing-images\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i
+  );
+
+  return match?.[1] || "";
+}
+
 function parseListingsFromText({
   text,
   source,
@@ -281,6 +371,7 @@ function parseListingsFromText({
   maxBudget,
   semantic,
   fallbackUrl = "",
+  autoscoutDirectUrlMap = new Map(),
 }) {
   const normalizedSource = normalize(source);
 
@@ -293,6 +384,7 @@ function parseListingsFromText({
       maxBudget,
       semantic,
       fallbackUrl,
+      autoscoutDirectUrlMap,
     });
   }
 
@@ -510,6 +602,7 @@ function parseAutoscoutListingsFromText({
   maxBudget,
   semantic,
   fallbackUrl = "",
+  autoscoutDirectUrlMap = new Map(),
 }) {
   const blocks = splitAutoscoutTextIntoListingBlocks(text);
   const queryBrand = detectBrand(query);
@@ -538,7 +631,9 @@ function parseAutoscoutListingsFromText({
     const powerKw = extractPowerKw(blockText);
     const power = extractPower(blockText);
     const imageUrl = extractFirstImageUrl(block.join("\n"));
-    const sourceUrl = extractFirstUrl(blockText) || fallbackUrl;
+    const imageGuid = extractAutoscoutGuidFromImageUrl(imageUrl);
+    const directUrlFromMap = autoscoutDirectUrlMap.get(imageGuid) || "";
+    const sourceUrl = extractFirstUrl(blockText) || directUrlFromMap || "";
 
     // Datos básicos son obligatorios — sin estos no podemos valorar el coche
     if (!price || !mileage || !year) {
