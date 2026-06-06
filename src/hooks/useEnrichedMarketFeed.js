@@ -10,6 +10,7 @@ import { buildScannerOpportunityPayload } from "../services/intelligence/scanner
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
 import { findOpportunities } from "../services/search/opportunityFinder";
 import { fetchRealMarketListings } from "../services/market/realMarketFeed";
+import { analyzeEquipment } from "../services/equipmentAnalyzer";
 
 
 export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
@@ -64,6 +65,8 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             ...item,
             estimatedMarketPrice,
           });
+
+        const equipment = item.equipment || analyzeEquipment(item);
 
         const netCosts = item.netCosts || estimateImportCosts(item);
 
@@ -130,6 +133,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           analysis,
           comparable,
           memory,
+          equipment,
           netCosts,
           netProfit,
           netRoi,
@@ -145,6 +149,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           analysis,
           comparable,
           memory,
+          equipment,
           netCosts,
           netProfit,
           netRoi,
