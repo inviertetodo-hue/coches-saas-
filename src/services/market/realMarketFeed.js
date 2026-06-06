@@ -34,6 +34,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         query: scan.query,
         maxBudget: scan.maxBudget,
         semantic: scan.semantic,
+        fallbackUrl: link.url,
       });
 
       diagnostics.push({
@@ -43,7 +44,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         originalUrl: link.url,
         readerUrl,
         textLength: text.length,
-        textSample: text.slice(0, 1200),
+        textSample: text.slice(0, 5000),
         parsedCount: parsedListings.length,
         durationMs: Date.now() - startedAt,
         rejectionLog,
@@ -279,6 +280,7 @@ function parseListingsFromText({
   query,
   maxBudget,
   semantic,
+  fallbackUrl = "",
 }) {
   const normalizedSource = normalize(source);
 
@@ -290,6 +292,7 @@ function parseListingsFromText({
       query,
       maxBudget,
       semantic,
+      fallbackUrl,
     });
   }
 
@@ -301,6 +304,7 @@ function parseListingsFromText({
       query,
       maxBudget,
       semantic,
+      fallbackUrl,
     });
   }
 
@@ -505,6 +509,7 @@ function parseAutoscoutListingsFromText({
   query,
   maxBudget,
   semantic,
+  fallbackUrl = "",
 }) {
   const blocks = splitAutoscoutTextIntoListingBlocks(text);
   const queryBrand = detectBrand(query);
@@ -533,7 +538,7 @@ function parseAutoscoutListingsFromText({
     const powerKw = extractPowerKw(blockText);
     const power = extractPower(blockText);
     const imageUrl = extractFirstImageUrl(block.join("\n"));
-    const sourceUrl = extractFirstUrl(blockText);
+    const sourceUrl = extractFirstUrl(blockText) || fallbackUrl;
 
     // Datos básicos son obligatorios — sin estos no podemos valorar el coche
     if (!price || !mileage || !year) {
