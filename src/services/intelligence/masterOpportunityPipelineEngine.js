@@ -90,7 +90,7 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     const riskPenalty = calculateRiskPenalty({
       title,
-      score: opportunity.scoreV2,
+      score: opportunity.scoreV3 || opportunity.scoreV2,
       roi,
       profit,
       semanticQuality,
@@ -112,7 +112,7 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     const pipelineVehicle = {
       ...vehicle,
-      score: opportunity.scoreV2,
+      score: opportunity.scoreV3 || opportunity.scoreV2,
       roi,
       profit,
       price,
@@ -149,9 +149,16 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       semanticQuality,
     });
 
+    const modernOpportunity = buildModernOpportunityScoreV3({
+      opportunity,
+      decisionSignals: decisionPipeline.flat,
+    });
+
     const modernVehicle = {
       ...pipelineVehicle,
       ...decisionPipeline.flat,
+      opportunity: modernOpportunity,
+      score: modernOpportunity.scoreV3,
       decisionPipeline,
       sellSpeed: decisionPipeline.sellSpeed,
     };
@@ -224,6 +231,7 @@ function sortModernOpportunities(a, b) {
     ["sellSpeedScore"],
     ["successProbability"],
     ["decision", "decisionScore"],
+    ["opportunity", "scoreV3"],
     ["opportunity", "scoreV2"],
   ];
 
@@ -242,6 +250,103 @@ function sortModernOpportunities(a, b) {
 function getNestedNumber(item, path = []) {
   const value = path.reduce((current, key) => current?.[key], item);
   return Number(value || 0);
+}
+
+function buildModernOpportunityScoreV3({
+  opportunity = {},
+  decisionSignals = {},
+}) {
+  const scoreV2 = Number(
+    opportunity.scoreV2 ??
+      opportunity.opportunityScoreV2 ??
+      opportunity.opportunityScore ??
+      0
+  );
+
+  const modernQualityScore = buildModernQualityScore(decisionSignals);
+
+  let scoreV3 = Math.round(scoreV2 * 0.62 + modernQualityScore * 0.38);
+
+  const marketTimingScore = Number(decisionSignals.marketTimingScore || 0);
+  const successProbability = Number(decisionSignals.successProbability || 0);
+  const allocationScore = Number(decisionSignals.allocationScore || 0);
+  const executiveBuySignalScore = Number(
+    decisionSignals.executiveBuySignalScore || 0
+  );
+  const inventoryRiskScore = Number(decisionSignals.inventoryRiskScore || 0);
+
+  if (marketTimingScore > 0 && marketTimingScore < 50) scoreV3 -= 8;
+  if (successProbability > 0 && successProbability < 30) scoreV3 -= 8;
+  if (allocationScore > 0 && allocationScore < 45) scoreV3 -= 6;
+  if (executiveBuySignalScore > 0 && executiveBuySignalScore < 55) scoreV3 -= 6;
+  if (inventoryRiskScore >= 75) scoreV3 -= 10;
+
+  scoreV3 = clampScore(scoreV3);
+
+  return {
+    ...opportunity,
+    scoreV2,
+    scoreV3,
+    scoreV3Enabled: true,
+    scoreV3QualityScore: modernQualityScore,
+    scoreV3Signals: {
+      executiveBuySignalScore,
+      marketTimingScore,
+      capitalEfficiencyScore: Number(decisionSignals.capitalEfficiencyScore || 0),
+      timelineMomentumScore: Number(decisionSignals.timelineMomentumScore || 0),
+      successProbability,
+      allocationScore,
+      inventoryRiskScore,
+    },
+    scoreV3Summary: buildScoreV3Summary({
+      scoreV2,
+      scoreV3,
+      modernQualityScore,
+      decisionSignals,
+    }),
+    scoreV2BeforeModernSignals: scoreV2,
+    scoreV2ModernAdjusted: scoreV3,
+    opportunityScoreV2: scoreV3,
+    opportunityLevelV2: buildOpportunityLevel(scoreV3),
+  };
+}
+
+function buildModernQualityScore(signals = {}) {
+  const allocationScore = Number(signals.allocationScore || 0);
+  const executiveBuySignalScore = Number(signals.executiveBuySignalScore || 0);
+  const marketTimingScore = Number(signals.marketTimingScore || 0);
+  const capitalEfficiencyScore = Number(signals.capitalEfficiencyScore || 0);
+  const timelineMomentumScore = Number(signals.timelineMomentumScore || 50);
+  const successProbability = Number(signals.successProbability || 0);
+
+  return clampScore(
+    Math.round(
+      allocationScore * 0.22 +
+        executiveBuySignalScore * 0.20 +
+        marketTimingScore * 0.18 +
+        capitalEfficiencyScore * 0.16 +
+        timelineMomentumScore * 0.10 +
+        successProbability * 0.14
+    )
+  );
+}
+
+function buildScoreV3Summary({
+  scoreV2,
+  scoreV3,
+  modernQualityScore,
+  decisionSignals = {},
+}) {
+  return [
+    `Opportunity Score V3: ${scoreV3}/100.`,
+    `Base económica V2: ${scoreV2}/100.`,
+    `Calidad moderna: ${modernQualityScore}/100.`,
+    `Executive: ${Number(decisionSignals.executiveBuySignalScore || 0)}/100.`,
+    `Timing: ${Number(decisionSignals.marketTimingScore || 0)}/100.`,
+    `Capital: ${Number(decisionSignals.capitalEfficiencyScore || 0)}/100.`,
+    `Allocation: ${Number(decisionSignals.allocationScore || 0)}/100.`,
+    `Success: ${Number(decisionSignals.successProbability || 0)}/100.`,
+  ].join(" ");
 }
 
 function buildOpportunityScoreV2({

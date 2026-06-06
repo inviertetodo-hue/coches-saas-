@@ -163,12 +163,14 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           }
 
           const opportunityScore =
+            modern.opportunity?.scoreV3 ||
             modern.opportunity?.scoreV2 ||
             modern.opportunity?.opportunityScoreV2 ||
             item.opportunityScore ||
             0;
 
           const opportunityLevel =
+            modern.opportunity?.opportunityLevelV3 ||
             modern.opportunity?.opportunityLevelV2 ||
             item.opportunityLevel ||
             "NONE";
@@ -186,6 +188,8 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             opportunityLevel,
             opportunitySignals: {
               ...(item.opportunitySignals || {}),
+              opportunityScoreV3: modern.opportunity?.scoreV3 || 0,
+              opportunityLevelV3: modern.opportunity?.opportunityLevelV3 || "",
               opportunityScoreV2: opportunityScore,
               opportunityLevelV2: opportunityLevel,
               decisionScore,
