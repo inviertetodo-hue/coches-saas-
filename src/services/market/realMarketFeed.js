@@ -365,8 +365,9 @@ function parseMobileDeListingsFromText({
 
     const brandFromBlock = detectBrand(blockText);
     const modelFromBlock = detectModelFromText(blockText, query);
-    const brand = brandFromBlock || queryBrand;
-    const model = modelFromBlock || queryModel;
+    const blockHasCompleteIdentity = Boolean(brandFromBlock && modelFromBlock);
+    const brand = blockHasCompleteIdentity ? brandFromBlock : queryBrand;
+    const model = blockHasCompleteIdentity ? modelFromBlock : queryModel;
 
     const title =
       findMobileDeTitle({ block, brand, model, query }) ||
@@ -419,7 +420,7 @@ function parseMobileDeListingsFromText({
       url: sourceUrl,
       imageUrl: "",
       isRealData: true,
-      identitySource: brandFromBlock && modelFromBlock ? "block" : "query-fallback",
+      identitySource: blockHasCompleteIdentity ? "block" : "query-fallback",
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -540,14 +541,12 @@ function parseAutoscoutListingsFromText({
       return;
     }
 
-    // Construir identidad: intentar detectar del bloque, fallback al query
+    // Construir identidad sin mezclar marca del query con modelo detectado en extras.
     const brandFromBlock = detectBrand(blockText);
     const modelFromBlock = detectModelFromText(blockText, query);
-
-    // FIX CRÍTICO: si no detectamos marca/modelo del bloque, usamos los del query.
-    // Antes esto rechazaba anuncios válidos. Ahora los acepta con confianza reducida.
-    const brand = brandFromBlock || queryBrand;
-    const model = modelFromBlock || queryModel;
+    const blockHasCompleteIdentity = Boolean(brandFromBlock && modelFromBlock);
+    const brand = blockHasCompleteIdentity ? brandFromBlock : queryBrand;
+    const model = blockHasCompleteIdentity ? modelFromBlock : queryModel;
 
     // Construir título desde el bloque o sintético desde los datos disponibles
     const titleFromBlock = findBestTitleLine({ block: normalizedBlock, brand, model, query });
@@ -611,7 +610,7 @@ function parseAutoscoutListingsFromText({
       imageUrl,
       isRealData: true,
       // Indica si la identidad vino del bloque o fue heredada del query
-      identitySource: brandFromBlock && modelFromBlock ? "block" : "query-fallback",
+      identitySource: blockHasCompleteIdentity ? "block" : "query-fallback",
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -967,11 +966,12 @@ function validateVehicleCompatibility({
 
 function detectModelFromQuery(query) {
   const text = normalize(query);
+  const brand = detectBrand(text);
 
   const variantModel = detectVariantModel(text);
   if (variantModel) return variantModel;
 
-  const catalogModel = detectCatalogModel(text);
+  const catalogModel = detectCatalogModel(text, brand);
   if (catalogModel) return catalogModel;
 
   const cleanedQuery = cleanText(query);
@@ -985,16 +985,17 @@ function detectModelFromQuery(query) {
 }
 
 function detectModelFromText(text, query) {
-  return detectModelFromTextOnly(text) || detectModelFromQuery(query);
+  const queryBrand = detectBrand(query);
+  return detectModelFromTextOnly(text, queryBrand) || detectModelFromQuery(query);
 }
 
-function detectModelFromTextOnly(text) {
+function detectModelFromTextOnly(text, brand = "") {
   const combined = normalize(text);
 
   const variantModel = detectVariantModel(combined);
   if (variantModel) return variantModel;
 
-  return detectCatalogModel(combined);
+  return detectCatalogModel(combined, brand);
 }
 
 // Legacy alias — mantener compatibilidad con código que llame a detectModel
@@ -1020,10 +1021,10 @@ function detectVariantModel(text) {
   return variantPatterns.find((item) => item.pattern.test(normalizedText))?.result || "";
 }
 
-function detectCatalogModel(text) {
+function detectCatalogModel(text, brand = "") {
   const normalizedText = normalize(text);
-
-  const models = getCatalogModels();
+  const brandModels = getCatalogModelsForBrand(brand);
+  const models = brandModels.length > 0 ? brandModels : getCatalogModels();
 
   const detected = models.find((model) => {
     const normalizedModel = normalize(model);
@@ -1044,10 +1045,22 @@ function getCatalogModels() {
     .sort((a, b) => normalize(b).length - normalize(a).length);
 }
 
+function getCatalogModelsForBrand(brand = "") {
+  const normalizedBrand = normalize(brand);
+
+  const entry = Object.entries(VEHICLE_CATALOG).find(
+    ([catalogBrand]) => normalize(catalogBrand) === normalizedBrand
+  );
+
+  return (entry?.[1] || [])
+    .slice()
+    .sort((a, b) => normalize(b).length - normalize(a).length);
+}
+
 function normalizeModelForStrictMatch(value) {
   const text = normalize(value);
 
-  const catalogModel = detectCatalogModel(text);
+  const catalogModel = detectCatalogModel(text, detectBrand(text));
   if (catalogModel) return normalize(catalogModel);
 
   return text;
