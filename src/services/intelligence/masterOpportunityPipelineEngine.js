@@ -48,8 +48,19 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       comparables,
     };
 
-    const roi = Number(valuation.roi || 0);
-    const profit = Number(valuation.profit || 0);
+    const roi = Number(
+      vehicle.netRoi ??
+      vehicle.roi ??
+      valuation.roi ??
+      0
+    );
+
+    const profit = Number(
+      vehicle.netProfit ??
+      vehicle.profit ??
+      valuation.profit ??
+      0
+    );
     const price = Number(vehicle.price || vehicle.purchasePrice || vehicle.budget || 0);
 
     const opportunity = buildOpportunityScoreV2({
@@ -274,7 +285,16 @@ function buildOpportunityScoreV2({
   if (roi < 0) score -= 18;
   if (profit < 0) score -= 18;
 
-  const scoreV2 = clampScore(score);
+  let scoreV2 = clampScore(score);
+
+  // Cortafuegos económico del Radar
+  if (profit < 0 && roi <= 0) {
+    scoreV2 = Math.min(scoreV2, 35);
+  } else if (profit < 0) {
+    scoreV2 = Math.min(scoreV2, 45);
+  } else if (roi <= 0) {
+    scoreV2 = Math.min(scoreV2, 55);
+  }
 
   return {
     ...baseOpportunity,

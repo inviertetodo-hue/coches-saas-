@@ -292,7 +292,18 @@ function calculateDecisionScoreV2({
   if (qualityScore > 0 && qualityScore < 60) score -= 20;
   if (comparableConfidence > 0 && comparableConfidence < 55) score -= 12;
 
-  return clampScore(score);
+  let decisionScore = clampScore(score);
+
+  // Cortafuegos económico del Radar
+  if (profit < 0 && roi <= 0) {
+    decisionScore = Math.min(decisionScore, 35);
+  } else if (profit < 0) {
+    decisionScore = Math.min(decisionScore, 45);
+  } else if (roi <= 0) {
+    decisionScore = Math.min(decisionScore, 55);
+  }
+
+  return decisionScore;
 }
 
 function buildActionV2({

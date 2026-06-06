@@ -8,7 +8,7 @@ import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildScannerOpportunityPayload } from "../services/intelligence/scannerPersistenceAdapter";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
-import { findOpportunities } from "../services/search/opportunityFinder";
+import { buildMasterOpportunityPipeline } from "../services/intelligence/masterOpportunityPipelineEngine";
 import { fetchRealMarketListings } from "../services/market/realMarketFeed";
 import { analyzeEquipment } from "../services/equipmentAnalyzer";
 
@@ -106,27 +106,8 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           semantic: scan.semantic,
         });
 
-        const normalizedListing = {
-          title: item.title,
-          url: item.url || "",
-          price: item.price,
-          mileage: item.km || item.mileage,
-          year: item.year,
-          location: item.location,
-          source: item.source || "market-feed",
-          isValid: Boolean(
-            item.title && item.price && (item.km || item.mileage) && item.year
-          ),
-        };
-
-        const opportunityPreview =
-          findOpportunities([normalizedListing], { maxBudget })[0] || null;
-
-        const opportunityScore =
-          opportunityPreview?.opportunityScore || item.opportunityScore || 0;
-
-        const opportunityLevel =
-          opportunityPreview?.opportunityLevel || "NONE";
+        const legacyOpportunityScore = Number(item.opportunityScore || 0);
+        const legacyOpportunityLevel = item.opportunityLevel || "NONE";
 
         const finalDecision = buildFinalDealDecision({
           ...item,
@@ -137,8 +118,8 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           netCosts,
           netProfit,
           netRoi,
-          opportunityScore,
-          opportunityLevel,
+          opportunityScore: legacyOpportunityScore,
+          opportunityLevel: legacyOpportunityLevel,
           dealRisk,
           liquidity,
         });
@@ -153,18 +134,86 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           netCosts,
           netProfit,
           netRoi,
-          opportunityScore,
-          opportunityLevel,
-          opportunitySignals: opportunityPreview?.opportunitySignals || null,
+          opportunityScore: legacyOpportunityScore,
+          opportunityLevel: legacyOpportunityLevel,
+          opportunitySignals: null,
           dealRisk,
           liquidity,
           finalDecision,
+          roi: netRoi,
+          profit: netProfit,
           modelSpecificValidation: null,
         };
       }
 
-      const opportunities = modelFilteredOpportunities
-        .map(enrichDeal)
+      const enrichedBaseOpportunities = modelFilteredOpportunities.map(enrichDeal);
+
+      const modernPipeline = buildMasterOpportunityPipeline(enrichedBaseOpportunities);
+
+      const modernById = new Map(
+        (modernPipeline.topOpportunities || []).map((item) => [item.id, item])
+      );
+
+      const opportunities = enrichedBaseOpportunities
+        .map((item) => {
+          const modern = modernById.get(item.id) || null;
+
+          if (!modern) {
+            return item;
+          }
+
+          const opportunityScore =
+            modern.opportunity?.scoreV2 ||
+            modern.opportunity?.opportunityScoreV2 ||
+            item.opportunityScore ||
+            0;
+
+          const opportunityLevel =
+            modern.opportunity?.opportunityLevelV2 ||
+            item.opportunityLevel ||
+            "NONE";
+
+          const decisionScore =
+            modern.decision?.decisionScore ||
+            opportunityScore ||
+            item.finalDecision?.finalScore ||
+            0;
+
+          return {
+            ...item,
+            ...modern,
+            opportunityScore,
+            opportunityLevel,
+            opportunitySignals: {
+              ...(item.opportunitySignals || {}),
+              opportunityScoreV2: opportunityScore,
+              opportunityLevelV2: opportunityLevel,
+              decisionScore,
+              decisionAction: modern.decision?.action || "",
+              decisionLabel: modern.decision?.label || "",
+              valuationScore: modern.valuation?.valuationScore || 0,
+              comparableCount: modern.comparables?.totalComparables || 0,
+              valuationConfidence: modern.vehicleValuation?.confidence || 0,
+              executiveBuySignalScore: modern.executiveBuySignalScore || 0,
+              marketTimingScore: modern.marketTimingScore || 0,
+              capitalEfficiencyScore: modern.capitalEfficiencyScore || 0,
+              timelineMomentumScore: modern.timelineMomentumScore || 0,
+              successProbability: modern.successProbability || 0,
+            },
+            finalDecision: buildModernFinalDecision({
+              legacyFinalDecision: item.finalDecision,
+              modernDecision: modern.decision,
+              opportunityScore,
+              opportunityLevel,
+              decisionScore,
+              netProfit: item.netProfit,
+              netRoi: item.netRoi,
+              liquidityScore: item.liquidity?.liquidityScore,
+              riskScore: item.dealRisk?.riskScore,
+              riskLevel: item.dealRisk?.level,
+            }),
+          };
+        })
         .sort((a, b) => b.finalDecision.finalScore - a.finalDecision.finalScore);
 
       const opportunityEnginePreview = opportunities.map((item) => ({
@@ -200,6 +249,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         insights: buildRuntimeInsights(opportunities, rawFeed.sourceMode),
         realFeedDiagnostics: rawFeed.realFeedDiagnostics,
         modelSpecificFilter,
+        modernPipeline,
         opportunityEnginePreview,
         opportunityEngineSummary: {
           total: opportunityEnginePreview.length,
@@ -207,8 +257,12 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
           bestLevel: opportunityEnginePreview[0]?.opportunityLevel || "NONE",
           mode:
             rawFeed.sourceMode === "real-feed"
-              ? "real-feed-ranking"
-              : "real-feed-empty-ranking",
+              ? "real-feed-pipeline-v2-ranking"
+              : "real-feed-empty-pipeline-v2-ranking",
+          pipeline: "master-opportunity-pipeline-v2",
+          pipelineRecords: modernPipeline.totalRecords || 0,
+          averageOpportunityScoreV2:
+            modernPipeline.summary?.averageOpportunityScoreV2 || 0,
         },
       };
 
@@ -232,6 +286,110 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   }, [form.query, form.maxBudget, scan, searchTriggered]);
 
   return marketFeed;
+}
+
+function buildModernFinalDecision({
+  legacyFinalDecision = {},
+  modernDecision = null,
+  opportunityScore = 0,
+  opportunityLevel = "NONE",
+  decisionScore = 0,
+  netProfit = 0,
+  netRoi = 0,
+  liquidityScore = 0,
+  riskScore = 0,
+  riskLevel = "",
+}) {
+  const action = mapModernDecisionAction(modernDecision?.action);
+  const label = modernDecision?.label || legacyFinalDecision?.label || "Vigilar";
+  const finalScore = Number(decisionScore || opportunityScore || 0);
+
+  return {
+    ...(legacyFinalDecision || {}),
+    finalScore,
+    action,
+    label,
+    explanation: buildModernDecisionExplanation({
+      label,
+      finalScore,
+      opportunityScore,
+      opportunityLevel,
+      modernDecision,
+      netProfit,
+      netRoi,
+      liquidityScore,
+      riskScore,
+      riskLevel,
+    }),
+    userSummary: buildModernDecisionSummary({
+      label,
+      finalScore,
+      netProfit,
+      netRoi,
+      liquidityScore,
+      riskScore,
+    }),
+    modernDecision,
+    modernPipelineEnabled: true,
+  };
+}
+
+function buildModernDecisionExplanation({
+  label,
+  finalScore,
+  opportunityScore,
+  opportunityLevel,
+  modernDecision,
+  netProfit,
+  netRoi,
+  liquidityScore,
+  riskScore,
+  riskLevel,
+}) {
+  const modernSummary = modernDecision?.summary;
+
+  if (modernSummary) {
+    return modernSummary;
+  }
+
+  return [
+    `${label}: decisión generada por Pipeline V2.`,
+    `Decision Score: ${Number(finalScore || 0)}/100.`,
+    `Opportunity Score V2: ${Number(opportunityScore || 0)}/100 (${opportunityLevel}).`,
+    `Margen neto estimado: ${formatRuntimeMoney(netProfit)}.`,
+    `ROI neto estimado: ${Number(netRoi || 0)}%.`,
+    `Liquidez: ${Number(liquidityScore || 0)}/100.`,
+    `Riesgo: ${riskLevel || "sin clasificar"} (${Number(riskScore || 0)}/100).`,
+  ].join(" ");
+}
+
+function buildModernDecisionSummary({
+  label,
+  finalScore,
+  netProfit,
+  netRoi,
+  liquidityScore,
+  riskScore,
+}) {
+  return `${label}: score ${Number(finalScore || 0)}/100, margen ${formatRuntimeMoney(
+    netProfit
+  )}, ROI ${Number(netRoi || 0)}%, liquidez ${Number(
+    liquidityScore || 0
+  )}/100 y riesgo ${Number(riskScore || 0)}/100.`;
+}
+
+function formatRuntimeMoney(value) {
+  return `${Number(value || 0).toLocaleString("es-ES")} €`;
+}
+
+function mapModernDecisionAction(action) {
+  const normalized = String(action || "").toUpperCase();
+
+  if (normalized === "BUY") return "CONTACTAR_PRIMERO";
+  if (normalized === "WATCH") return "VIGILAR";
+  if (normalized === "REJECT") return "DESCARTAR";
+
+  return "VIGILAR";
 }
 
 function inferFuelType(item) {
