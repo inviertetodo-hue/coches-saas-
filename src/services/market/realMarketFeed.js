@@ -541,12 +541,14 @@ function parseAutoscoutListingsFromText({
       return;
     }
 
-    // Construir identidad sin mezclar marca del query con modelo detectado en extras.
+    // AutoScout via Jina no siempre expone título real por anuncio.
+    // Para evitar contaminación entre modelos de la misma marca (X1 dentro de X5),
+    // la identidad principal hereda marca/modelo del query.
     const brandFromBlock = detectBrand(blockText);
     const modelFromBlock = detectModelFromText(blockText, query);
-    const blockHasCompleteIdentity = Boolean(brandFromBlock && modelFromBlock);
-    const brand = blockHasCompleteIdentity ? brandFromBlock : queryBrand;
-    const model = blockHasCompleteIdentity ? modelFromBlock : queryModel;
+    const blockHasCompleteIdentity = false;
+    const brand = queryBrand;
+    const model = queryModel;
 
     // Construir título desde el bloque o sintético desde los datos disponibles
     const titleFromBlock = findBestTitleLine({ block: normalizedBlock, brand, model, query });
