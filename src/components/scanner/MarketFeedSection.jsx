@@ -54,6 +54,10 @@ export default function MarketFeedSection({ marketFeed }) {
                 km
               </p>
 
+              <p style={identityQualityStyle}>
+                Identidad: {item.identitySource === "block" ? "confirmada por anuncio" : "heredada de búsqueda"}
+              </p>
+
               {item.url && (
                 <a
                   href={item.url}
@@ -674,6 +678,14 @@ const feedPriceStyle = {
 
 const feedMetaStyle = {
   color: "#cbd5e1",
+};
+
+const identityQualityStyle = {
+  marginTop: "6px",
+  marginBottom: "0",
+  color: "#fbbf24",
+  fontSize: "13px",
+  fontWeight: "800",
 };
 
 const originalListingLinkStyle = {
