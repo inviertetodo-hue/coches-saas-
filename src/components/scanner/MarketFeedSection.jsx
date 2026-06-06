@@ -234,6 +234,14 @@ function SourceDiagnosticsPanel({ diagnostics }) {
               <div style={diagnosticMetricGridStyle}>
                 <DiagnosticMetric label="Chars" value={item.textLength || 0} />
                 <DiagnosticMetric label="Parsed" value={item.parsedCount || 0} />
+                <DiagnosticMetric
+                  label="URLs directas"
+                  value={`${item.directUrlCount || 0}/${item.parsedCount || 0}`}
+                />
+                <DiagnosticMetric
+                  label="Cobertura URL"
+                  value={`${item.directUrlCoverage || 0}%`}
+                />
                 <DiagnosticMetric label="Bloques" value={rejectionLog.totalBlocks || 0} />
                 <DiagnosticMetric label="Aceptados" value={rejectionLog.accepted || 0} />
                 <DiagnosticMetric label="Sin datos" value={rejectionLog.noData || 0} />

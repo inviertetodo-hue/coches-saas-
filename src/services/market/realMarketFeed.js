@@ -50,6 +50,15 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         textLength: text.length,
         textSample: text.slice(0, 5000),
         parsedCount: parsedListings.length,
+        directUrlCount: parsedListings.filter((item) => Boolean(item.url)).length,
+        directUrlCoverage:
+          parsedListings.length > 0
+            ? Math.round(
+                (parsedListings.filter((item) => Boolean(item.url)).length /
+                  parsedListings.length) *
+                  100
+              )
+            : 0,
         durationMs: Date.now() - startedAt,
         rejectionLog,
         rejectionSummary: buildRejectionSummary(rejectionLog),
