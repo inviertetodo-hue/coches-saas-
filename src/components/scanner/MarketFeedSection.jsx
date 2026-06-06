@@ -53,6 +53,17 @@ export default function MarketFeedSection({ marketFeed }) {
                 )}{" "}
                 km
               </p>
+
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={originalListingLinkStyle}
+                >
+                  🔗 Ver anuncio original
+                </a>
+              )}
             </div>
 
             <DealDecisionPill
@@ -663,6 +674,18 @@ const feedPriceStyle = {
 
 const feedMetaStyle = {
   color: "#cbd5e1",
+};
+
+const originalListingLinkStyle = {
+  display: "inline-block",
+  marginTop: "10px",
+  padding: "10px 14px",
+  borderRadius: "999px",
+  background: "rgba(56,189,248,0.14)",
+  border: "1px solid rgba(56,189,248,0.35)",
+  color: "#67e8f9",
+  fontWeight: "900",
+  textDecoration: "none",
 };
 
 const feedMetricsStyle = {
