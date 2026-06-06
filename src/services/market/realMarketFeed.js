@@ -891,6 +891,21 @@ function validateVehicleCompatibility({
 
   const targetModel = detectModelFromQuery(text);
   const detectedModel = detectModelFromTextOnly(blockText);
+  const realityCheck = validateVehicleReality({
+    targetModel,
+    year,
+    fuelType,
+    titleText: blockText,
+  });
+
+  if (!realityCheck.isValid) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: realityCheck.warnings,
+      rejectionReason: realityCheck.rejectionReason,
+    };
+  }
 
   if (targetModel) {
     const targetBaseModel = normalizeModelForStrictMatch(targetModel);
@@ -959,6 +974,115 @@ function validateVehicleCompatibility({
     rejectionReason: rejectionReasons.join("; ") || null,
   };
 }
+
+
+function validateVehicleReality({ targetModel, year, fuelType, titleText = "" }) {
+  const model = normalize(targetModel);
+  const text = normalize(titleText);
+  const detectedFuel = String(fuelType || "");
+  const warnings = [];
+
+  if (isEditorialOrGuideText(text)) {
+    return {
+      isValid: false,
+      warnings: ["Texto editorial o guía detectado, no parece anuncio real."],
+      rejectionReason: "editorial_or_guide_text",
+    };
+  }
+
+  const electricOnlyModels = [
+    "mustang mach-e",
+    "mustang mach e",
+    "model 3",
+    "model y",
+    "model s",
+    "model x",
+    "ioniq 5",
+    "ioniq 6",
+    "ev6",
+    "taycan",
+    "id.3",
+    "id.4",
+    "id.5",
+    "byd han",
+    "han",
+    "seal",
+    "seal u",
+    "atto 3",
+    "dolphin",
+    "tang",
+    "mg4",
+    "zoe",
+  ];
+
+  const electricOnly = electricOnlyModels.some((item) => model.includes(item));
+
+  if (electricOnly && detectedFuel && detectedFuel !== "Electric") {
+    return {
+      isValid: false,
+      warnings: [
+        `Combustible incompatible para eléctrico puro: modelo="${targetModel}", fuelType="${detectedFuel}".`,
+      ],
+      rejectionReason: `fuel_incompatible_electric_only: modelo="${targetModel}", fuelType="${detectedFuel}"`,
+    };
+  }
+
+  const minYearByModel = [
+    { pattern: "mustang mach-e", minYear: 2020 },
+    { pattern: "mustang mach e", minYear: 2020 },
+    { pattern: "id.3", minYear: 2019 },
+    { pattern: "id.4", minYear: 2020 },
+    { pattern: "id.5", minYear: 2021 },
+    { pattern: "ioniq 5", minYear: 2021 },
+    { pattern: "ioniq 6", minYear: 2022 },
+    { pattern: "ev6", minYear: 2021 },
+    { pattern: "taycan", minYear: 2019 },
+  ];
+
+  const yearRule = minYearByModel.find((rule) => model.includes(rule.pattern));
+
+  if (yearRule && year > 0 && year < yearRule.minYear) {
+    return {
+      isValid: false,
+      warnings: [
+        `Año incompatible para modelo: modelo="${targetModel}", year=${year}.`,
+      ],
+      rejectionReason: `year_incompatible_model: modelo="${targetModel}", year=${year}, minYear=${yearRule.minYear}`,
+    };
+  }
+
+  return {
+    isValid: true,
+    warnings,
+    rejectionReason: null,
+  };
+}
+
+function isEditorialOrGuideText(value) {
+  const text = normalize(value);
+
+  const editorialPatterns = [
+    "was kosten",
+    "gebrauchte modelle",
+    "gebrauchte ford-modelle",
+    "gebrauchte renault-modelle",
+    "gebrauchte toyota-modelle",
+    "gebrauchte volkswagen-modelle",
+    "autohaus im landkreis",
+    "größtes autohaus",
+    "groesstes autohaus",
+    "ratgeber",
+    "kaufberatung",
+    "vergleich",
+    "testbericht",
+    "fahrbericht",
+    "news",
+    "magazin",
+  ];
+
+  return editorialPatterns.some((pattern) => text.includes(pattern));
+}
+
 
 // ---------------------------------------------------------------------------
 // Detección de modelo — dos funciones separadas:
