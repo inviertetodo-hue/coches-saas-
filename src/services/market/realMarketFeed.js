@@ -65,9 +65,11 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         healthMetrics: buildFeedHealthMetrics(rejectionLog),
         nearMissSummary: buildNearMissSummary(rejectionLog),
         message:
-          parsedListings.length > 0
-            ? `${parsedListings.length} anuncios normalizados detectados.`
-            : buildNoResultsMessage(rejectionLog),
+          isAccessDeniedText(text)
+            ? "Fuente bloqueada por protección anti-bot / Access denied. No hay datos útiles para parsear."
+            : parsedListings.length > 0
+              ? `${parsedListings.length} anuncios normalizados detectados.`
+              : buildNoResultsMessage(rejectionLog),
       });
 
       allListings.push(...parsedListings);
@@ -196,6 +198,17 @@ function buildRejectionSummary(rejectionLog) {
   return summary;
 }
 
+
+function isAccessDeniedText(text) {
+  const normalized = normalize(text);
+
+  return (
+    normalized.includes("access denied") ||
+    normalized.includes("zugriff verweigert") ||
+    normalized.includes("403 forbidden") ||
+    normalized.includes("target url returned error 403")
+  );
+}
 
 function buildNoResultsMessage(rejectionLog) {
   if (!rejectionLog) return "Fetch correcto, pero el normalizador no encontró anuncios completos.";
