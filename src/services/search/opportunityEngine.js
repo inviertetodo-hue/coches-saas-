@@ -1,6 +1,7 @@
 import { scanMarket } from "./marketScanner";
 import { buildMasterOpportunityPipeline } from "../intelligence/masterOpportunityPipelineEngine";
 import { fetchRealMarketListings } from "../market/realMarketFeed";
+import { resolveSpainMarketReference } from "../market/spainMarketReferenceEngine";
 
 export async function runOpportunityEngine(searchInput = {}) {
   const marketResult = await scanMarket(searchInput);
@@ -12,17 +13,20 @@ export async function runOpportunityEngine(searchInput = {}) {
     }
   );
 
-  const pipeline = buildMasterOpportunityPipeline(realResult.listings || []);
+  const listings = Array.isArray(realResult.listings) ? realResult.listings : [];
+  const enrichedListings = await enrichListingsWithSpainReference(listings);
+
+  const pipeline = buildMasterOpportunityPipeline(enrichedListings);
 
   const opportunities = Array.isArray(pipeline.topOpportunities)
     ? pipeline.topOpportunities
     : [];
 
   return {
-    status: realResult.listings?.length ? "ready" : "empty",
-    mode: "opportunity-engine-v2-real-feed",
+    status: enrichedListings.length ? "ready" : "empty",
+    mode: "opportunity-engine-v2-real-feed-spain-reference",
     search: marketResult.search,
-    totalListings: realResult.listings?.length || 0,
+    totalListings: enrichedListings.length,
     totalOpportunities: opportunities.length,
     opportunities,
     pipeline,
@@ -30,6 +34,21 @@ export async function runOpportunityEngine(searchInput = {}) {
     errors: realResult.errors || [],
     generatedAt: new Date().toISOString(),
   };
+}
+
+async function enrichListingsWithSpainReference(listings = []) {
+  const enriched = [];
+
+  for (const listing of listings) {
+    const spainMarketReference = await resolveSpainMarketReference(listing);
+
+    enriched.push({
+      ...listing,
+      spainMarketReference,
+    });
+  }
+
+  return enriched;
 }
 
 function buildScanFromMarketSearch(search = {}) {
