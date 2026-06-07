@@ -8,3 +8,9 @@ __pycache__
 playwright-data/
 mobile-test.png
 mobile-home.pngOPPORTUNITY_ENGINE_ARCHITECTURE.md
+
+# Auditorías locales / volcados temporales
+tmp/
+dashboard_audit_*/
+*.zip
+*.tar.gz
