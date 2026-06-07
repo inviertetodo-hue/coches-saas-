@@ -195,7 +195,11 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
               decisionScore,
               decisionAction: modern.decision?.action || "",
               decisionLabel: modern.decision?.label || "",
-              valuationScore: modern.valuation?.valuationScore || 0,
+              valuationScore:
+                modern.valuation?.valuationScore ??
+                modern.decision?.marketValuation?.valuationScore ??
+                modern.marketValuation?.valuationScore ??
+                0,
               comparableCount: modern.comparables?.totalComparables || 0,
               valuationConfidence: modern.vehicleValuation?.confidence || 0,
               executiveBuySignalScore: modern.executiveBuySignalScore || 0,

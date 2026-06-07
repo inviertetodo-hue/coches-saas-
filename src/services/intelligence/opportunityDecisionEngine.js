@@ -19,8 +19,19 @@ export function buildOpportunityDecision(vehicle = {}) {
       opportunity.opportunityScore
   );
 
+  const rawValuationScore =
+    vehicle.valuation?.valuationScore ??
+    marketValuation.valuationScore ??
+    vehicle.marketValuation?.valuationScore ??
+    0;
+
+  const fallbackValuationScore =
+    marketValuation.valuationScore ??
+    vehicle.marketValuation?.valuationScore ??
+    0;
+
   const valuationScore = normalizeNumber(
-    vehicle.valuation?.valuationScore ?? marketValuation.valuationScore
+    rawValuationScore > 0 ? rawValuationScore : fallbackValuationScore
   );
 
   const qualityScore = normalizeNumber(vehicle.qualityScore ?? vehicle.quality);
