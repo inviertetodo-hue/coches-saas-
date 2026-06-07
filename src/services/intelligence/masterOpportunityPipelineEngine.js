@@ -40,11 +40,18 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
 
     const baseOpportunity = buildOpportunityScore(vehicle);
 
+    const spainMarketReference =
+      vehicle.spainMarketReference ||
+      vehicle.spainReference ||
+      null;
+
     const valuation = {
       ...buildMarketValuation(vehicle, {
         vehicleValuation,
+        spainMarketReference,
       }),
       memoryValuation: vehicleValuation,
+      spainMarketReference,
       comparables,
     };
 
