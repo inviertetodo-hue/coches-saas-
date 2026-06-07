@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "../lib/supabase";
 import { analyzeCar } from "../services/profitAnalyzer";
-import { analyzeComparableMarket } from "../services/comparableIntelligence";
-import { analyzeVehicleMemory } from "../services/vehicleMemoryEngine";
 import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildScannerOpportunityPayload } from "../services/intelligence/scannerPersistenceAdapter";
@@ -48,23 +46,9 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       const modelFilteredOpportunities = rawFeed.opportunities;
 
       function enrichDeal(item) {
-        const estimatedMarketPrice =
-          item.estimatedMarketPrice ||
-          Math.round(Number(item.price || 0) * Number(item.marketMultiplier || 1.12));
+        const analysis = item.analysis || analyzeCar(item);
 
-        const analysis =
-          item.analysis ||
-          analyzeCar({
-            ...item,
-            estimatedMarketPrice,
-          });
-
-        const comparable =
-          item.comparable ||
-          analyzeComparableMarket({
-            ...item,
-            estimatedMarketPrice,
-          });
+        const comparable = item.comparable || null;
 
         const equipment = item.equipment || analyzeEquipment(item);
 
@@ -82,14 +66,7 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
               ? Math.round((netProfit / item.price) * 100)
               : 0;
 
-        const memory =
-          item.memory ||
-          analyzeVehicleMemory({
-            ...item,
-            comparable,
-            netProfit,
-            netRoi,
-          });
+        const memory = item.memory || null;
 
         const dealRisk = analyzeDealRisk({
           ...item,
@@ -126,7 +103,6 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
 
         return {
           ...item,
-          estimatedMarketPrice,
           analysis,
           comparable,
           memory,
