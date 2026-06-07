@@ -1,0 +1,682 @@
+===== FILE: src/components/dashboard/OpportunityRankingPanel.jsx =====
+     1	import { MetricCard } from "./DashboardBlocks";
+     2	
+     3	export default function OpportunityRankingPanel({ ranking }) {
+     4	  const topOpportunities = Array.isArray(ranking?.topOpportunities)
+     5	    ? ranking.topOpportunities.slice(0, 10)
+     6	    : [];
+     7	
+     8	  const bestScore = topOpportunities[0]?.score || 0;
+     9	  const bestExecutiveScore = topOpportunities[0]?.executiveScore || 0;
+    10	  const bestSuccessProbability = topOpportunities[0]?.successProbability || 0;
+    11	  const bestAllocationScore = topOpportunities[0]?.allocationScore || 0;
+    12	  const bestAllocationTier = topOpportunities[0]?.allocationTier || "Sin datos";
+    13	
+    14	  const bestROI = Math.max(
+    15	    ...topOpportunities.map((item) => Number(item.roi || 0)),
+    16	    0
+    17	  );
+    18	  const bestProfit = Math.max(
+    19	    ...topOpportunities.map((item) => Number(item.profit || 0)),
+    20	    0
+    21	  );
+    22	
+    23	  return (
+    24	    <div style={containerStyle}>
+    25	      <h2 style={titleStyle}>🏆 Opportunity Ranking V5</h2>
+    26	
+    27	      <p style={subtitleStyle}>
+    28	        Ranking ejecutivo con asignación de capital, score IA, aprendizaje
+    29	        histórico, probabilidad de éxito, timing, señal de compra y tiempo
+    30	        estimado de venta.
+    31	      </p>
+    32	
+    33	      <div style={gridStyle}>
+    34	        <MetricCard
+    35	          label="Allocation Score"
+    36	          value={`${bestAllocationScore}/100`}
+    37	        />
+    38	
+    39	        <MetricCard
+    40	          label="Allocation Tier"
+    41	          value={bestAllocationTier}
+    42	        />
+    43	
+    44	        <MetricCard
+    45	          label="Ranking Score"
+    46	          value={`${ranking?.rankingScore || 0}/100`}
+    47	        />
+    48	
+    49	        <MetricCard
+    50	          label="Success Probability"
+    51	          value={`${bestSuccessProbability}/100`}
+    52	        />
+    53	      </div>
+    54	
+    55	      <div style={highlightGridStyle}>
+    56	        <HighlightCard
+    57	          title="Beneficio máximo"
+    58	          value={`${bestProfit} €`}
+    59	          text="Mayor beneficio estimado entre las mejores oportunidades."
+    60	        />
+    61	
+    62	        <HighlightCard
+    63	          title="Mejor Score IA"
+    64	          value={`${bestScore}/100`}
+    65	          text="Score base antes del ajuste ejecutivo."
+    66	        />
+    67	
+    68	        <HighlightCard
+    69	          title="Executive Score"
+    70	          value={`${bestExecutiveScore}/100`}
+    71	          text="Fuerza ejecutiva de la mejor oportunidad."
+    72	        />
+    73	
+    74	        <HighlightCard
+    75	          title="Modo decisión"
+    76	          value={getDecisionMode(topOpportunities)}
+    77	          text="Lectura rápida para priorizar capital, compra, análisis o descarte."
+    78	        />
+    79	      </div>
+    80	
+    81	      <div style={sectionStyle}>
+    82	        <p style={sectionTitleStyle}>🧠 Ranking Insights</p>
+    83	
+    84	        {!ranking?.rankingInsights?.length && (
+    85	          <p style={emptyStyle}>
+    86	            Aún no hay insights suficientes para este ranking.
+    87	          </p>
+    88	        )}
+    89	
+    90	        {ranking?.rankingInsights?.map((item, index) => (
+    91	          <div key={index} style={insightCardStyle}>
+    92	            {item}
+    93	          </div>
+    94	        ))}
+    95	      </div>
+    96	
+    97	      <div style={sectionStyle}>
+    98	        <p style={sectionTitleStyle}>🏁 Top 10 oportunidades históricas</p>
+    99	
+   100	        {topOpportunities.length === 0 && (
+   101	          <p style={emptyStyle}>
+   102	            Todavía no hay oportunidades suficientes para ranking.
+   103	          </p>
+   104	        )}
+   105	
+   106	        {topOpportunities.map((item, index) => (
+   107	          <RankingCard
+   108	            key={item.id || `${item.title}-${index}`}
+   109	            item={item}
+   110	            index={index}
+   111	          />
+   112	        ))}
+   113	      </div>
+   114	    </div>
+   115	  );
+   116	}
+   117	
+   118	function RankingCard({ item, index }) {
+   119	  const score = Number(item.score || 0);
+   120	  const roi = Number(item.roi || 0);
+   121	  const profit = Number(item.profit || 0);
+   122	  const priorityScore = Number(item.priorityScore || 0);
+   123	  const executiveScore = Number(item.executiveScore || priorityScore || score);
+   124	  const learningBonus = Number(item.learningBonus || 0);
+   125	  const historicalConfidence = item.historicalConfidence || "Sin datos";
+   126	  const historicalAverageROI = Number(item.historicalAverageROI || 0);
+   127	  const historicalAverageProfit = Number(item.historicalAverageProfit || 0);
+   128	  const historicalAnalyses = Number(item.historicalAnalyses || 0);
+   129	
+   130	  const successProbability = Number(item.successProbability || 0);
+   131	  const buySignal = item.buySignal || "Sin señal";
+   132	  const estimatedSellDays = Number(item.estimatedSellDays || 0);
+   133	  const expectedROI = Number(item.expectedROI || 0);
+   134	  const expectedProfit = Number(item.expectedProfit || 0);
+   135	  const successRiskLabel = item.successRiskLabel || "Sin datos";
+   136	
+   137	  const allocationScore = Number(item.allocationScore || 0);
+   138	  const allocationTier = item.allocationTier || "Sin datos";
+   139	  const allocationSummary = item.allocationSummary || "";
+   140	
+   141	  const marketTimingScore = Number(item.marketTimingScore || 0);
+   142	  const marketTimingLabel = item.marketTimingLabel || "Sin datos";
+   143	
+   144	  const capitalEfficiencyScore = Number(item.capitalEfficiencyScore || 0);
+   145	  const inventoryRiskLabel = item.inventoryRiskLabel || "Sin datos";
+   146	
+   147	  const decision = getDealDecision({
+   148	    score,
+   149	    roi,
+   150	    profit,
+   151	    executiveScore,
+   152	    successProbability,
+   153	    buySignal,
+   154	    allocationScore,
+   155	    allocationTier,
+   156	  });
+   157	
+   158	  return (
+   159	    <div style={rankingCardStyle}>
+   160	      <div style={rankBadgeStyle}>#{index + 1}</div>
+   161	
+   162	      <div style={dealContentStyle}>
+   163	        <div style={dealHeaderStyle}>
+   164	          <h3 style={dealTitleStyle}>
+   165	            {item.title || "Oportunidad sin título"}
+   166	          </h3>
+   167	          <span style={decisionPillStyle}>{decision}</span>
+   168	        </div>
+   169	
+   170	        <div style={allocationBoxStyle}>
+   171	          <p style={allocationTitleStyle}>💼 Asignación de capital</p>
+   172	
+   173	          <div style={historicalGridStyle}>
+   174	            <MiniMetric
+   175	              label="Allocation"
+   176	              value={`${allocationScore}/100`}
+   177	            />
+   178	            <MiniMetric label="Tier" value={allocationTier} />
+   179	            <MiniMetric
+   180	              label="Timing"
+   181	              value={`${marketTimingScore}/100`}
+   182	            />
+   183	            <MiniMetric label="Timing Label" value={marketTimingLabel} />
+   184	            <MiniMetric
+   185	              label="Capital Efficiency"
+   186	              value={`${capitalEfficiencyScore}/100`}
+   187	            />
+   188	            <MiniMetric label="Inventory Risk" value={inventoryRiskLabel} />
+   189	          </div>
+   190	
+   191	          {allocationSummary && (
+   192	            <p style={allocationSummaryStyle}>{allocationSummary}</p>
+   193	          )}
+   194	        </div>
+   195	
+   196	        <div style={miniGridStyle}>
+   197	          <MiniMetric label="Success" value={`${successProbability}/100`} />
+   198	          <MiniMetric label="Buy Signal" value={buySignal} />
+   199	          <MiniMetric label="Venta est." value={`${estimatedSellDays} días`} />
+   200	          <MiniMetric label="Executive" value={`${executiveScore}/100`} />
+   201	          <MiniMetric label="Score IA" value={`${score}/100`} />
+   202	          <MiniMetric label="Learning" value={formatBonus(learningBonus)} />
+   203	        </div>
+   204	
+   205	        <div style={barTrackStyle}>
+   206	          <div
+   207	            style={{
+   208	              ...barFillStyle,
+   209	              width: `${Math.min(Math.max(allocationScore, 0), 100)}%`,
+   210	            }}
+   211	          />
+   212	        </div>
+   213	
+   214	        <div style={predictionBoxStyle}>
+   215	          <p style={predictionTitleStyle}>🔮 Predicción de éxito</p>
+   216	
+   217	          <div style={historicalGridStyle}>
+   218	            <MiniMetric label="ROI esperado" value={`${expectedROI}%`} />
+   219	            <MiniMetric
+   220	              label="Beneficio esperado"
+   221	              value={`${expectedProfit} €`}
+   222	            />
+   223	            <MiniMetric label="Riesgo esperado" value={successRiskLabel} />
+   224	            <MiniMetric label="Prioridad" value={priorityScore} />
+   225	          </div>
+   226	
+   227	          {item.successSummary && (
+   228	            <p style={predictionSummaryStyle}>{item.successSummary}</p>
+   229	          )}
+   230	        </div>
+   231	
+   232	        <div style={historicalBoxStyle}>
+   233	          <p style={historicalTitleStyle}>🧠 Memoria histórica del modelo</p>
+   234	
+   235	          <div style={historicalGridStyle}>
+   236	            <MiniMetric label="Confianza" value={historicalConfidence} />
+   237	
+   238	            <MiniMetric label="Análisis" value={historicalAnalyses} />
+   239	
+   240	            <MiniMetric
+   241	              label="ROI histórico"
+   242	              value={`${historicalAverageROI}%`}
+   243	            />
+   244	
+   245	            <MiniMetric
+   246	              label="Beneficio histórico"
+   247	              value={`${historicalAverageProfit} €`}
+   248	            />
+   249	          </div>
+   250	
+   251	          {Array.isArray(item.learningSignals) &&
+   252	            item.learningSignals.length > 0 && (
+   253	              <div style={learningSignalsStyle}>
+   254	                {item.learningSignals.slice(0, 2).map((signal, signalIndex) => (
+   255	                  <p
+   256	                    key={`${signal}-${signalIndex}`}
+   257	                    style={learningSignalStyle}
+   258	                  >
+   259	                    {signal}
+   260	                  </p>
+   261	                ))}
+   262	              </div>
+   263	            )}
+   264	        </div>
+   265	
+   266	        <p style={priorityStyle}>
+   267	          {buildDecisionText({
+   268	            score,
+   269	            roi,
+   270	            profit,
+   271	            priorityScore,
+   272	            executiveScore,
+   273	            learningBonus,
+   274	            historicalConfidence,
+   275	            successProbability,
+   276	            buySignal,
+   277	            estimatedSellDays,
+   278	            expectedROI,
+   279	            expectedProfit,
+   280	            allocationScore,
+   281	            allocationTier,
+   282	            marketTimingLabel,
+   283	          })}
+   284	        </p>
+   285	      </div>
+   286	    </div>
+   287	  );
+   288	}
+   289	
+   290	function MiniMetric({ label, value }) {
+   291	  return (
+   292	    <div style={miniMetricStyle}>
+   293	      <span style={miniMetricLabelStyle}>{label}</span>
+   294	      <strong style={miniMetricValueStyle}>{value}</strong>
+   295	    </div>
+   296	  );
+   297	}
+   298	
+   299	function HighlightCard({ title, value, text }) {
+   300	  return (
+   301	    <div style={highlightCardStyle}>
+   302	      <p style={highlightTitleStyle}>{title}</p>
+   303	      <strong style={highlightValueStyle}>{value}</strong>
+   304	      <p style={highlightTextStyle}>{text}</p>
+   305	    </div>
+   306	  );
+   307	}
+   308	
+   309	function getDealDecision({
+   310	  score,
+   311	  roi,
+   312	  profit,
+   313	  executiveScore,
+   314	  successProbability,
+   315	  buySignal,
+   316	  allocationScore,
+   317	  allocationTier,
+   318	}) {
+   319	  if (
+   320	    allocationTier === "TIER_1" ||
+   321	    allocationScore >= 85 ||
+   322	    buySignal === "FUERTE" ||
+   323	    (successProbability >= 85 && executiveScore >= 80 && profit >= 2500)
+   324	  ) {
+   325	    return "Priorizar capital";
+   326	  }
+   327	
+   328	  if (
+   329	    allocationTier === "TIER_2" ||
+   330	    allocationScore >= 70 ||
+   331	    buySignal === "INTERESANTE" ||
+   332	    (successProbability >= 72 && executiveScore >= 70)
+   333	  ) {
+   334	    return "Comprar selectivo";
+   335	  }
+   336	
+   337	  if (
+   338	    allocationTier === "TIER_3" ||
+   339	    allocationScore >= 55 ||
+   340	    score >= 65 ||
+   341	    executiveScore >= 65 ||
+   342	    successProbability >= 58
+   343	  ) {
+   344	    return "Vigilar";
+   345	  }
+   346	
+   347	  return "Descartar";
+   348	}
+   349	
+   350	function buildDecisionText({
+   351	  score,
+   352	  roi,
+   353	  profit,
+   354	  priorityScore,
+   355	  executiveScore,
+   356	  learningBonus,
+   357	  historicalConfidence,
+   358	  successProbability,
+   359	  buySignal,
+   360	  estimatedSellDays,
+   361	  expectedROI,
+   362	  expectedProfit,
+   363	  allocationScore,
+   364	  allocationTier,
+   365	  marketTimingLabel,
+   366	}) {
+   367	  const learningText =
+   368	    learningBonus !== 0
+   369	      ? ` Aprendizaje histórico aplicado: ${formatBonus(learningBonus)}.`
+   370	      : "";
+   371	
+   372	  if (allocationTier === "TIER_1" || allocationScore >= 85) {
+   373	    return `Prioridad máxima de capital: allocation score ${allocationScore}/100, tier ${allocationTier}, timing ${marketTimingLabel}, probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €.${learningText}`;
+   374	  }
+   375	
+   376	  if (allocationTier === "TIER_2" || allocationScore >= 70) {
+   377	    return `Buena asignación potencial: allocation score ${allocationScore}/100, tier ${allocationTier}, probabilidad de éxito ${successProbability}/100, ROI ${roi}% y beneficio estimado de ${profit} €.${learningText}`;
+   378	  }
+   379	
+   380	  if (buySignal === "FUERTE" || successProbability >= 85) {
+   381	    return `Señal fuerte: probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €. Executive score ${executiveScore}, score IA ${score}, confianza histórica ${historicalConfidence}.${learningText}`;
+   382	  }
+   383	
+   384	  if (buySignal === "INTERESANTE" || successProbability >= 72) {
+   385	    return `Oportunidad interesante: probabilidad de éxito ${successProbability}/100, prioridad ${priorityScore}, ROI ${roi}% y beneficio estimado de ${profit} €.${learningText}`;
+   386	  }
+   387	
+   388	  if (score >= 65 || executiveScore >= 65 || successProbability >= 58) {
+   389	    return `Oportunidad intermedia: conviene vigilar precio, demanda, margen, timing y señales históricas.${learningText}`;
+   390	  }
+   391	
+   392	  return `Oportunidad débil dentro del ranking. No priorizar capital salvo contexto especial.${learningText}`;
+   393	}
+   394	
+   395	function getDecisionMode(items = []) {
+   396	  const tierOneCount = items.filter((item) => {
+   397	    return item.allocationTier === "TIER_1" || Number(item.allocationScore || 0) >= 85;
+   398	  }).length;
+   399	
+   400	  const tierTwoCount = items.filter((item) => {
+   401	    return item.allocationTier === "TIER_2" || Number(item.allocationScore || 0) >= 70;
+   402	  }).length;
+   403	
+   404	  if (tierOneCount >= 2) return "Asignar capital";
+   405	  if (tierOneCount >= 1) return "Priorizar una";
+   406	  if (tierTwoCount >= 2) return "Comprar selectivo";
+   407	  if (items.length >= 5) return "Analizar";
+   408	  return "Esperar datos";
+   409	}
+   410	
+   411	function getRankingQuality(score = 0) {
+   412	  const value = Number(score || 0);
+   413	
+   414	  if (value >= 85) return "Alta";
+   415	  if (value >= 65) return "Media";
+   416	  if (value > 0) return "Inicial";
+   417	  return "Sin datos";
+   418	}
+   419	
+   420	function formatBonus(value) {
+   421	  const number = Number(value || 0);
+   422	
+   423	  if (number > 0) return `+${number}`;
+   424	  return String(number);
+   425	}
+   426	
+   427	const containerStyle = {
+   428	  marginBottom: "40px",
+   429	};
+   430	
+   431	const titleStyle = {
+   432	  fontSize: "28px",
+   433	  fontWeight: "900",
+   434	  marginBottom: "10px",
+   435	};
+   436	
+   437	const subtitleStyle = {
+   438	  color: "#cbd5e1",
+   439	  lineHeight: "1.55",
+   440	  marginTop: 0,
+   441	  marginBottom: "24px",
+   442	};
+   443	
+   444	const gridStyle = {
+   445	  display: "grid",
+   446	  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+   447	  gap: "18px",
+   448	  marginBottom: "24px",
+   449	};
+   450	
+   451	const highlightGridStyle = {
+   452	  display: "grid",
+   453	  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+   454	  gap: "16px",
+   455	  marginBottom: "26px",
+   456	};
+   457	
+   458	const highlightCardStyle = {
+   459	  padding: "18px",
+   460	  borderRadius: "20px",
+   461	  background: "rgba(88,28,135,0.2)",
+   462	  border: "1px solid rgba(168,85,247,0.22)",
+   463	};
+   464	
+   465	const highlightTitleStyle = {
+   466	  margin: 0,
+   467	  color: "#d8b4fe",
+   468	  fontSize: "13px",
+   469	  fontWeight: "900",
+   470	};
+   471	
+   472	const highlightValueStyle = {
+   473	  display: "block",
+   474	  marginTop: "8px",
+   475	  color: "#ffffff",
+   476	  fontSize: "24px",
+   477	};
+   478	
+   479	const highlightTextStyle = {
+   480	  margin: "8px 0 0 0",
+   481	  color: "#cbd5e1",
+   482	  fontSize: "12px",
+   483	  lineHeight: "1.45",
+   484	};
+   485	
+   486	const sectionStyle = {
+   487	  marginBottom: "24px",
+   488	};
+   489	
+   490	const sectionTitleStyle = {
+   491	  fontSize: "16px",
+   492	  fontWeight: "900",
+   493	  marginBottom: "14px",
+   494	};
+   495	
+   496	const insightCardStyle = {
+   497	  background: "rgba(168,85,247,0.12)",
+   498	  border: "1px solid rgba(168,85,247,0.25)",
+   499	  padding: "14px 16px",
+   500	  borderRadius: "16px",
+   501	  marginBottom: "12px",
+   502	  fontWeight: "800",
+   503	};
+   504	
+   505	const rankingCardStyle = {
+   506	  display: "flex",
+   507	  gap: "16px",
+   508	  alignItems: "flex-start",
+   509	  background:
+   510	    "linear-gradient(135deg, rgba(168,85,247,0.16), rgba(37,99,235,0.12))",
+   511	  border: "1px solid rgba(168,85,247,0.25)",
+   512	  padding: "18px",
+   513	  borderRadius: "20px",
+   514	  marginBottom: "14px",
+   515	};
+   516	
+   517	const rankBadgeStyle = {
+   518	  minWidth: "52px",
+   519	  height: "52px",
+   520	  borderRadius: "999px",
+   521	  background: "rgba(168,85,247,0.35)",
+   522	  display: "flex",
+   523	  alignItems: "center",
+   524	  justifyContent: "center",
+   525	  fontWeight: "900",
+   526	  fontSize: "18px",
+   527	};
+   528	
+   529	const dealContentStyle = {
+   530	  flex: 1,
+   531	};
+   532	
+   533	const dealHeaderStyle = {
+   534	  display: "flex",
+   535	  justifyContent: "space-between",
+   536	  gap: "14px",
+   537	  alignItems: "flex-start",
+   538	  flexWrap: "wrap",
+   539	};
+   540	
+   541	const dealTitleStyle = {
+   542	  fontSize: "20px",
+   543	  margin: "0 0 12px 0",
+   544	};
+   545	
+   546	const decisionPillStyle = {
+   547	  padding: "7px 11px",
+   548	  borderRadius: "999px",
+   549	  background: "rgba(34,197,94,0.16)",
+   550	  border: "1px solid rgba(34,197,94,0.25)",
+   551	  color: "#bbf7d0",
+   552	  fontSize: "12px",
+   553	  fontWeight: "900",
+   554	};
+   555	
+   556	const miniGridStyle = {
+   557	  display: "grid",
+   558	  gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))",
+   559	  gap: "10px",
+   560	  marginBottom: "12px",
+   561	};
+   562	
+   563	const miniMetricStyle = {
+   564	  padding: "10px",
+   565	  borderRadius: "14px",
+   566	  background: "rgba(2,6,23,0.48)",
+   567	};
+   568	
+   569	const miniMetricLabelStyle = {
+   570	  display: "block",
+   571	  color: "#94a3b8",
+   572	  fontSize: "11px",
+   573	  marginBottom: "5px",
+   574	};
+   575	
+   576	const miniMetricValueStyle = {
+   577	  color: "#f8fafc",
+   578	  fontSize: "14px",
+   579	};
+   580	
+   581	const barTrackStyle = {
+   582	  height: "8px",
+   583	  borderRadius: "999px",
+   584	  background: "rgba(15,23,42,0.8)",
+   585	  overflow: "hidden",
+   586	  marginTop: "4px",
+   587	};
+   588	
+   589	const barFillStyle = {
+   590	  height: "100%",
+   591	  borderRadius: "999px",
+   592	  background: "linear-gradient(135deg,#a855f7,#22c55e)",
+   593	};
+   594	
+   595	const allocationBoxStyle = {
+   596	  marginTop: "8px",
+   597	  marginBottom: "14px",
+   598	  padding: "14px",
+   599	  borderRadius: "18px",
+   600	  background: "rgba(14,165,233,0.16)",
+   601	  border: "1px solid rgba(56,189,248,0.25)",
+   602	};
+   603	
+   604	const allocationTitleStyle = {
+   605	  margin: "0 0 12px 0",
+   606	  color: "#bae6fd",
+   607	  fontWeight: "900",
+   608	  fontSize: "13px",
+   609	};
+   610	
+   611	const allocationSummaryStyle = {
+   612	  margin: "12px 0 0 0",
+   613	  color: "#e0f2fe",
+   614	  fontSize: "12px",
+   615	  lineHeight: "1.45",
+   616	};
+   617	
+   618	const predictionBoxStyle = {
+   619	  marginTop: "14px",
+   620	  padding: "14px",
+   621	  borderRadius: "18px",
+   622	  background: "rgba(88,28,135,0.22)",
+   623	  border: "1px solid rgba(168,85,247,0.22)",
+   624	};
+   625	
+   626	const predictionTitleStyle = {
+   627	  margin: "0 0 12px 0",
+   628	  color: "#e9d5ff",
+   629	  fontWeight: "900",
+   630	  fontSize: "13px",
+   631	};
+   632	
+   633	const predictionSummaryStyle = {
+   634	  margin: "12px 0 0 0",
+   635	  color: "#f3e8ff",
+   636	  fontSize: "12px",
+   637	  lineHeight: "1.45",
+   638	};
+   639	
+   640	const historicalBoxStyle = {
+   641	  marginTop: "14px",
+   642	  padding: "14px",
+   643	  borderRadius: "18px",
+   644	  background: "rgba(15,23,42,0.58)",
+   645	  border: "1px solid rgba(34,197,94,0.16)",
+   646	};
+   647	
+   648	const historicalTitleStyle = {
+   649	  margin: "0 0 12px 0",
+   650	  color: "#bbf7d0",
+   651	  fontWeight: "900",
+   652	  fontSize: "13px",
+   653	};
+   654	
+   655	const historicalGridStyle = {
+   656	  display: "grid",
+   657	  gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
+   658	  gap: "10px",
+   659	};
+   660	
+   661	const learningSignalsStyle = {
+   662	  marginTop: "12px",
+   663	};
+   664	
+   665	const learningSignalStyle = {
+   666	  margin: "8px 0 0 0",
+   667	  color: "#dcfce7",
+   668	  fontSize: "12px",
+   669	  lineHeight: "1.45",
+   670	};
+   671	
+   672	const priorityStyle = {
+   673	  color: "#d8b4fe",
+   674	  fontWeight: "800",
+   675	  margin: "10px 0 0 0",
+   676	  lineHeight: "1.45",
+   677	};
+   678	
+   679	const emptyStyle = {
+   680	  color: "#94a3b8",
+   681	};

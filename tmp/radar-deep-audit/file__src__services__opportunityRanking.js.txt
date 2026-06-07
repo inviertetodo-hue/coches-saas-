@@ -1,0 +1,497 @@
+===== FILE: src/services/opportunityRanking.js =====
+     1	import { buildDecisionPipeline } from "./intelligence/decisionPipeline";
+     2	import {
+     3	  buildHistoricalModelMemory,
+     4	  buildOpportunityTimelineSummary,
+     5	} from "./intelligence/historicalMemory";
+     6	import {
+     7	  calculateSemanticQuality,
+     8	  calculateRiskPenalty,
+     9	  calculateLiquidityBonus,
+    10	} from "./intelligence/rankingUtils";
+    11	
+    12	export function generateOpportunityRanking(analyses = []) {
+    13	  if (!Array.isArray(analyses) || analyses.length === 0) {
+    14	    return {
+    15	      rankingScore: 0,
+    16	      topOpportunities: [],
+    17	      rankingInsights: [],
+    18	    };
+    19	  }
+    20	
+    21	  const historicalModelMemory = buildHistoricalModelMemory(analyses);
+    22	  const timelineSummary = buildOpportunityTimelineSummary(analyses);
+    23	  const timelineByFingerprint = new Map(
+    24	    (timelineSummary.timelines || []).map((timeline) => [
+    25	      timeline.fingerprint,
+    26	      timeline,
+    27	    ])
+    28	  );
+    29	
+    30	  const topOpportunities = analyses
+    31	    .map((item) => {
+    32	      const score = safeNumber(item.score);
+    33	      const roi = safeNumber(item.roi);
+    34	      const profit = safeNumber(item.profit);
+    35	      const price = safeNumber(item.price || item.purchasePrice || item.budget);
+    36	
+    37	      const title = String(item.title || "");
+    38	      const brand = String(item.brand || "");
+    39	      const model = String(item.model || "");
+    40	      const fuelType = String(item.fuel_type || "");
+    41	      const drivetrain = String(item.drivetrain || "");
+    42	      const performancePackage = String(item.performance_package || "");
+    43	
+    44	      const semanticQuality = calculateSemanticQuality({
+    45	        title,
+    46	        brand,
+    47	        model,
+    48	        fuelType,
+    49	        drivetrain,
+    50	        performancePackage,
+    51	      });
+    52	
+    53	      const riskPenalty = calculateRiskPenalty({
+    54	        title,
+    55	        score,
+    56	        roi,
+    57	        profit,
+    58	        semanticQuality,
+    59	        performancePackage,
+    60	      });
+    61	
+    62	      const liquidityBonus = calculateLiquidityBonus({
+    63	        title,
+    64	        brand,
+    65	        model,
+    66	        fuelType,
+    67	        drivetrain,
+    68	        performancePackage,
+    69	        semanticQuality,
+    70	      });
+    71	
+    72	      const vehicle = {
+    73	        ...item,
+    74	        score,
+    75	        roi,
+    76	        profit,
+    77	        price,
+    78	        title,
+    79	        brand,
+    80	        model,
+    81	        fuelType,
+    82	        drivetrain,
+    83	        performancePackage,
+    84	      };
+    85	
+    86	      const decision = buildDecisionPipeline({
+    87	        vehicle,
+    88	        historicalModelMemory,
+    89	        liquidityBonus,
+    90	        riskPenalty,
+    91	        semanticQuality,
+    92	      });
+    93	
+    94	      const timeline = timelineByFingerprint.get(resolveFingerprint(item));
+    95	      const timelineMomentum = buildTimelineMomentum(timeline);
+    96	
+    97	      return {
+    98	        id: item.id,
+    99	        title: title || "Vehículo IA",
+   100	        score,
+   101	        roi,
+   102	        profit,
+   103	        price,
+   104	        confidence: semanticQuality,
+   105	        riskPenalty,
+   106	        liquidityBonus,
+   107	        timeline,
+   108	        timelineMomentumScore: timelineMomentum.timelineMomentumScore,
+   109	        timelineMomentumLabel: timelineMomentum.timelineMomentumLabel,
+   110	        timelineMomentumSummary: timelineMomentum.timelineMomentumSummary,
+   111	        timelineEvents: timeline?.totalEvents || 0,
+   112	        latestTimelineAction: timeline?.latestAction || "WATCH",
+   113	        latestTimelineROI: timeline?.latestROI || 0,
+   114	        latestTimelineProfit: timeline?.latestProfit || 0,
+   115	        latestTimelinePrice: timeline?.latestPrice || 0,
+   116	        latestTimelineSellSpeed: timeline?.latestSellSpeed || 0,
+   117	        timelineSummary: timeline?.timelineSummary || "Sin histórico temporal suficiente.",
+   118	        ...decision.flat,
+   119	      };
+   120	    })
+   121	    .sort(sortOpportunities)
+   122	    .slice(0, 5);
+   123	
+   124	  const rankingScore = calculateRankingScore(topOpportunities);
+   125	
+   126	  const rankingInsights = buildRankingInsights(
+   127	    topOpportunities,
+   128	    analyses.length,
+   129	    rankingScore,
+   130	    timelineSummary
+   131	  );
+   132	
+   133	  return {
+   134	    rankingScore,
+   135	    topOpportunities,
+   136	    rankingInsights,
+   137	    timelineSummary,
+   138	  };
+   139	}
+   140	
+   141	function buildTimelineMomentum(timeline = null) {
+   142	  if (!timeline || !Array.isArray(timeline.events) || timeline.events.length < 2) {
+   143	    return {
+   144	      timelineMomentumScore: 50,
+   145	      timelineMomentumLabel: "NO_HISTORY",
+   146	      timelineMomentumSummary: "Sin histórico temporal suficiente.",
+   147	    };
+   148	  }
+   149	
+   150	  const first = timeline.events[0];
+   151	  const latest = timeline.events[timeline.events.length - 1];
+   152	
+   153	  let score = 50;
+   154	
+   155	  if (first.action !== "BUY" && latest.action === "BUY") score += 20;
+   156	  if (first.action === "BUY" && latest.action !== "BUY") score -= 20;
+   157	
+   158	  const roiChange = safeNumber(latest.roi) - safeNumber(first.roi);
+   159	  const profitChange = safeNumber(latest.profit) - safeNumber(first.profit);
+   160	  const priceChange = safeNumber(latest.price) - safeNumber(first.price);
+   161	  const sellSpeedChange =
+   162	    safeNumber(latest.sellSpeedScore) - safeNumber(first.sellSpeedScore);
+   163	
+   164	  if (roiChange >= 5) score += 12;
+   165	  if (roiChange <= -5) score -= 12;
+   166	
+   167	  if (profitChange >= 1000) score += 12;
+   168	  if (profitChange <= -1000) score -= 12;
+   169	
+   170	  if (priceChange < 0) score += 8;
+   171	  if (priceChange > 0) score -= 5;
+   172	
+   173	  if (sellSpeedChange >= 10) score += 8;
+   174	  if (sellSpeedChange <= -10) score -= 8;
+   175	
+   176	  const timelineMomentumScore = clampScore(score);
+   177	
+   178	  return {
+   179	    timelineMomentumScore,
+   180	    timelineMomentumLabel: buildTimelineMomentumLabel(timelineMomentumScore),
+   181	    timelineMomentumSummary: timeline.timelineSummary,
+   182	  };
+   183	}
+   184	
+   185	function buildTimelineMomentumLabel(score) {
+   186	  if (score >= 80) return "IMPROVING_FAST";
+   187	  if (score >= 65) return "IMPROVING";
+   188	  if (score >= 45) return "STABLE";
+   189	  if (score >= 30) return "DETERIORATING";
+   190	  return "AVOID_TREND";
+   191	}
+   192	
+   193	function sortOpportunities(a, b) {
+   194	  if (b.timelineMomentumScore !== a.timelineMomentumScore) {
+   195	    return b.timelineMomentumScore - a.timelineMomentumScore;
+   196	  }
+   197	
+   198	  if (b.allocationScore !== a.allocationScore) {
+   199	    return b.allocationScore - a.allocationScore;
+   200	  }
+   201	
+   202	  if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
+   203	    return b.executiveBuySignalScore - a.executiveBuySignalScore;
+   204	  }
+   205	
+   206	  if (b.marketTimingScore !== a.marketTimingScore) {
+   207	    return b.marketTimingScore - a.marketTimingScore;
+   208	  }
+   209	
+   210	  if (b.capitalEfficiencyScore !== a.capitalEfficiencyScore) {
+   211	    return b.capitalEfficiencyScore - a.capitalEfficiencyScore;
+   212	  }
+   213	
+   214	  if (b.sellSpeedScore !== a.sellSpeedScore) {
+   215	    return b.sellSpeedScore - a.sellSpeedScore;
+   216	  }
+   217	
+   218	  if (b.successProbability !== a.successProbability) {
+   219	    return b.successProbability - a.successProbability;
+   220	  }
+   221	
+   222	  if (b.executiveScore !== a.executiveScore) {
+   223	    return b.executiveScore - a.executiveScore;
+   224	  }
+   225	
+   226	  if (b.priorityScore !== a.priorityScore) {
+   227	    return b.priorityScore - a.priorityScore;
+   228	  }
+   229	
+   230	  if (b.confidence !== a.confidence) {
+   231	    return b.confidence - a.confidence;
+   232	  }
+   233	
+   234	  return b.profit - a.profit;
+   235	}
+   236	
+   237	function calculateRankingScore(topOpportunities = []) {
+   238	  if (topOpportunities.length === 0) return 0;
+   239	
+   240	  return Math.round(
+   241	    topOpportunities.reduce((sum, item) => {
+   242	      return (
+   243	        sum +
+   244	        Math.round(
+   245	          safeNumber(item.allocationScore) * 0.35 +
+   246	            safeNumber(item.executiveBuySignalScore) * 0.22 +
+   247	            safeNumber(item.marketTimingScore) * 0.15 +
+   248	            safeNumber(item.capitalEfficiencyScore) * 0.13 +
+   249	            safeNumber(item.timelineMomentumScore) * 0.15
+   250	        )
+   251	      );
+   252	    }, 0) / topOpportunities.length
+   253	  );
+   254	}
+   255	
+   256	function buildRankingInsights(
+   257	  topOpportunities,
+   258	  total,
+   259	  rankingScore,
+   260	  timelineSummary = {}
+   261	) {
+   262	  const insights = [];
+   263	
+   264	  if (topOpportunities.length > 0) {
+   265	    insights.push(`🏆 Ranking IA generado sobre ${total} análisis guardados.`);
+   266	  }
+   267	
+   268	  if (rankingScore >= 85) {
+   269	    insights.push(
+   270	      "🔥 El top de oportunidades muestra alta prioridad de asignación de capital, señal ejecutiva fuerte, buen timing, eficiencia operativa y momentum temporal."
+   271	    );
+   272	  } else if (rankingScore >= 70) {
+   273	    insights.push(
+   274	      "🟢 Hay oportunidades interesantes, pero conviene validar asignación de capital, timing, riesgo de inventario y evolución temporal."
+   275	    );
+   276	  } else if (rankingScore >= 50) {
+   277	    insights.push(
+   278	      "🟡 El ranking tiene potencial, aunque todavía necesita oportunidades más claras para priorizar capital."
+   279	    );
+   280	  } else {
+   281	    insights.push(
+   282	      "📊 El ranking aún no tiene suficiente fuerza para una asignación de capital agresiva."
+   283	    );
+   284	  }
+   285	
+   286	  if (safeNumber(timelineSummary.totalTimelines) > 0) {
+   287	    insights.push(
+   288	      `🧭 El ranking ya incorpora memoria temporal sobre ${timelineSummary.totalTimelines} oportunidad(es).`
+   289	    );
+   290	  }
+   291	
+   292	  if (safeNumber(timelineSummary.upgradedToBuy) > 0) {
+   293	    insights.push(
+   294	      `🚀 ${timelineSummary.upgradedToBuy} oportunidad(es) han mejorado hasta BUY en el histórico temporal.`
+   295	    );
+   296	  }
+   297	
+   298	  if (safeNumber(timelineSummary.priceDrops) > 0) {
+   299	    insights.push(
+   300	      `📉 ${timelineSummary.priceDrops} oportunidad(es) muestran bajadas de precio en timeline.`
+   301	    );
+   302	  }
+   303	
+   304	  if (safeNumber(timelineSummary.improvingROI) > 0) {
+   305	    insights.push(
+   306	      `💰 ${timelineSummary.improvingROI} oportunidad(es) mejoran ROI con el tiempo.`
+   307	    );
+   308	  }
+   309	
+   310	  if (
+   311	    topOpportunities.some((item) => Number(item.allocationScore || 0) > 0)
+   312	  ) {
+   313	    insights.push(
+   314	      "💼 El ranking ya prioriza por Portfolio Allocation: dónde poner el dinero primero."
+   315	    );
+   316	  }
+   317	
+   318	  if (
+   319	    topOpportunities.some(
+   320	      (item) => item.allocationTier === "TIER_1" || item.allocationTier === "TIER_2"
+   321	    )
+   322	  ) {
+   323	    insights.push(
+   324	      "🚀 Hay oportunidades con prioridad clara de asignación de capital."
+   325	    );
+   326	  }
+   327	
+   328	  if (
+   329	    topOpportunities.some((item) => item.allocationTier === "AVOID")
+   330	  ) {
+   331	    insights.push(
+   332	      "🛑 Algunas oportunidades no justifican asignar capital ahora mismo."
+   333	    );
+   334	  }
+   335	
+   336	  if (
+   337	    topOpportunities.some((item) => Number(item.learningBonus || 0) !== 0)
+   338	  ) {
+   339	    insights.push(
+   340	      "🧠 El ranking ya incorpora aprendizaje histórico por modelo en la prioridad ejecutiva."
+   341	    );
+   342	  }
+   343	
+   344	  if (
+   345	    topOpportunities.some((item) => Number(item.successProbability || 0) > 0)
+   346	  ) {
+   347	    insights.push(
+   348	      "🔮 El ranking ya utiliza probabilidad de éxito y señal de compra."
+   349	    );
+   350	  }
+   351	
+   352	  if (topOpportunities.some((item) => item.executiveBuySignalLabel)) {
+   353	    insights.push(
+   354	      "🎯 El ranking ya genera señal ejecutiva final: STRONG_BUY, BUY, WATCHLIST, AVOID o REJECT."
+   355	    );
+   356	  }
+   357	
+   358	  if (
+   359	    topOpportunities.some(
+   360	      (item) => item.speedLabel || Number(item.sellSpeedScore || 0) > 0
+   361	    )
+   362	  ) {
+   363	    insights.push(
+   364	      "⚡ La velocidad de venta ya tiene propietario único: sellSpeedEngine."
+   365	    );
+   366	  }
+   367	
+   368	  if (
+   369	    topOpportunities.some(
+   370	      (item) => Number(item.capitalEfficiencyScore || 0) > 0
+   371	    )
+   372	  ) {
+   373	    insights.push(
+   374	      "💸 El ranking ya mide eficiencia de capital: beneficio, rotación y capital inmovilizado."
+   375	    );
+   376	  }
+   377	
+   378	  if (
+   379	    topOpportunities.some(
+   380	      (item) => Number(item.inventoryRiskScore || 0) > 0
+   381	    )
+   382	  ) {
+   383	    insights.push(
+   384	      "📦 El ranking ya mide riesgo de inventario y capital potencialmente atrapado."
+   385	    );
+   386	  }
+   387	
+   388	  if (
+   389	    topOpportunities.some(
+   390	      (item) => Number(item.marketTimingScore || 0) > 0
+   391	    )
+   392	  ) {
+   393	    insights.push(
+   394	      "⏰ El ranking ya incorpora Market Timing para detectar si el momento de entrada es favorable."
+   395	    );
+   396	  }
+   397	
+   398	  if (
+   399	    topOpportunities.some(
+   400	      (item) =>
+   401	        item.inventoryRiskLabel === "HIGH_RISK" ||
+   402	        item.inventoryRiskLabel === "CRITICAL_RISK"
+   403	    )
+   404	  ) {
+   405	    insights.push(
+   406	      "📦 Hay oportunidades con riesgo de inventario alto. Revisa rotación y capital inmovilizado."
+   407	    );
+   408	  }
+   409	
+   410	  if (
+   411	    topOpportunities.some(
+   412	      (item) =>
+   413	        item.marketTimingLabel === "WAIT" ||
+   414	        item.marketTimingLabel === "AVOID"
+   415	    )
+   416	  ) {
+   417	    insights.push(
+   418	      "⏳ Algunas oportunidades necesitan mejor timing antes de entrar. No todo buen coche es buena compra hoy."
+   419	    );
+   420	  }
+   421	
+   422	  if (topOpportunities.some((item) => item.speedLabel === "SLOW_SELLER")) {
+   423	    insights.push(
+   424	      "🐢 Hay oportunidades con riesgo de rotación lenta. Revisa capital inmovilizado antes de comprar."
+   425	    );
+   426	  }
+   427	
+   428	  if (topOpportunities.some((item) => item.confidence < 50)) {
+   429	    insights.push(
+   430	      "🧠 Algunas oportunidades del top tienen baja confianza semántica. No conviene decidir solo por ROI."
+   431	    );
+   432	  }
+   433	
+   434	  if (topOpportunities.some((item) => item.riskPenalty >= 18)) {
+   435	    insights.push(
+   436	      "⚠️ El ranking detecta coches con riesgo comercial elevado aunque parezcan rentables."
+   437	    );
+   438	  }
+   439	
+   440	  if (
+   441	    topOpportunities.some(
+   442	      (item) =>
+   443	        item.timelineMomentumLabel === "IMPROVING_FAST" ||
+   444	        item.timelineMomentumLabel === "IMPROVING"
+   445	    )
+   446	  ) {
+   447	    insights.push(
+   448	      "📈 El ranking detecta oportunidades con momentum temporal positivo."
+   449	    );
+   450	  }
+   451	
+   452	  if (
+   453	    topOpportunities.some(
+   454	      (item) =>
+   455	        item.timelineMomentumLabel === "DETERIORATING" ||
+   456	        item.timelineMomentumLabel === "AVOID_TREND"
+   457	    )
+   458	  ) {
+   459	    insights.push(
+   460	      "📉 Algunas oportunidades muestran deterioro temporal. Revisa evolución antes de comprar."
+   461	    );
+   462	  }
+   463	
+   464	  const strongest = topOpportunities[0];
+   465	
+   466	  if (strongest) {
+   467	    insights.push(
+   468	      `🥇 Mejor oportunidad actual: ${strongest.title} · allocation ${strongest.allocationTier} · score ${strongest.allocationScore}/100 · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel} · momentum ${strongest.timelineMomentumLabel}.`
+   469	    );
+   470	  }
+   471	
+   472	  return insights;
+   473	}
+   474	
+   475	function resolveFingerprint(item = {}) {
+   476	  return (
+   477	    item.fingerprint ||
+   478	    item.market_fingerprint ||
+   479	    item.id ||
+   480	    [item.brand, item.model, item.year, item.km, item.price]
+   481	      .filter(Boolean)
+   482	      .join("-")
+   483	      .toLowerCase()
+   484	  );
+   485	}
+   486	
+   487	function clampScore(value) {
+   488	  if (value > 100) return 100;
+   489	  if (value < 0) return 0;
+   490	  return Math.round(value);
+   491	}
+   492	
+   493	function safeNumber(value) {
+   494	  const number = Number(value);
+   495	  return Number.isFinite(number) ? number : 0;
+   496	}

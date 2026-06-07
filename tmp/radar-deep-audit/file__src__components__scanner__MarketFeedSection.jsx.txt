@@ -1,0 +1,778 @@
+===== FILE: src/components/scanner/MarketFeedSection.jsx =====
+     1	import SmallMetric from "./SmallMetric";
+     2	import FeedMetric from "./FeedMetric";
+     3	import DealDecisionPill, { getDecisionColor } from "./DealDecisionPill";
+     4	
+     5	export default function MarketFeedSection({ marketFeed }) {
+     6	  if (!marketFeed) return null;
+     7	
+     8	  const diagnostics = getDiagnosticsList(marketFeed.realFeedDiagnostics);
+     9	  const opportunities = Array.isArray(marketFeed.opportunities)
+    10	    ? marketFeed.opportunities
+    11	    : [];
+    12	
+    13	  return (
+    14	    <div style={sectionStyle}>
+    15	      <h2 style={sectionTitleStyle}>Feed IA de oportunidades</h2>
+    16	
+    17	      <SourceDiagnosticsPanel diagnostics={diagnostics} />
+    18	
+    19	      {opportunities.length === 0 && (
+    20	        <div style={emptyFeedStyle}>
+    21	          No hay oportunidades reales compatibles ahora mismo. Revisa el diagnóstico
+    22	          por fuente para ver si el problema está en el fetch, el parser o los filtros.
+    23	        </div>
+    24	      )}
+    25	
+    26	      <div style={feedGridStyle}>
+    27	        {opportunities.map((item, index) => (
+    28	          <div
+    29	            key={item.id}
+    30	            style={{
+    31	              ...feedCardStyle,
+    32	              border: `1px solid ${getDecisionColor(
+    33	                item.finalDecision?.action
+    34	              )}`,
+    35	            }}
+    36	          >
+    37	            {index === 0 && (
+    38	              <div style={topOpportunityStyle}>🏆 TOP OPPORTUNITY</div>
+    39	            )}
+    40	
+    41	            <div>
+    42	              <p style={feedSourceStyle}>{item.source}</p>
+    43	
+    44	              <h3 style={feedTitleStyle}>{item.title}</h3>
+    45	
+    46	              <p style={feedPriceStyle}>
+    47	                {Number(item.price || 0).toLocaleString("es-ES")} €
+    48	              </p>
+    49	
+    50	              <p style={feedMetaStyle}>
+    51	                {item.year} · {Number(item.km || item.mileage || 0).toLocaleString(
+    52	                  "es-ES"
+    53	                )}{" "}
+    54	                km
+    55	              </p>
+    56	
+    57	              <p style={identityQualityStyle}>
+    58	                Identidad: {item.identitySource === "block" ? "confirmada por anuncio" : "heredada de búsqueda"}
+    59	              </p>
+    60	
+    61	              {item.url && (
+    62	                <a
+    63	                  href={item.url}
+    64	                  target="_blank"
+    65	                  rel="noopener noreferrer"
+    66	                  style={originalListingLinkStyle}
+    67	                >
+    68	                  🔗 Ver anuncio original
+    69	                </a>
+    70	              )}
+    71	            </div>
+    72	
+    73	            <DealDecisionPill
+    74	              action={item.finalDecision?.action}
+    75	              label={item.finalDecision?.label}
+    76	            />
+    77	
+    78	            <div style={opportunityBoxStyle}>
+    79	              <div style={opportunityHeaderStyle}>🎯 Opportunity Engine</div>
+    80	
+    81	              <div style={marketGridStyle}>
+    82	                <SmallMetric
+    83	                  label="Opportunity Score"
+    84	                  value={`${item.opportunityScore || 0}/100`}
+    85	                />
+    86	
+    87	                <SmallMetric
+    88	                  label="Opportunity Level"
+    89	                  value={item.opportunityLevel || "NONE"}
+    90	                />
+    91	              </div>
+    92	            </div>
+    93	
+    94	            <div style={feedMetricsStyle}>
+    95	              <FeedMetric
+    96	                label="Score final"
+    97	                value={`${item.finalDecision?.finalScore || 0}/100`}
+    98	              />
+    99	
+   100	              <FeedMetric label="ROI neto" value={`${item.netRoi || 0}%`} />
+   101	
+   102	              <FeedMetric
+   103	                label="Margen"
+   104	                value={`${Number(item.netProfit || 0).toLocaleString("es-ES")} €`}
+   105	              />
+   106	            </div>
+   107	
+   108	            <div style={decisionStyle}>{item.finalDecision?.explanation}</div>
+   109	
+   110	            <div style={liquidityBoxStyle}>
+   111	              <h4 style={miniTitleStyle}>💧 Liquidez</h4>
+   112	
+   113	              <div style={marketGridStyle}>
+   114	                <SmallMetric
+   115	                  label="Liquidez"
+   116	                  value={`${item.liquidity?.liquidityScore || 0}/100`}
+   117	                />
+   118	
+   119	                <SmallMetric
+   120	                  label="Venta estimada"
+   121	                  value={`${item.liquidity?.expectedDaysToSell || 0} días`}
+   122	                />
+   123	
+   124	                <SmallMetric label="Demanda" value={item.liquidity?.demand || "-"} />
+   125	
+   126	                <SmallMetric
+   127	                  label="Compradores"
+   128	                  value={item.liquidity?.buyerPool || "-"}
+   129	                />
+   130	              </div>
+   131	
+   132	              <p style={marketInsightStyle}>{item.liquidity?.summary}</p>
+   133	            </div>
+   134	
+   135	            <div style={riskBoxStyle}>
+   136	              <h4 style={miniTitleStyle}>🛡️ Riesgo de operación</h4>
+   137	
+   138	              <div style={marketGridStyle}>
+   139	                <SmallMetric label="Nivel" value={item.dealRisk?.level || "-"} />
+   140	
+   141	                <SmallMetric
+   142	                  label="Risk score"
+   143	                  value={`${item.dealRisk?.riskScore || 0}/100`}
+   144	                />
+   145	              </div>
+   146	
+   147	              <p style={marketInsightStyle}>{item.dealRisk?.recommendation}</p>
+   148	            </div>
+   149	
+   150	            <div style={marketBoxStyle}>
+   151	              <h4 style={miniTitleStyle}>📊 Comparables de mercado</h4>
+   152	
+   153	              <div style={marketGridStyle}>
+   154	                <SmallMetric
+   155	                  label="Precio actual"
+   156	                  value={`${Number(item.price || 0).toLocaleString("es-ES")} €`}
+   157	                />
+   158	
+   159	                <SmallMetric
+   160	                  label="Precio justo IA"
+   161	                  value={`${Number(item.comparable?.fairPrice || 0).toLocaleString(
+   162	                    "es-ES"
+   163	                  )} €`}
+   164	                />
+   165	
+   166	                <SmallMetric
+   167	                  label="Desviación"
+   168	                  value={`${item.comparable?.deviationPercent || 0}%`}
+   169	                />
+   170	
+   171	                <SmallMetric
+   172	                  label="Confianza"
+   173	                  value={`${item.comparable?.confidence || 0}/100`}
+   174	                />
+   175	              </div>
+   176	
+   177	              <p style={marketInsightStyle}>{item.comparable?.insight}</p>
+   178	            </div>
+   179	
+   180	            <div style={memoryBoxStyle}>
+   181	              <h4 style={miniTitleStyle}>🧠 Memoria de mercado</h4>
+   182	
+   183	              <div style={marketGridStyle}>
+   184	                <SmallMetric
+   185	                  label="Venta estimada"
+   186	                  value={`${item.memory?.resaleSpeed?.days || 0} días`}
+   187	                />
+   188	
+   189	                <SmallMetric
+   190	                  label="Demanda"
+   191	                  value={item.memory?.demandLevel || "-"}
+   192	                />
+   193	
+   194	                <SmallMetric label="Riesgo" value={item.memory?.riskLevel || "-"} />
+   195	
+   196	                <SmallMetric
+   197	                  label="Precio máx."
+   198	                  value={`${Number(
+   199	                    item.memory?.recommendedMaxBid || 0
+   200	                  ).toLocaleString("es-ES")} €`}
+   201	                />
+   202	              </div>
+   203	
+   204	              <p style={marketInsightStyle}>{item.memory?.strategy?.reason}</p>
+   205	            </div>
+   206	          </div>
+   207	        ))}
+   208	      </div>
+   209	    </div>
+   210	  );
+   211	}
+   212	
+   213	function SourceDiagnosticsPanel({ diagnostics }) {
+   214	  if (!diagnostics.length) return null;
+   215	
+   216	  return (
+   217	    <div style={diagnosticsPanelStyle}>
+   218	      <h3 style={diagnosticsTitleStyle}>🧪 Diagnóstico del feed real</h3>
+   219	
+   220	      <div style={diagnosticsGridStyle}>
+   221	        {diagnostics.map((item, index) => {
+   222	          const rejectionLog = item.rejectionLog || {};
+   223	          const statusLabel = getStatusLabel(item.status);
+   224	
+   225	          return (
+   226	            <div key={`${item.source}-${item.country}-${index}`} style={diagnosticCardStyle}>
+   227	              <div style={diagnosticHeaderStyle}>
+   228	                <strong>{item.source || "Fuente"}</strong>
+   229	                <span style={diagnosticStatusStyle}>{statusLabel}</span>
+   230	              </div>
+   231	
+   232	              <p style={diagnosticCountryStyle}>{item.country || "-"}</p>
+   233	
+   234	              <div style={diagnosticMetricGridStyle}>
+   235	                <DiagnosticMetric label="Chars" value={item.textLength || 0} />
+   236	                <DiagnosticMetric label="Parsed" value={item.parsedCount || 0} />
+   237	                <DiagnosticMetric
+   238	                  label="URLs directas"
+   239	                  value={`${item.directUrlCount || 0}/${item.parsedCount || 0}`}
+   240	                />
+   241	                <DiagnosticMetric
+   242	                  label="Cobertura URL"
+   243	                  value={`${item.directUrlCoverage || 0}%`}
+   244	                />
+   245	                <DiagnosticMetric label="Bloques" value={rejectionLog.totalBlocks || 0} />
+   246	                <DiagnosticMetric label="Aceptados" value={rejectionLog.accepted || 0} />
+   247	                <DiagnosticMetric label="Sin datos" value={rejectionLog.noData || 0} />
+   248	                <DiagnosticMetric
+   249	                  label="Incompatibles"
+   250	                  value={rejectionLog.incompatible || 0}
+   251	                />
+   252	              </div>
+   253	
+   254	              <p style={diagnosticMessageStyle}>{item.message || "Sin mensaje."}</p>
+   255	
+   256	              {item.healthMetrics && (
+   257	                <div style={healthMetricsStyle}>
+   258	                  <DiagnosticMetric
+   259	                    label="Aceptación"
+   260	                    value={`${item.healthMetrics.acceptanceRate || 0}%`}
+   261	                  />
+   262	
+   263	                  <DiagnosticMetric
+   264	                    label="Rechazo"
+   265	                    value={`${item.healthMetrics.rejectionRate || 0}%`}
+   266	                  />
+   267	
+   268	                  <DiagnosticMetric
+   269	                    label="Rechazados"
+   270	                    value={item.healthMetrics.rejected || 0}
+   271	                  />
+   272	
+   273	                  <DiagnosticMetric
+   274	                    label="Filtro top"
+   275	                    value={item.healthMetrics.topBlockingFilter || "-"}
+   276	                  />
+   277	                </div>
+   278	              )}
+   279	
+   280	              {item.nearMissSummary?.total > 0 && (
+   281	                <div style={nearMissBoxStyle}>
+   282	                  <strong style={{ color: "#fde68a" }}>
+   283	                    🚨 Casi oportunidades detectadas
+   284	                  </strong>
+   285	
+   286	                  <div style={nearMissGridStyle}>
+   287	                    <DiagnosticMetric
+   288	                      label="Por presupuesto"
+   289	                      value={item.nearMissSummary.budgetNearMiss || 0}
+   290	                    />
+   291	
+   292	                    <DiagnosticMetric
+   293	                      label="Por score"
+   294	                      value={item.nearMissSummary.scoreNearMiss || 0}
+   295	                    />
+   296	
+   297	                    <DiagnosticMetric
+   298	                      label="Por km"
+   299	                      value={item.nearMissSummary.mileageNearMiss || 0}
+   300	                    />
+   301	
+   302	                    <DiagnosticMetric
+   303	                      label="Total"
+   304	                      value={item.nearMissSummary.total || 0}
+   305	                    />
+   306	                  </div>
+   307	                </div>
+   308	              )}
+   309	
+   310	              {buildRadarHealthRecommendation(item.rejectionSummary) && (
+   311	                <div style={healthRecommendationStyle}>
+   312	                  <strong style={{ color: "#bbf7d0" }}>
+   313	                    💡 Recomendación IA
+   314	                  </strong>
+   315	
+   316	                  <p style={healthRecommendationTextStyle}>
+   317	                    {buildRadarHealthRecommendation(item.rejectionSummary)}
+   318	                  </p>
+   319	                </div>
+   320	              )}
+   321	
+   322	              {item.rejectionSummary &&
+   323	                Object.keys(item.rejectionSummary).length > 0 && (
+   324	                  <div
+   325	                    style={{
+   326	                      marginTop: "12px",
+   327	                      padding: "10px",
+   328	                      borderRadius: "12px",
+   329	                      background: "rgba(59,130,246,0.10)",
+   330	                      border: "1px solid rgba(59,130,246,0.20)",
+   331	                    }}
+   332	                  >
+   333	                    <strong style={{ color: "#93c5fd" }}>
+   334	                      📊 Radar Health
+   335	                    </strong>
+   336	
+   337	                    {Object.entries(item.rejectionSummary)
+   338	                      .sort((a, b) => b[1] - a[1])
+   339	                      .map(([reason, count]) => (
+   340	                        <div
+   341	                          key={reason}
+   342	                          style={{
+   343	                            marginTop: "6px",
+   344	                            color: "#bfdbfe",
+   345	                            fontFamily: "monospace",
+   346	                            fontSize: "12px",
+   347	                          }}
+   348	                        >
+   349	                          {reason}: {count}
+   350	                        </div>
+   351	                      ))}
+   352	                  </div>
+   353	                )}
+   354	
+   355	              {Array.isArray(rejectionLog.incompatibleReasons) &&
+   356	                rejectionLog.incompatibleReasons.length > 0 && (
+   357	                  <details style={rejectionDetailsStyle}>
+   358	                    <summary style={rejectionSummaryStyle}>
+   359	                      Ver motivos individuales ({rejectionLog.incompatibleReasons.length})
+   360	                    </summary>
+   361	
+   362	                    {rejectionLog.incompatibleReasons.map((reason, idx) => (
+   363	                      <div
+   364	                        key={`${reason}-${idx}`}
+   365	                        style={{
+   366	                          marginTop: "6px",
+   367	                          color: "#fecaca",
+   368	                          fontFamily: "monospace",
+   369	                          fontSize: "12px",
+   370	                        }}
+   371	                      >
+   372	                        ↳ {reason}
+   373	                      </div>
+   374	                    ))}
+   375	                  </details>
+   376	                )}
+   377	
+   378	              {item.textSample && (
+   379	                <details style={sampleDetailsStyle}>
+   380	                  <summary style={sampleSummaryStyle}>Ver muestra Jina</summary>
+   381	                  <pre style={sampleTextStyle}>{item.textSample}</pre>
+   382	                </details>
+   383	              )}
+   384	            </div>
+   385	          );
+   386	        })}
+   387	      </div>
+   388	    </div>
+   389	  );
+   390	}
+   391	
+   392	function DiagnosticMetric({ label, value }) {
+   393	  return (
+   394	    <div style={diagnosticMetricStyle}>
+   395	      <span style={diagnosticMetricLabelStyle}>{label}</span>
+   396	      <strong style={diagnosticMetricValueStyle}>{value}</strong>
+   397	    </div>
+   398	  );
+   399	}
+   400	
+   401	function buildRadarHealthRecommendation(rejectionSummary) {
+   402	  if (!rejectionSummary || typeof rejectionSummary !== "object") {
+   403	    return "";
+   404	  }
+   405	
+   406	  const [mainReason, count] =
+   407	    Object.entries(rejectionSummary).sort((a, b) => b[1] - a[1])[0] || [];
+   408	
+   409	  if (!mainReason || !count) return "";
+   410	
+   411	  if (mainReason === "modelo_incompatible") {
+   412	    return `El filtro de modelo está bloqueando ${count} anuncios. Revisa compatibilidad y catálogo antes de tocar ranking.`;
+   413	  }
+   414	
+   415	  if (mainReason === "modelo_no_confirmado") {
+   416	    return `Hay ${count} anuncios donde el modelo no queda confirmado. El feed puede estar trayendo resultados útiles con títulos incompletos.`;
+   417	  }
+   418	
+   419	  if (mainReason === "precio_sobre_presupuesto") {
+   420	    return `El presupuesto está bloqueando ${count} anuncios. Puede convenir mostrar descartados caros o relajar el rango.`;
+   421	  }
+   422	
+   423	  if (mainReason === "km_alto") {
+   424	    return `El kilometraje está bloqueando ${count} anuncios. Revisa si el límite de km es demasiado estricto para este mercado.`;
+   425	  }
+   426	
+   427	  if (mainReason === "fuel_no_phev") {
+   428	    return `El filtro PHEV está bloqueando ${count} anuncios. Revisa detección de combustible antes de descartar oportunidades.`;
+   429	  }
+   430	
+   431	  if (mainReason === "score_bajo") {
+   432	    return `El Radar encuentra mercado, pero ${count} anuncios no alcanzan score suficiente. Revisa scoring y filtros de compatibilidad.`;
+   433	  }
+   434	
+   435	  return `Motivo dominante: ${mainReason} (${count}). Prioriza revisar ese filtro antes de añadir más motores.`;
+   436	}
+   437	
+   438	function getDiagnosticsList(realFeedDiagnostics) {
+   439	  if (Array.isArray(realFeedDiagnostics)) {
+   440	    return realFeedDiagnostics;
+   441	  }
+   442	
+   443	  if (!realFeedDiagnostics || typeof realFeedDiagnostics !== "object") {
+   444	    return [];
+   445	  }
+   446	
+   447	  return Object.values(realFeedDiagnostics).filter(
+   448	    (item) =>
+   449	      item &&
+   450	      typeof item === "object" &&
+   451	      ("source" in item || "status" in item || "parsedCount" in item)
+   452	  );
+   453	}
+   454	
+   455	function getStatusLabel(status) {
+   456	  if (status === "success") return "OK";
+   457	  if (status === "error") return "🚫 Bloqueado por la fuente";
+   458	  if (status === "no-results") return "Sin anuncios";
+   459	  return status || "Sin dato";
+   460	}
+   461	
+   462	const sectionStyle = {
+   463	  marginTop: "34px",
+   464	};
+   465	
+   466	const sectionTitleStyle = {
+   467	  fontSize: "28px",
+   468	};
+   469	
+   470	const diagnosticsPanelStyle = {
+   471	  marginBottom: "24px",
+   472	  padding: "20px",
+   473	  borderRadius: "24px",
+   474	  background: "rgba(15,23,42,0.82)",
+   475	  border: "1px solid rgba(56,189,248,0.22)",
+   476	};
+   477	
+   478	const diagnosticsTitleStyle = {
+   479	  marginTop: 0,
+   480	  marginBottom: "16px",
+   481	  fontSize: "20px",
+   482	};
+   483	
+   484	const diagnosticsGridStyle = {
+   485	  display: "grid",
+   486	  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+   487	  gap: "14px",
+   488	};
+   489	
+   490	const diagnosticCardStyle = {
+   491	  padding: "16px",
+   492	  borderRadius: "18px",
+   493	  background: "rgba(2,6,23,0.52)",
+   494	  border: "1px solid rgba(148,163,184,0.18)",
+   495	};
+   496	
+   497	const diagnosticHeaderStyle = {
+   498	  display: "flex",
+   499	  justifyContent: "space-between",
+   500	  gap: "12px",
+   501	  alignItems: "center",
+   502	};
+   503	
+   504	const diagnosticStatusStyle = {
+   505	  padding: "6px 10px",
+   506	  borderRadius: "999px",
+   507	  background: "rgba(14,165,233,0.16)",
+   508	  color: "#7dd3fc",
+   509	  fontSize: "12px",
+   510	  fontWeight: "900",
+   511	};
+   512	
+   513	const diagnosticCountryStyle = {
+   514	  color: "#cbd5e1",
+   515	  fontWeight: "800",
+   516	  margin: "8px 0 12px",
+   517	};
+   518	
+   519	const diagnosticMetricGridStyle = {
+   520	  display: "grid",
+   521	  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+   522	  gap: "8px",
+   523	};
+   524	
+   525	const diagnosticMetricStyle = {
+   526	  padding: "10px",
+   527	  borderRadius: "12px",
+   528	  background: "rgba(15,23,42,0.78)",
+   529	};
+   530	
+   531	const diagnosticMetricLabelStyle = {
+   532	  display: "block",
+   533	  color: "#94a3b8",
+   534	  fontSize: "11px",
+   535	  fontWeight: "800",
+   536	};
+   537	
+   538	const nearMissBoxStyle = {
+   539	  marginTop: "12px",
+   540	  padding: "10px",
+   541	  borderRadius: "12px",
+   542	  background: "rgba(245,158,11,0.10)",
+   543	  border: "1px solid rgba(245,158,11,0.22)",
+   544	};
+   545	
+   546	const nearMissGridStyle = {
+   547	  display: "grid",
+   548	  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+   549	  gap: "8px",
+   550	  marginTop: "10px",
+   551	};
+   552	
+   553	const healthMetricsStyle = {
+   554	  display: "grid",
+   555	  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+   556	  gap: "8px",
+   557	  marginTop: "12px",
+   558	};
+   559	
+   560	const healthRecommendationStyle = {
+   561	  marginTop: "12px",
+   562	  padding: "10px",
+   563	  borderRadius: "12px",
+   564	  background: "rgba(34,197,94,0.10)",
+   565	  border: "1px solid rgba(34,197,94,0.20)",
+   566	};
+   567	
+   568	const healthRecommendationTextStyle = {
+   569	  margin: "8px 0 0",
+   570	  color: "#dcfce7",
+   571	  fontSize: "13px",
+   572	  lineHeight: 1.5,
+   573	};
+   574	
+   575	const rejectionDetailsStyle = {
+   576	  marginTop: "12px",
+   577	  padding: "10px",
+   578	  borderRadius: "12px",
+   579	  background: "rgba(239,68,68,0.10)",
+   580	  border: "1px solid rgba(239,68,68,0.20)",
+   581	};
+   582	
+   583	const rejectionSummaryStyle = {
+   584	  color: "#fecaca",
+   585	  cursor: "pointer",
+   586	  fontWeight: "900",
+   587	};
+   588	
+   589	const diagnosticMetricValueStyle = {
+   590	  display: "block",
+   591	  marginTop: "4px",
+   592	  color: "white",
+   593	};
+   594	
+   595	const diagnosticMessageStyle = {
+   596	  color: "#e0f2fe",
+   597	  fontSize: "13px",
+   598	  lineHeight: "1.45",
+   599	  marginBottom: 0,
+   600	};
+   601	
+   602	const sampleDetailsStyle = {
+   603	  marginTop: "12px",
+   604	};
+   605	
+   606	const sampleSummaryStyle = {
+   607	  cursor: "pointer",
+   608	  color: "#93c5fd",
+   609	  fontWeight: "900",
+   610	  fontSize: "13px",
+   611	};
+   612	
+   613	const sampleTextStyle = {
+   614	  marginTop: "10px",
+   615	  maxHeight: "220px",
+   616	  overflow: "auto",
+   617	  whiteSpace: "pre-wrap",
+   618	  fontSize: "11px",
+   619	  lineHeight: "1.45",
+   620	  color: "#cbd5e1",
+   621	  background: "rgba(0,0,0,0.28)",
+   622	  padding: "12px",
+   623	  borderRadius: "12px",
+   624	};
+   625	
+   626	const emptyFeedStyle = {
+   627	  marginBottom: "20px",
+   628	  padding: "16px 18px",
+   629	  borderRadius: "18px",
+   630	  background: "rgba(245,158,11,0.12)",
+   631	  border: "1px solid rgba(245,158,11,0.24)",
+   632	  color: "#fde68a",
+   633	  fontWeight: "850",
+   634	  lineHeight: "1.5",
+   635	};
+   636	
+   637	const feedGridStyle = {
+   638	  display: "grid",
+   639	  gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))",
+   640	  gap: "18px",
+   641	};
+   642	
+   643	const feedCardStyle = {
+   644	  background: "rgba(15,23,42,0.82)",
+   645	  borderRadius: "24px",
+   646	  padding: "24px",
+   647	  transition: "0.25s ease",
+   648	};
+   649	
+   650	const topOpportunityStyle = {
+   651	  marginBottom: "14px",
+   652	  padding: "10px",
+   653	  borderRadius: "12px",
+   654	  textAlign: "center",
+   655	  fontWeight: "900",
+   656	  background: "rgba(250,204,21,0.20)",
+   657	  color: "#fde68a",
+   658	};
+   659	
+   660	const opportunityBoxStyle = {
+   661	  marginTop: "16px",
+   662	  padding: "16px",
+   663	  borderRadius: "18px",
+   664	  background: "rgba(168,85,247,0.10)",
+   665	  border: "1px solid rgba(168,85,247,0.22)",
+   666	};
+   667	
+   668	const opportunityHeaderStyle = {
+   669	  marginBottom: "12px",
+   670	  fontWeight: "900",
+   671	};
+   672	
+   673	const feedSourceStyle = {
+   674	  color: "#86efac",
+   675	  fontWeight: "900",
+   676	};
+   677	
+   678	const feedTitleStyle = {
+   679	  fontSize: "22px",
+   680	};
+   681	
+   682	const feedPriceStyle = {
+   683	  fontSize: "34px",
+   684	  fontWeight: "900",
+   685	};
+   686	
+   687	const feedMetaStyle = {
+   688	  color: "#cbd5e1",
+   689	};
+   690	
+   691	const identityQualityStyle = {
+   692	  marginTop: "6px",
+   693	  marginBottom: "0",
+   694	  color: "#fbbf24",
+   695	  fontSize: "13px",
+   696	  fontWeight: "800",
+   697	};
+   698	
+   699	const originalListingLinkStyle = {
+   700	  display: "inline-block",
+   701	  marginTop: "10px",
+   702	  padding: "10px 14px",
+   703	  borderRadius: "999px",
+   704	  background: "rgba(56,189,248,0.14)",
+   705	  border: "1px solid rgba(56,189,248,0.35)",
+   706	  color: "#67e8f9",
+   707	  fontWeight: "900",
+   708	  textDecoration: "none",
+   709	};
+   710	
+   711	const feedMetricsStyle = {
+   712	  display: "grid",
+   713	  gridTemplateColumns: "1fr 1fr 1fr",
+   714	  gap: "12px",
+   715	  marginTop: "20px",
+   716	};
+   717	
+   718	const decisionStyle = {
+   719	  marginTop: "20px",
+   720	  padding: "14px",
+   721	  borderRadius: "16px",
+   722	  background: "rgba(34,197,94,0.12)",
+   723	  color: "#86efac",
+   724	  fontWeight: "900",
+   725	  textAlign: "center",
+   726	};
+   727	
+   728	const marketBoxStyle = {
+   729	  marginTop: "20px",
+   730	  padding: "18px",
+   731	  borderRadius: "20px",
+   732	  background: "rgba(59,130,246,0.10)",
+   733	  border: "1px solid rgba(59,130,246,0.20)",
+   734	};
+   735	
+   736	const memoryBoxStyle = {
+   737	  marginTop: "16px",
+   738	  padding: "18px",
+   739	  borderRadius: "20px",
+   740	  background: "rgba(34,197,94,0.09)",
+   741	  border: "1px solid rgba(34,197,94,0.18)",
+   742	};
+   743	
+   744	const liquidityBoxStyle = {
+   745	  marginTop: "18px",
+   746	  padding: "18px",
+   747	  borderRadius: "20px",
+   748	  background: "rgba(20,184,166,0.10)",
+   749	  border: "1px solid rgba(20,184,166,0.22)",
+   750	};
+   751	
+   752	const riskBoxStyle = {
+   753	  marginTop: "18px",
+   754	  padding: "18px",
+   755	  borderRadius: "20px",
+   756	  background: "rgba(245,158,11,0.10)",
+   757	  border: "1px solid rgba(245,158,11,0.22)",
+   758	};
+   759	
+   760	const miniTitleStyle = {
+   761	  marginTop: 0,
+   762	  marginBottom: "14px",
+   763	  fontSize: "15px",
+   764	};
+   765	
+   766	const marketGridStyle = {
+   767	  display: "grid",
+   768	  gridTemplateColumns: "1fr 1fr",
+   769	  gap: "10px",
+   770	};
+   771	
+   772	const marketInsightStyle = {
+   773	  marginBottom: 0,
+   774	  color: "#e5e7eb",
+   775	  lineHeight: "1.55",
+   776	  fontSize: "14px",
+   777	};

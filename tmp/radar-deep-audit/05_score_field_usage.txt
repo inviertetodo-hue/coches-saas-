@@ -1,0 +1,950 @@
+===== SCORE FIELD USAGE MAP =====
+src/components/opportunities/OpportunityCard.jsx:24:  const confidenceScore = getNumber(
+src/components/opportunities/OpportunityCard.jsx:26:      opportunity.confidenceScore ??
+src/components/opportunities/OpportunityCard.jsx:27:      opportunity.comparableConfidence ??
+src/components/opportunities/OpportunityCard.jsx:31:  const executiveBuySignalScore = getNumber(opportunity.executiveBuySignalScore);
+src/components/opportunities/OpportunityCard.jsx:68:        <span style={confidenceStyle}>Confianza {confidenceScore || 0}%</span>
+src/components/opportunities/OpportunityCard.jsx:88:            executiveBuySignalScore
+src/components/opportunities/OpportunityDetail.jsx:38:  const confidenceScore = getNumber(
+src/components/opportunities/OpportunityDetail.jsx:40:      opportunity.confidenceScore ??
+src/components/opportunities/OpportunityDetail.jsx:41:      opportunity.comparableConfidence ??
+src/components/opportunities/OpportunityDetail.jsx:80:          <strong style={confidenceValueStyle}>{confidenceScore || 0}%</strong>
+src/components/opportunities/OpportunityDetail.jsx:154:            value={`${formatNumber(sellSpeed.sellSpeedScore)}/100`}
+src/components/opportunities/OpportunityDetail.jsx:183:            value={`${decision.decisionScore || 0}/100`}
+src/components/dashboard/CarAnalysisCard.jsx:156:  const finalScore = Math.max(0, score);
+src/components/dashboard/CarAnalysisCard.jsx:158:  if (finalScore >= 85) {
+src/components/dashboard/CarAnalysisCard.jsx:161:      score: finalScore,
+src/components/dashboard/CarAnalysisCard.jsx:166:  if (finalScore >= 60) {
+src/components/dashboard/CarAnalysisCard.jsx:169:      score: finalScore,
+src/components/dashboard/CarAnalysisCard.jsx:176:    score: finalScore,
+src/components/dashboard/OpportunityRankingPanel.jsx:10:  const bestSuccessProbability = topOpportunities[0]?.successProbability || 0;
+src/components/dashboard/OpportunityRankingPanel.jsx:11:  const bestAllocationScore = topOpportunities[0]?.allocationScore || 0;
+src/components/dashboard/OpportunityRankingPanel.jsx:130:  const successProbability = Number(item.successProbability || 0);
+src/components/dashboard/OpportunityRankingPanel.jsx:137:  const allocationScore = Number(item.allocationScore || 0);
+src/components/dashboard/OpportunityRankingPanel.jsx:141:  const marketTimingScore = Number(item.marketTimingScore || 0);
+src/components/dashboard/OpportunityRankingPanel.jsx:144:  const capitalEfficiencyScore = Number(item.capitalEfficiencyScore || 0);
+src/components/dashboard/OpportunityRankingPanel.jsx:152:    successProbability,
+src/components/dashboard/OpportunityRankingPanel.jsx:154:    allocationScore,
+src/components/dashboard/OpportunityRankingPanel.jsx:176:              value={`${allocationScore}/100`}
+src/components/dashboard/OpportunityRankingPanel.jsx:181:              value={`${marketTimingScore}/100`}
+src/components/dashboard/OpportunityRankingPanel.jsx:186:              value={`${capitalEfficiencyScore}/100`}
+src/components/dashboard/OpportunityRankingPanel.jsx:197:          <MiniMetric label="Success" value={`${successProbability}/100`} />
+src/components/dashboard/OpportunityRankingPanel.jsx:209:              width: `${Math.min(Math.max(allocationScore, 0), 100)}%`,
+src/components/dashboard/OpportunityRankingPanel.jsx:275:            successProbability,
+src/components/dashboard/OpportunityRankingPanel.jsx:280:            allocationScore,
+src/components/dashboard/OpportunityRankingPanel.jsx:314:  successProbability,
+src/components/dashboard/OpportunityRankingPanel.jsx:316:  allocationScore,
+src/components/dashboard/OpportunityRankingPanel.jsx:321:    allocationScore >= 85 ||
+src/components/dashboard/OpportunityRankingPanel.jsx:323:    (successProbability >= 85 && executiveScore >= 80 && profit >= 2500)
+src/components/dashboard/OpportunityRankingPanel.jsx:330:    allocationScore >= 70 ||
+src/components/dashboard/OpportunityRankingPanel.jsx:332:    (successProbability >= 72 && executiveScore >= 70)
+src/components/dashboard/OpportunityRankingPanel.jsx:339:    allocationScore >= 55 ||
+src/components/dashboard/OpportunityRankingPanel.jsx:342:    successProbability >= 58
+src/components/dashboard/OpportunityRankingPanel.jsx:358:  successProbability,
+src/components/dashboard/OpportunityRankingPanel.jsx:363:  allocationScore,
+src/components/dashboard/OpportunityRankingPanel.jsx:372:  if (allocationTier === "TIER_1" || allocationScore >= 85) {
+src/components/dashboard/OpportunityRankingPanel.jsx:373:    return `Prioridad máxima de capital: allocation score ${allocationScore}/100, tier ${allocationTier}, timing ${marketTimingLabel}, probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €.${learningText}`;
+src/components/dashboard/OpportunityRankingPanel.jsx:376:  if (allocationTier === "TIER_2" || allocationScore >= 70) {
+src/components/dashboard/OpportunityRankingPanel.jsx:377:    return `Buena asignación potencial: allocation score ${allocationScore}/100, tier ${allocationTier}, probabilidad de éxito ${successProbability}/100, ROI ${roi}% y beneficio estimado de ${profit} €.${learningText}`;
+src/components/dashboard/OpportunityRankingPanel.jsx:380:  if (buySignal === "FUERTE" || successProbability >= 85) {
+src/components/dashboard/OpportunityRankingPanel.jsx:381:    return `Señal fuerte: probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €. Executive score ${executiveScore}, score IA ${score}, confianza histórica ${historicalConfidence}.${learningText}`;
+src/components/dashboard/OpportunityRankingPanel.jsx:384:  if (buySignal === "INTERESANTE" || successProbability >= 72) {
+src/components/dashboard/OpportunityRankingPanel.jsx:385:    return `Oportunidad interesante: probabilidad de éxito ${successProbability}/100, prioridad ${priorityScore}, ROI ${roi}% y beneficio estimado de ${profit} €.${learningText}`;
+src/components/dashboard/OpportunityRankingPanel.jsx:388:  if (score >= 65 || executiveScore >= 65 || successProbability >= 58) {
+src/components/dashboard/OpportunityRankingPanel.jsx:397:    return item.allocationTier === "TIER_1" || Number(item.allocationScore || 0) >= 85;
+src/components/dashboard/OpportunityRankingPanel.jsx:401:    return item.allocationTier === "TIER_2" || Number(item.allocationScore || 0) >= 70;
+src/components/dashboard/PortfolioSimulatorPanel.jsx:91:  const allocationScore = Number(item.allocationScore || 0);
+src/components/dashboard/PortfolioSimulatorPanel.jsx:99:  const capitalEfficiencyScore = Number(item.capitalEfficiencyScore || 0);
+src/components/dashboard/PortfolioSimulatorPanel.jsx:113:        <MiniMetric label="Allocation" value={`${allocationScore}/100`} />
+src/components/dashboard/PortfolioSimulatorPanel.jsx:122:          value={`${capitalEfficiencyScore}/100`}
+src/components/dashboard/DealDecisionPanel.jsx:31:          value={`${decisions?.decisionScore || 0}/100`}
+src/components/dashboard/DealDecisionPanel.jsx:149:          value={`${item.decisionScore || 0}/100`}
+src/components/dashboard/MarketIntelligencePanel.jsx:115:          <p style={opportunityTextStyle}>Decision Score {item.decisionScore || 0}/100</p>
+src/components/dashboard/MarketIntelligencePanel.jsx:116:          <p style={opportunityTextStyle}>Allocation {item.allocationScore || 0}/100</p>
+src/components/dashboard/MarketIntelligencePanel.jsx:118:            Executive {item.executiveBuySignalScore || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:121:            Market Timing {item.marketTimingScore || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:124:            Capital Efficiency {item.capitalEfficiencyScore || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:130:            Success {item.successProbability || 0}/100
+src/components/dashboard/GlobalStatsPanel.jsx:56:          value={`${confidence?.confidenceScore || 0}/100`}
+src/components/dashboard/OpportunityRadarPanel.jsx:15:    (item) => Number(item.sellSpeedScore || 0) >= 80
+src/components/dashboard/OpportunityRadarPanel.jsx:105:  const decisionScore = Number(item.decisionScore || 0);
+src/components/dashboard/OpportunityRadarPanel.jsx:110:  const sellSpeedScore = Number(item.sellSpeedScore || 0);
+src/components/dashboard/OpportunityRadarPanel.jsx:131:        <MiniMetric label="Decision" value={`${decisionScore}/100`} />
+src/components/dashboard/OpportunityRadarPanel.jsx:135:        <MiniMetric label="Sell Speed" value={`${sellSpeedScore}/100`} />
+src/components/dashboard/OpportunityRadarPanel.jsx:146:            width: `${Math.min(Math.max(radarPriority || decisionScore || score, 0), 100)}%`,
+src/components/dashboard/OpportunityRadarPanel.jsx:209:        text: `BUY confirmado con Decision Score ${item.decisionScore || 0}/100.`,
+src/components/dashboard/OpportunityRadarPanel.jsx:213:    if (Number(item.sellSpeedScore || 0) >= 80) {
+src/components/dashboard/OpportunityRadarPanel.jsx:218:        text: `Alta rotación prevista. Sell Speed ${item.sellSpeedScore}/100.`,
+src/components/dashboard/OpportunityRadarPanel.jsx:265:    return `BUY confirmado. Prioridad ${item.radarPriority || 0}/100 y Decision Score ${item.decisionScore || 0}/100.`;
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:133:  const decisionScore =
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:135:      decision.decisionScore ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:136:        opportunity.scoreV2 ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:137:        opportunity.opportunityScoreV2 ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:142:  const sellSpeedScore =
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:143:    Number(sellSpeed.sellSpeedScore || item.sellSpeedScore || 0) || 0;
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:155:    decisionScore,
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:156:    radarPriority: decisionScore,
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:157:    discoveryLevel: action === "BUY" && decisionScore >= 85 ? "DISCOVER_NOW" : "OBSERVE",
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:158:    sellSpeedScore,
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:199:          decision.confidenceScore ??
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:236:  const executiveBuySignalScore = Number(item.executiveBuySignalScore || 0);
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:241:  const scoreV2 =
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:242:    opportunity.scoreV2 ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:243:    opportunity.opportunityScoreV2 ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:244:    decision.decisionScore ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:245:    opportunity.opportunityScore ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:295:            Ejecutiva {executiveBuySignalLabel} {formatNumber(executiveBuySignalScore)}/100
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:319:        <span style={scoreStyle}>{scoreV2}/100</span>
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:324:            {formatNumber(sellSpeed.sellSpeedScore)}/100
+src/components/scanner/MarketFeedSection.jsx:84:                  value={`${item.opportunityScore || 0}/100`}
+src/components/scanner/MarketFeedSection.jsx:97:                value={`${item.finalDecision?.finalScore || 0}/100`}
+src/components/scanner/ScannerResultsSection.jsx:52:        const finalScore = Number(item.finalDecision?.finalScore || 0);
+src/components/scanner/ScannerResultsSection.jsx:58:          finalScore >= 70 &&
+src/components/scanner/ScannerResultsSection.jsx:117:          {candidate.title} · Score {candidate.finalDecision?.finalScore || 0}/100 · ROI {candidate.netRoi}% · Match {candidate.semanticScore || 0}/100
+src/components/scanner/BestOpportunityCard.jsx:26:          value={`${best.finalDecision?.finalScore || 0}/100`}
+src/components/scanner/BestDealCard.jsx:19:          value={`${best.finalDecision.finalScore}/100`}
+src/hooks/useEnrichedMarketFeed.js:109:        const legacyOpportunityScore = Number(item.opportunityScore || 0);
+src/hooks/useEnrichedMarketFeed.js:121:          opportunityScore: legacyOpportunityScore,
+src/hooks/useEnrichedMarketFeed.js:137:          opportunityScore: legacyOpportunityScore,
+src/hooks/useEnrichedMarketFeed.js:165:          const opportunityScore =
+src/hooks/useEnrichedMarketFeed.js:166:            modern.opportunity?.scoreV3 ||
+src/hooks/useEnrichedMarketFeed.js:167:            modern.opportunity?.scoreV2 ||
+src/hooks/useEnrichedMarketFeed.js:168:            modern.opportunity?.opportunityScoreV2 ||
+src/hooks/useEnrichedMarketFeed.js:169:            item.opportunityScore ||
+src/hooks/useEnrichedMarketFeed.js:178:          const decisionScore =
+src/hooks/useEnrichedMarketFeed.js:179:            modern.decision?.decisionScore ||
+src/hooks/useEnrichedMarketFeed.js:180:            opportunityScore ||
+src/hooks/useEnrichedMarketFeed.js:181:            item.finalDecision?.finalScore ||
+src/hooks/useEnrichedMarketFeed.js:187:            opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:191:              opportunityScoreV3: modern.opportunity?.scoreV3 || 0,
+src/hooks/useEnrichedMarketFeed.js:193:              opportunityScoreV2: opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:195:              decisionScore,
+src/hooks/useEnrichedMarketFeed.js:198:              valuationScore: modern.valuation?.valuationScore || 0,
+src/hooks/useEnrichedMarketFeed.js:201:              executiveBuySignalScore: modern.executiveBuySignalScore || 0,
+src/hooks/useEnrichedMarketFeed.js:202:              marketTimingScore: modern.marketTimingScore || 0,
+src/hooks/useEnrichedMarketFeed.js:203:              capitalEfficiencyScore: modern.capitalEfficiencyScore || 0,
+src/hooks/useEnrichedMarketFeed.js:205:              successProbability: modern.successProbability || 0,
+src/hooks/useEnrichedMarketFeed.js:210:              opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:212:              decisionScore,
+src/hooks/useEnrichedMarketFeed.js:221:        .sort((a, b) => b.finalDecision.finalScore - a.finalDecision.finalScore);
+src/hooks/useEnrichedMarketFeed.js:234:        opportunityScore: item.opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:260:          bestScore: opportunityEnginePreview[0]?.opportunityScore || 0,
+src/hooks/useEnrichedMarketFeed.js:298:  opportunityScore = 0,
+src/hooks/useEnrichedMarketFeed.js:300:  decisionScore = 0,
+src/hooks/useEnrichedMarketFeed.js:309:  const finalScore = Number(decisionScore || opportunityScore || 0);
+src/hooks/useEnrichedMarketFeed.js:313:    finalScore,
+src/hooks/useEnrichedMarketFeed.js:318:      finalScore,
+src/hooks/useEnrichedMarketFeed.js:319:      opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:330:      finalScore,
+src/hooks/useEnrichedMarketFeed.js:343:  finalScore,
+src/hooks/useEnrichedMarketFeed.js:344:  opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:361:    `Decision Score: ${Number(finalScore || 0)}/100.`,
+src/hooks/useEnrichedMarketFeed.js:362:    `Opportunity Score V2: ${Number(opportunityScore || 0)}/100 (${opportunityLevel}).`,
+src/hooks/useEnrichedMarketFeed.js:372:  finalScore,
+src/hooks/useEnrichedMarketFeed.js:378:  return `${label}: score ${Number(finalScore || 0)}/100, margen ${formatRuntimeMoney(
+src/hooks/useEnrichedMarketFeed.js:550:    const finalScore = Number(item.finalDecision?.finalScore || 0);
+src/hooks/useEnrichedMarketFeed.js:556:      finalScore >= 70 &&
+src/services/watchlistEngine.js:17:      const decisionScore = Number(item.decision?.decisionScore || item.decisionScore || 0);
+src/services/watchlistEngine.js:19:        item.opportunity?.scoreV2 ??
+src/services/watchlistEngine.js:20:          item.opportunity?.opportunityScoreV2 ??
+src/services/watchlistEngine.js:36:      const sellSpeedScore = Number(
+src/services/watchlistEngine.js:37:        item.sellSpeed?.sellSpeedScore ??
+src/services/watchlistEngine.js:38:          item.sellSpeedScore ??
+src/services/watchlistEngine.js:60:        decisionScore,
+src/services/watchlistEngine.js:64:        sellSpeedScore,
+src/services/watchlistEngine.js:99:        decisionScore,
+src/services/watchlistEngine.js:103:        sellSpeedScore,
+src/services/watchlistEngine.js:128:          decisionScore,
+src/services/watchlistEngine.js:132:          sellSpeedScore,
+src/services/watchlistEngine.js:161:  decisionScore,
+src/services/watchlistEngine.js:165:  sellSpeedScore,
+src/services/watchlistEngine.js:170:    decisionScore * 0.35 +
+src/services/watchlistEngine.js:173:    sellSpeedScore * 0.1;
+src/services/watchlistEngine.js:351:  decisionScore,
+src/services/watchlistEngine.js:355:  sellSpeedScore,
+src/services/watchlistEngine.js:360:    return `BUY en seguimiento: Decision Score ${decisionScore}/100, Opportunity Score ${score}/100, confianza ${confidence}/100, ROI ${roi}% y beneficio estimado de ${profit} €.`;
+src/services/watchlistEngine.js:363:  return `WATCH en seguimiento: Decision Score ${decisionScore}/100, confianza ${confidence}/100, ${comparableCount} comparable(s), Sell Speed ${sellSpeedScore}/100 y ROI ${roi}%.`;
+src/services/intelligence/executiveOpportunityReportEngine.js:50:    `La mejor opción es ${buildVehicleName(best)} con Opportunity Score ${best.opportunityScore}/100.`,
+src/services/intelligence/executiveOpportunityReportEngine.js:64:  if (best.opportunityScore >= 85) {
+src/services/intelligence/executiveOpportunityReportEngine.js:66:  } else if (best.opportunityScore >= 70) {
+src/services/intelligence/executiveOpportunityReportEngine.js:82:  if (normalizeNumber(best.comparableConfidence) >= 75) {
+src/services/intelligence/executiveOpportunityReportEngine.js:110:  if (normalizeNumber(best.comparableConfidence) < 70) {
+src/services/intelligence/executiveOpportunityReportEngine.js:134:  const comparableConfidence = normalizeNumber(best.comparableConfidence);
+src/services/intelligence/executiveOpportunityReportEngine.js:137:  const score = Math.round((quality + comparableConfidence + matchScore) / 3);
+src/services/intelligence/executiveOpportunityReportEngine.js:174:  if (best.opportunityScore >= 85) {
+src/services/intelligence/executiveOpportunityReportEngine.js:183:  if (best.opportunityScore >= 70) {
+src/services/intelligence/marketValuationEngine.js:27:  const valuationScore = calculateValuationScore({
+src/services/intelligence/marketValuationEngine.js:42:    valuationScore,
+src/services/intelligence/marketValuationEngine.js:43:    valuationLabel: buildValuationLabel(valuationScore),
+src/services/intelligence/intelligenceEngine.js:99:    score: safeNumber(item.score ?? opportunity.scoreV2),
+src/services/intelligence/intelligenceEngine.js:103:    decisionScore: safeNumber(
+src/services/intelligence/intelligenceEngine.js:104:      item.decisionScore ?? decision.decisionScore ?? opportunity.scoreV2
+src/services/intelligence/intelligenceEngine.js:106:    allocationScore: safeNumber(item.allocationScore),
+src/services/intelligence/intelligenceEngine.js:107:    executiveBuySignalScore: safeNumber(item.executiveBuySignalScore),
+src/services/intelligence/intelligenceEngine.js:108:    marketTimingScore: safeNumber(item.marketTimingScore),
+src/services/intelligence/intelligenceEngine.js:109:    capitalEfficiencyScore: safeNumber(item.capitalEfficiencyScore),
+src/services/intelligence/intelligenceEngine.js:111:    successProbability: safeNumber(item.successProbability),
+src/services/intelligence/intelligenceEngine.js:112:    sellSpeedScore: safeNumber(item.sellSpeedScore ?? item.sellSpeed?.sellSpeedScore),
+src/services/intelligence/intelligenceEngine.js:113:    inventoryRiskScore: safeNumber(item.inventoryRiskScore),
+src/services/intelligence/intelligenceEngine.js:155:    item.allocationScore,
+src/services/intelligence/intelligenceEngine.js:156:    item.executiveBuySignalScore,
+src/services/intelligence/intelligenceEngine.js:157:    item.marketTimingScore,
+src/services/intelligence/intelligenceEngine.js:158:    item.capitalEfficiencyScore,
+src/services/intelligence/intelligenceEngine.js:160:    item.successProbability,
+src/services/intelligence/intelligenceEngine.js:161:    item.decisionScore,
+src/services/intelligence/intelligenceEngine.js:171:    safeNumber(item.allocationScore) * 0.25 +
+src/services/intelligence/intelligenceEngine.js:172:      safeNumber(item.executiveBuySignalScore) * 0.20 +
+src/services/intelligence/intelligenceEngine.js:173:      safeNumber(item.marketTimingScore) * 0.16 +
+src/services/intelligence/intelligenceEngine.js:174:      safeNumber(item.capitalEfficiencyScore) * 0.16 +
+src/services/intelligence/intelligenceEngine.js:176:      safeNumber(item.successProbability) * 0.08 +
+src/services/intelligence/intelligenceEngine.js:177:      safeNumber(item.decisionScore) * 0.05
+src/services/intelligence/intelligenceEngine.js:323:  group.totalAllocationScore += safeNumber(item.allocationScore);
+src/services/intelligence/intelligenceEngine.js:324:  group.totalExecutiveScore += safeNumber(item.executiveBuySignalScore);
+src/services/intelligence/intelligenceEngine.js:325:  group.totalMarketTimingScore += safeNumber(item.marketTimingScore);
+src/services/intelligence/intelligenceEngine.js:326:  group.totalCapitalEfficiencyScore += safeNumber(item.capitalEfficiencyScore);
+src/services/intelligence/intelligenceEngine.js:328:  group.totalSuccessProbability += safeNumber(item.successProbability);
+src/services/intelligence/intelligenceEngine.js:329:  group.totalDecisionScore += safeNumber(item.decisionScore);
+src/services/intelligence/intelligenceEngine.js:392:      item.allocationScore >= 65 &&
+src/services/intelligence/intelligenceEngine.js:393:      item.executiveBuySignalScore >= 55 &&
+src/services/intelligence/intelligenceEngine.js:394:      item.marketTimingScore >= 60
+src/services/intelligence/intelligenceEngine.js:401:      item.allocationScore < 40 ||
+src/services/intelligence/intelligenceEngine.js:402:      item.marketTimingScore < 45 ||
+src/services/intelligence/intelligenceEngine.js:403:      item.successProbability < 25
+src/services/intelligence/intelligenceEngine.js:422:    bestOpportunity.allocationScore >= 65 &&
+src/services/intelligence/intelligenceEngine.js:423:    bestOpportunity.executiveBuySignalScore >= 55 &&
+src/services/intelligence/intelligenceEngine.js:426:    return `Priorizar compra: ${bestOpportunity.title}. Modern Score ${modernScore}/100, allocation ${bestOpportunity.allocationScore}/100, señal ejecutiva ${bestOpportunity.executiveBuySignalScore}/100 y beneficio estimado de ${bestOpportunity.profit} €.`;
+src/services/intelligence/intelligenceEngine.js:467:  if (bestDeal.allocationScore >= 70 && bestDeal.executiveBuySignalScore >= 60) {
+src/services/intelligence/intelligenceEngine.js:504:  const averageAllocationScore = calculateAverage(items, "allocationScore");
+src/services/intelligence/intelligenceEngine.js:505:  const averageExecutiveScore = calculateAverage(items, "executiveBuySignalScore");
+src/services/intelligence/intelligenceEngine.js:506:  const averageMarketTimingScore = calculateAverage(items, "marketTimingScore");
+src/services/intelligence/intelligenceEngine.js:509:    "capitalEfficiencyScore"
+src/services/intelligence/intelligenceEngine.js:515:  const averageSuccessProbability = calculateAverage(items, "successProbability");
+src/services/intelligence/memoryAnalyticsEngine.js:26:  const confidenceScores = validRecords.map((item) =>
+src/services/intelligence/memoryAnalyticsEngine.js:82:    avgConfidenceScore: Math.round(calculateAverage(confidenceScores)),
+src/services/intelligence/memoryAnalyticsEngine.js:90:      avgConfidenceScore: calculateAverage(confidenceScores),
+src/services/intelligence/vehicleValuationEngine.js:265:  const confidence = toNumber(record.comparableConfidence);
+src/services/intelligence/vehicleValuationEngine.js:294:          (sum, item) => sum + toNumber(item.comparableConfidence),
+src/services/intelligence/opportunityPredictorEngine.js:16:      successProbability: 0,
+src/services/intelligence/opportunityPredictorEngine.js:18:      confidenceScore: 0,
+src/services/intelligence/opportunityPredictorEngine.js:26:  const confidenceScore = safeNumber(match.confidenceScore);
+src/services/intelligence/opportunityPredictorEngine.js:28:  const successProbability = clamp(
+src/services/intelligence/opportunityPredictorEngine.js:32:        confidenceScore * 0.28 +
+src/services/intelligence/opportunityPredictorEngine.js:50:      confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:55:      confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:57:    successProbability,
+src/services/intelligence/opportunityPredictorEngine.js:59:    confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:65:      successProbability,
+src/services/intelligence/opportunityPredictorEngine.js:106:  confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:108:  if (confidenceScore < 50) return "Desconocido";
+src/services/intelligence/opportunityPredictorEngine.js:119:  confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:121:  if (confidenceScore < 50) return "Sin confirmar";
+src/services/intelligence/opportunityPredictorEngine.js:132:  successProbability,
+src/services/intelligence/opportunityPredictorEngine.js:139:    `Probabilidad estimada de éxito: ${successProbability}/100.`,
+src/services/intelligence/persistencePolicyEngine.js:161:    comparableConfidence:
+src/services/intelligence/persistencePolicyEngine.js:162:      record.comparableConfidence ||
+src/services/intelligence/historicalConfidence.js:46:    Number(decision.decisionScore || 0) + confidence.confidenceBonus
+src/services/intelligence/historicalConfidence.js:51:    decisionScore: adjustedDecisionScore,
+src/services/intelligence/comparableVehiclesEngine.js:181:  const confidence = toNumber(record.comparableConfidence);
+src/services/intelligence/opportunityChampionEngine.js:3:    ? decisions.decisions.filter((item) => item && Number.isFinite(Number(item.decisionScore)))
+src/services/intelligence/opportunityChampionEngine.js:40:  const decisionScore = safeNumber(item.decisionScore);
+src/services/intelligence/opportunityChampionEngine.js:47:    decisionScore,
+src/services/intelligence/opportunityChampionEngine.js:59:    decisionScore,
+src/services/intelligence/opportunityChampionEngine.js:76:  decisionScore,
+src/services/intelligence/opportunityChampionEngine.js:87:  value += Math.min(decisionScore, 100) * 0.25;
+src/services/intelligence/opportunityChampionEngine.js:111:  decisionScore,
+src/services/intelligence/opportunityChampionEngine.js:141:  if (decisionScore >= 80) {
+src/services/intelligence/opportunityChampionEngine.js:142:    reasons.push(`Decision Score fuerte: ${decisionScore}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:1:import { buildOpportunityScore } from "./opportunityScoreEngine";
+src/services/intelligence/opportunityDecisionEngine.js:16:  const opportunityScoreV2 = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:17:    opportunity.scoreV2 ??
+src/services/intelligence/opportunityDecisionEngine.js:18:      opportunity.opportunityScoreV2 ??
+src/services/intelligence/opportunityDecisionEngine.js:19:      opportunity.opportunityScore
+src/services/intelligence/opportunityDecisionEngine.js:22:  const valuationScore = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:23:    vehicle.valuation?.valuationScore ?? marketValuation.valuationScore
+src/services/intelligence/opportunityDecisionEngine.js:27:  const comparableConfidence = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:28:    vehicleValuation?.confidence ?? vehicle.comparableConfidence
+src/services/intelligence/opportunityDecisionEngine.js:37:  const sellSpeedScore = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:38:    sellSpeed?.sellSpeedScore ?? vehicle.sellSpeedScore
+src/services/intelligence/opportunityDecisionEngine.js:49:  const executiveBuySignalScore = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:50:    vehicle.executiveBuySignalScore ??
+src/services/intelligence/opportunityDecisionEngine.js:51:      vehicle.executiveBuySignal?.finalScore
+src/services/intelligence/opportunityDecisionEngine.js:62:  const marketTimingScore = normalizeNumber(vehicle.marketTimingScore);
+src/services/intelligence/opportunityDecisionEngine.js:65:  const capitalEfficiencyScore = normalizeNumber(vehicle.capitalEfficiencyScore);
+src/services/intelligence/opportunityDecisionEngine.js:68:  const inventoryRiskScore = normalizeNumber(vehicle.inventoryRiskScore);
+src/services/intelligence/opportunityDecisionEngine.js:71:  const allocationScore = normalizeNumber(vehicle.allocationScore);
+src/services/intelligence/opportunityDecisionEngine.js:74:  const successProbability = normalizeNumber(vehicle.successProbability);
+src/services/intelligence/opportunityDecisionEngine.js:76:  const decisionScore = calculateDecisionScoreV2({
+src/services/intelligence/opportunityDecisionEngine.js:77:    opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:78:    valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:80:    comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:82:    sellSpeedScore,
+src/services/intelligence/opportunityDecisionEngine.js:86:    executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:88:    marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:89:    capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:90:    inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:91:    allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:92:    successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:96:    decisionScore,
+src/services/intelligence/opportunityDecisionEngine.js:97:    opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:99:    comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:103:    executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:107:    marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:109:    capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:110:    inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:112:    allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:114:    successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:120:    decisionScore,
+src/services/intelligence/opportunityDecisionEngine.js:123:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:124:      opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:125:      valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:127:      executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:129:      marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:130:      capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:134:      opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:135:      valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:137:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:142:      sellSpeedScore,
+src/services/intelligence/opportunityDecisionEngine.js:146:      executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:150:      marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:152:      capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:154:      inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:156:      allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:158:      successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:162:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:167:      sellSpeedScore,
+src/services/intelligence/opportunityDecisionEngine.js:168:      executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:170:      marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:171:      inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:172:      allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:179:    executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:183:    marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:185:    capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:187:    inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:189:    allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:191:    successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:194:      decisionScore,
+src/services/intelligence/opportunityDecisionEngine.js:195:      opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:196:      valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:201:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:203:      executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:207:      marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:209:      capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:210:      inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:211:      allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:213:      successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:228:  opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:229:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:231:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:233:  sellSpeedScore,
+src/services/intelligence/opportunityDecisionEngine.js:237:  executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:239:  marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:240:  capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:241:  inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:242:  allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:243:  successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:245:  let score = opportunityScoreV2 || 0;
+src/services/intelligence/opportunityDecisionEngine.js:249:      valuationScore * 0.30 +
+src/services/intelligence/opportunityDecisionEngine.js:251:        comparableConfidence * 0.22 +
+src/services/intelligence/opportunityDecisionEngine.js:252:        sellSpeedScore * 0.16 +
+src/services/intelligence/opportunityDecisionEngine.js:253:        successProbability * 0.16
+src/services/intelligence/opportunityDecisionEngine.js:257:  if (executiveBuySignalScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:258:    score = Math.round(score * 0.72 + executiveBuySignalScore * 0.28);
+src/services/intelligence/opportunityDecisionEngine.js:261:  if (allocationScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:262:    score = Math.round(score * 0.86 + allocationScore * 0.14);
+src/services/intelligence/opportunityDecisionEngine.js:265:  if (marketTimingScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:266:    score = Math.round(score * 0.90 + marketTimingScore * 0.10);
+src/services/intelligence/opportunityDecisionEngine.js:269:  if (capitalEfficiencyScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:270:    score = Math.round(score * 0.91 + capitalEfficiencyScore * 0.09);
+src/services/intelligence/opportunityDecisionEngine.js:277:  if (inventoryRiskScore >= 80) score -= 18;
+src/services/intelligence/opportunityDecisionEngine.js:278:  if (inventoryRiskScore >= 65) score -= 10;
+src/services/intelligence/opportunityDecisionEngine.js:280:  if (sellSpeedScore < 50 && sellSpeedScore > 0) score -= 8;
+src/services/intelligence/opportunityDecisionEngine.js:288:  if (comparableConfidence > 0 && comparableConfidence < 55) score -= 12;
+src/services/intelligence/opportunityDecisionEngine.js:290:  let decisionScore = clampScore(score);
+src/services/intelligence/opportunityDecisionEngine.js:294:    decisionScore = Math.min(decisionScore, 35);
+src/services/intelligence/opportunityDecisionEngine.js:296:    decisionScore = Math.min(decisionScore, 45);
+src/services/intelligence/opportunityDecisionEngine.js:298:    decisionScore = Math.min(decisionScore, 55);
+src/services/intelligence/opportunityDecisionEngine.js:303:    decisionScore = Math.min(decisionScore, 60);
+src/services/intelligence/opportunityDecisionEngine.js:305:    decisionScore = Math.min(decisionScore, 75);
+src/services/intelligence/opportunityDecisionEngine.js:307:    decisionScore = Math.min(decisionScore, 85);
+src/services/intelligence/opportunityDecisionEngine.js:309:    decisionScore = Math.min(decisionScore, 92);
+src/services/intelligence/opportunityDecisionEngine.js:313:    decisionScore = Math.min(decisionScore, 62);
+src/services/intelligence/opportunityDecisionEngine.js:315:    decisionScore = Math.min(decisionScore, 76);
+src/services/intelligence/opportunityDecisionEngine.js:317:    decisionScore = Math.min(decisionScore, 88);
+src/services/intelligence/opportunityDecisionEngine.js:320:  return decisionScore;
+src/services/intelligence/opportunityDecisionEngine.js:324:  decisionScore,
+src/services/intelligence/opportunityDecisionEngine.js:325:  opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:327:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:331:  executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:335:  marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:337:  capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:338:  inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:340:  allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:342:  successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:354:    inventoryRiskScore >= 85 ||
+src/services/intelligence/opportunityDecisionEngine.js:364:    executiveBuySignalScore >= 78;
+src/services/intelligence/opportunityDecisionEngine.js:366:  const hasStrongScore = opportunityScoreV2 >= 85 && decisionScore >= 80;
+src/services/intelligence/opportunityDecisionEngine.js:368:    comparableConfidence >= 70 && comparableCount >= 2;
+src/services/intelligence/opportunityDecisionEngine.js:374:    successProbability >= 70 ||
+src/services/intelligence/opportunityDecisionEngine.js:375:    allocationScore >= 70 ||
+src/services/intelligence/opportunityDecisionEngine.js:378:    capitalEfficiencyScore >= 70 ||
+src/services/intelligence/opportunityDecisionEngine.js:379:    marketTimingScore >= 70 ||
+src/services/intelligence/opportunityDecisionEngine.js:383:    inventoryRiskScore >= 70 ||
+src/services/intelligence/opportunityDecisionEngine.js:390:    decisionScore >= 75 &&
+src/services/intelligence/opportunityDecisionEngine.js:410:  if (opportunityScoreV2 >= 65 || decisionScore >= 65) {
+src/services/intelligence/opportunityDecisionEngine.js:414:  if (comparableCount === 0 && comparableConfidence < 60) {
+src/services/intelligence/opportunityDecisionEngine.js:423:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:424:  opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:425:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:427:  executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:429:  marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:430:  capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:434:      comparableConfidence * 0.25 +
+src/services/intelligence/opportunityDecisionEngine.js:435:      opportunityScoreV2 * 0.20 +
+src/services/intelligence/opportunityDecisionEngine.js:436:      valuationScore * 0.15 +
+src/services/intelligence/opportunityDecisionEngine.js:437:      executiveBuySignalScore * 0.08 +
+src/services/intelligence/opportunityDecisionEngine.js:439:      marketTimingScore * 0.04 +
+src/services/intelligence/opportunityDecisionEngine.js:440:      capitalEfficiencyScore * 0.04
+src/services/intelligence/opportunityDecisionEngine.js:461:  opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:462:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:464:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:469:  sellSpeedScore,
+src/services/intelligence/opportunityDecisionEngine.js:473:  executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:477:  marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:479:  capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:481:  inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:483:  allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:485:  successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:489:  if (opportunityScoreV2 >= 85) {
+src/services/intelligence/opportunityDecisionEngine.js:490:    reasons.push(`Score V2 fuerte: ${opportunityScoreV2}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:493:  if (opportunityScoreV2 >= 65 && opportunityScoreV2 < 85) {
+src/services/intelligence/opportunityDecisionEngine.js:494:    reasons.push(`Score V2 interesante: ${opportunityScoreV2}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:497:  if (valuationScore >= 70) {
+src/services/intelligence/opportunityDecisionEngine.js:498:    reasons.push(`Valoración de mercado favorable: ${valuationScore}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:527:  if (comparableConfidence >= 75) {
+src/services/intelligence/opportunityDecisionEngine.js:528:    reasons.push(`Confianza de valoración alta: ${comparableConfidence}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:531:  if (executiveBuySignalScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:533:      `Señal ejecutiva moderna: ${executiveBuySignalLabel || "SIN_LABEL"} (${executiveBuySignalScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:543:  if (marketTimingScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:545:      `Market timing: ${marketTimingLabel || "SIN_LABEL"} (${marketTimingScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:549:  if (capitalEfficiencyScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:551:      `Eficiencia de capital: ${capitalEfficiencyLabel || "SIN_LABEL"} (${capitalEfficiencyScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:555:  if (allocationScore > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:557:      `Asignación de capital: ${allocationTier || "SIN_TIER"} (${allocationScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:561:  if (successProbability > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:562:    reasons.push(`Probabilidad de éxito: ${successProbability}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:565:  if (inventoryRiskScore >= 70) {
+src/services/intelligence/opportunityDecisionEngine.js:567:      `Riesgo de inventario elevado: ${inventoryRiskLabel || "SIN_LABEL"} (${inventoryRiskScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:573:    opportunityScoreV2 >= 85 &&
+src/services/intelligence/opportunityDecisionEngine.js:574:    (comparableConfidence < 70 || comparableCount < 2)
+src/services/intelligence/opportunityDecisionEngine.js:581:  if (sellSpeedScore >= 80) {
+src/services/intelligence/opportunityDecisionEngine.js:604:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:609:  sellSpeedScore,
+src/services/intelligence/opportunityDecisionEngine.js:610:  executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:612:  marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:613:  inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:614:  allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:630:  if (comparableConfidence > 0 && comparableConfidence < 70) {
+src/services/intelligence/opportunityDecisionEngine.js:646:  if (sellSpeedScore > 0 && sellSpeedScore < 55) {
+src/services/intelligence/opportunityDecisionEngine.js:650:  if (executiveBuySignalScore > 0 && executiveBuySignalScore < 62) {
+src/services/intelligence/opportunityDecisionEngine.js:658:  if (marketTimingScore > 0 && marketTimingScore < 50) {
+src/services/intelligence/opportunityDecisionEngine.js:662:  if (inventoryRiskScore >= 70) {
+src/services/intelligence/opportunityDecisionEngine.js:666:  if (allocationScore > 0 && allocationScore < 50) {
+src/services/intelligence/opportunityDecisionEngine.js:679:  decisionScore,
+src/services/intelligence/opportunityDecisionEngine.js:680:  opportunityScoreV2,
+src/services/intelligence/opportunityDecisionEngine.js:681:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:686:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:688:  executiveBuySignalScore,
+src/services/intelligence/opportunityDecisionEngine.js:692:  marketTimingScore,
+src/services/intelligence/opportunityDecisionEngine.js:694:  capitalEfficiencyScore,
+src/services/intelligence/opportunityDecisionEngine.js:695:  inventoryRiskScore,
+src/services/intelligence/opportunityDecisionEngine.js:696:  allocationScore,
+src/services/intelligence/opportunityDecisionEngine.js:698:  successProbability,
+src/services/intelligence/opportunityDecisionEngine.js:702:    `Decision Score V2: ${decisionScore}/100.`,
+src/services/intelligence/opportunityDecisionEngine.js:703:    `Opportunity Score V2: ${opportunityScoreV2}/100.`,
+src/services/intelligence/opportunityDecisionEngine.js:704:    `Valuation Score: ${valuationScore}/100.`,
+src/services/intelligence/opportunityDecisionEngine.js:709:    `Confianza: ${comparableConfidence}/100.`,
+src/services/intelligence/opportunityDecisionEngine.js:713:    executiveBuySignalScore > 0
+src/services/intelligence/opportunityDecisionEngine.js:714:      ? `Señal ejecutiva: ${executiveBuySignalLabel || "SIN_LABEL"} (${executiveBuySignalScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:719:    marketTimingScore > 0
+src/services/intelligence/opportunityDecisionEngine.js:720:      ? `Market timing: ${marketTimingLabel || "SIN_LABEL"} (${marketTimingScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:722:    capitalEfficiencyScore > 0
+src/services/intelligence/opportunityDecisionEngine.js:723:      ? `Capital efficiency: ${capitalEfficiencyScore}/100.`
+src/services/intelligence/opportunityDecisionEngine.js:725:    inventoryRiskScore > 0
+src/services/intelligence/opportunityDecisionEngine.js:726:      ? `Inventory risk: ${inventoryRiskScore}/100.`
+src/services/intelligence/opportunityDecisionEngine.js:728:    allocationScore > 0
+src/services/intelligence/opportunityDecisionEngine.js:729:      ? `Allocation: ${allocationTier || "SIN_TIER"} (${allocationScore}/100).`
+src/services/intelligence/opportunityDecisionEngine.js:731:    successProbability > 0
+src/services/intelligence/opportunityDecisionEngine.js:732:      ? `Success probability: ${successProbability}/100.`
+src/services/intelligence/marketTimingEngine.js:2:  successProbability = 0,
+src/services/intelligence/marketTimingEngine.js:3:  sellSpeedScore = 50,
+src/services/intelligence/marketTimingEngine.js:4:  capitalEfficiencyScore = 50,
+src/services/intelligence/marketTimingEngine.js:5:  inventoryRiskScore = 50,
+src/services/intelligence/marketTimingEngine.js:6:  confidenceScore = 50,
+src/services/intelligence/marketTimingEngine.js:10:  score += successProbability * 0.35;
+src/services/intelligence/marketTimingEngine.js:11:  score += sellSpeedScore * 0.25;
+src/services/intelligence/marketTimingEngine.js:12:  score += capitalEfficiencyScore * 0.20;
+src/services/intelligence/marketTimingEngine.js:13:  score += confidenceScore * 0.10;
+src/services/intelligence/marketTimingEngine.js:14:  score += Math.max(0, 100 - inventoryRiskScore) * 0.10;
+src/services/intelligence/marketTimingEngine.js:19:    marketTimingScore: score,
+src/services/intelligence/README.md:127:- opportunityScoreEngine.js
+src/services/intelligence/README.md:134:- successProbabilityEngine.js
+src/services/intelligence/analysisToMemoryCandidateAdapter.js:54:      analysis.confidenceScore ||
+src/services/intelligence/successProbabilityEngine.js:24:  const confidenceScore = safeNumber(
+src/services/intelligence/successProbabilityEngine.js:26:      prediction.confidenceScore ??
+src/services/intelligence/successProbabilityEngine.js:27:      learning.confidenceScore
+src/services/intelligence/successProbabilityEngine.js:35:  let successProbability = 0;
+src/services/intelligence/successProbabilityEngine.js:37:  successProbability += executiveScore * 0.22;
+src/services/intelligence/successProbabilityEngine.js:38:  successProbability += buildRoiScore(roi) * 0.36;
+src/services/intelligence/successProbabilityEngine.js:39:  successProbability += buildProfitScore(profit) * 0.32;
+src/services/intelligence/successProbabilityEngine.js:40:  successProbability += confidenceScore * 0.08;
+src/services/intelligence/successProbabilityEngine.js:41:  successProbability += learningBonus * 0.8;
+src/services/intelligence/successProbabilityEngine.js:43:  if (roi >= 8 && profit >= 4000) successProbability += 12;
+src/services/intelligence/successProbabilityEngine.js:44:  if (roi >= 10 && profit >= 5000) successProbability += 10;
+src/services/intelligence/successProbabilityEngine.js:45:  if (roi <= 0 || profit <= 0) successProbability -= 18;
+src/services/intelligence/successProbabilityEngine.js:46:  if (roi > 0 && roi < 3) successProbability -= 8;
+src/services/intelligence/successProbabilityEngine.js:47:  if (profit > 0 && profit < 1000) successProbability -= 8;
+src/services/intelligence/successProbabilityEngine.js:49:  successProbability = clamp(Math.round(successProbability), 0, 100);
+src/services/intelligence/successProbabilityEngine.js:52:    successProbability,
+src/services/intelligence/successProbabilityEngine.js:53:    buySignal: getBuySignal(successProbability),
+src/services/intelligence/successProbabilityEngine.js:56:    confidenceScore,
+src/services/intelligence/successProbabilityEngine.js:58:    riskLabel: getRiskLabel(successProbability, confidenceScore),
+src/services/intelligence/successProbabilityEngine.js:60:      successProbability,
+src/services/intelligence/successProbabilityEngine.js:63:      confidenceScore,
+src/services/intelligence/successProbabilityEngine.js:76:      confidenceScore: item.historicalConfidenceScore,
+src/services/intelligence/successProbabilityEngine.js:121:function getRiskLabel(probability, confidenceScore) {
+src/services/intelligence/successProbabilityEngine.js:122:  if (confidenceScore < 50) return "Desconocido";
+src/services/intelligence/successProbabilityEngine.js:130:  successProbability,
+src/services/intelligence/successProbabilityEngine.js:133:  confidenceScore,
+src/services/intelligence/successProbabilityEngine.js:136:  return `Probabilidad de éxito ${successProbability}/100, ROI esperado ${roi}%, beneficio esperado ${profit} €, confianza histórica ${confidenceScore}/100 y ajuste learning ${formatBonus(learningBonus)}.`;
+src/services/intelligence/dataQualityGate.js:11:  comparableConfidence = null,
+src/services/intelligence/dataQualityGate.js:64:    hasExplicitScore(comparableConfidence) &&
+src/services/intelligence/dataQualityGate.js:65:    Number(comparableConfidence) < 70
+src/services/intelligence/decisionPipeline.js:2:import { buildSuccessProbability } from "./successProbabilityEngine";
+src/services/intelligence/decisionPipeline.js:53:    comparableConfidence:
+src/services/intelligence/decisionPipeline.js:54:      vehicle.comparableConfidence ||
+src/services/intelligence/decisionPipeline.js:101:        safeNumber(learning.confidenceScore) * 0.12
+src/services/intelligence/decisionPipeline.js:105:  const successProbability = buildSuccessProbability({
+src/services/intelligence/decisionPipeline.js:113:      historicalConfidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:122:    successProbability: successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:123:    confidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:129:    successProbability: successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:133:    confidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:141:    successProbability: successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:142:    executiveBuySignalScore: executiveBuySignal.finalScore,
+src/services/intelligence/decisionPipeline.js:147:    successProbability: successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:148:    capitalEfficiencyScore: capitalEfficiency.capitalEfficiencyScore,
+src/services/intelligence/decisionPipeline.js:149:    historicalConfidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:154:    successProbability: successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:155:    sellSpeedScore: sellSpeed.sellSpeedScore,
+src/services/intelligence/decisionPipeline.js:156:    capitalEfficiencyScore: capitalEfficiency.capitalEfficiencyScore,
+src/services/intelligence/decisionPipeline.js:157:    inventoryRiskScore: inventoryRisk.inventoryRiskScore,
+src/services/intelligence/decisionPipeline.js:158:    confidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:162:    executiveBuySignalScore: executiveBuySignal.finalScore,
+src/services/intelligence/decisionPipeline.js:163:    marketTimingScore: marketTiming.marketTimingScore,
+src/services/intelligence/decisionPipeline.js:164:    capitalEfficiencyScore:
+src/services/intelligence/decisionPipeline.js:165:      capitalEfficiency.capitalEfficiencyScore,
+src/services/intelligence/decisionPipeline.js:166:    inventoryRiskScore: inventoryRisk.inventoryRiskScore,
+src/services/intelligence/decisionPipeline.js:167:    successProbability:
+src/services/intelligence/decisionPipeline.js:168:      successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:179:    successProbability,
+src/services/intelligence/decisionPipeline.js:202:        learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:210:      successProbability:
+src/services/intelligence/decisionPipeline.js:211:        successProbability.successProbability,
+src/services/intelligence/decisionPipeline.js:213:        successProbability.buySignal,
+src/services/intelligence/decisionPipeline.js:215:        successProbability.expectedROI,
+src/services/intelligence/decisionPipeline.js:217:        successProbability.expectedProfit,
+src/services/intelligence/decisionPipeline.js:219:        successProbability.riskLabel,
+src/services/intelligence/decisionPipeline.js:221:        successProbability.summary,
+src/services/intelligence/decisionPipeline.js:223:        successProbability,
+src/services/intelligence/decisionPipeline.js:226:      executiveBuySignalScore:
+src/services/intelligence/decisionPipeline.js:227:        executiveBuySignal.finalScore,
+src/services/intelligence/decisionPipeline.js:236:      sellSpeedScore:
+src/services/intelligence/decisionPipeline.js:237:        sellSpeed.sellSpeedScore,
+src/services/intelligence/decisionPipeline.js:246:      capitalEfficiencyScore:
+src/services/intelligence/decisionPipeline.js:247:        capitalEfficiency.capitalEfficiencyScore,
+src/services/intelligence/decisionPipeline.js:264:      inventoryRiskScore:
+src/services/intelligence/decisionPipeline.js:265:        inventoryRisk.inventoryRiskScore,
+src/services/intelligence/decisionPipeline.js:274:      marketTimingScore:
+src/services/intelligence/decisionPipeline.js:275:        marketTiming.marketTimingScore,
+src/services/intelligence/decisionPipeline.js:282:      allocationScore:
+src/services/intelligence/decisionPipeline.js:283:        portfolioAllocation.allocationScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:12:import { buildOpportunityScore } from "./opportunityScoreEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:93:      score: opportunity.scoreV3 || opportunity.scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:115:      score: opportunity.scoreV3 || opportunity.scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:129:      comparableConfidence: vehicleValuation.confidence,
+src/services/intelligence/masterOpportunityPipelineEngine.js:161:      score: modernOpportunity.scoreV3,
+src/services/intelligence/masterOpportunityPipelineEngine.js:226:    ["allocationScore"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:227:    ["executiveBuySignalScore"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:228:    ["marketTimingScore"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:229:    ["capitalEfficiencyScore"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:231:    ["sellSpeedScore"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:232:    ["successProbability"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:233:    ["decision", "decisionScore"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:234:    ["opportunity", "scoreV3"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:235:    ["opportunity", "scoreV2"],
+src/services/intelligence/masterOpportunityPipelineEngine.js:259:  const scoreV2 = Number(
+src/services/intelligence/masterOpportunityPipelineEngine.js:260:    opportunity.scoreV2 ??
+src/services/intelligence/masterOpportunityPipelineEngine.js:261:      opportunity.opportunityScoreV2 ??
+src/services/intelligence/masterOpportunityPipelineEngine.js:262:      opportunity.opportunityScore ??
+src/services/intelligence/masterOpportunityPipelineEngine.js:268:  let scoreV3 = Math.round(scoreV2 * 0.45 + modernQualityScore * 0.55);
+src/services/intelligence/masterOpportunityPipelineEngine.js:270:  const marketTimingScore = Number(decisionSignals.marketTimingScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:271:  const successProbability = Number(decisionSignals.successProbability || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:272:  const allocationScore = Number(decisionSignals.allocationScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:273:  const executiveBuySignalScore = Number(
+src/services/intelligence/masterOpportunityPipelineEngine.js:274:    decisionSignals.executiveBuySignalScore || 0
+src/services/intelligence/masterOpportunityPipelineEngine.js:276:  const inventoryRiskScore = Number(decisionSignals.inventoryRiskScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:278:  if (marketTimingScore > 0 && marketTimingScore < 50) scoreV3 -= 8;
+src/services/intelligence/masterOpportunityPipelineEngine.js:279:  if (successProbability > 0 && successProbability < 30) scoreV3 -= 8;
+src/services/intelligence/masterOpportunityPipelineEngine.js:280:  if (allocationScore > 0 && allocationScore < 45) scoreV3 -= 6;
+src/services/intelligence/masterOpportunityPipelineEngine.js:281:  if (executiveBuySignalScore > 0 && executiveBuySignalScore < 55) scoreV3 -= 6;
+src/services/intelligence/masterOpportunityPipelineEngine.js:282:  if (inventoryRiskScore >= 75) scoreV3 -= 10;
+src/services/intelligence/masterOpportunityPipelineEngine.js:284:  scoreV3 = clampScore(scoreV3);
+src/services/intelligence/masterOpportunityPipelineEngine.js:288:    scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:289:    scoreV3,
+src/services/intelligence/masterOpportunityPipelineEngine.js:290:    scoreV3Enabled: true,
+src/services/intelligence/masterOpportunityPipelineEngine.js:291:    scoreV3QualityScore: modernQualityScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:292:    scoreV3Signals: {
+src/services/intelligence/masterOpportunityPipelineEngine.js:293:      executiveBuySignalScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:294:      marketTimingScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:295:      capitalEfficiencyScore: Number(decisionSignals.capitalEfficiencyScore || 0),
+src/services/intelligence/masterOpportunityPipelineEngine.js:297:      successProbability,
+src/services/intelligence/masterOpportunityPipelineEngine.js:298:      allocationScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:299:      inventoryRiskScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:301:    scoreV3Summary: buildScoreV3Summary({
+src/services/intelligence/masterOpportunityPipelineEngine.js:302:      scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:303:      scoreV3,
+src/services/intelligence/masterOpportunityPipelineEngine.js:307:    scoreV2BeforeModernSignals: scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:308:    scoreV2ModernAdjusted: scoreV3,
+src/services/intelligence/masterOpportunityPipelineEngine.js:309:    opportunityScoreV2: scoreV3,
+src/services/intelligence/masterOpportunityPipelineEngine.js:310:    opportunityLevelV2: buildOpportunityLevel(scoreV3),
+src/services/intelligence/masterOpportunityPipelineEngine.js:315:  const allocationScore = Number(signals.allocationScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:316:  const executiveBuySignalScore = Number(signals.executiveBuySignalScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:317:  const marketTimingScore = Number(signals.marketTimingScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:318:  const capitalEfficiencyScore = Number(signals.capitalEfficiencyScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:320:  const successProbability = Number(signals.successProbability || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:324:      allocationScore * 0.22 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:325:        executiveBuySignalScore * 0.20 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:326:        marketTimingScore * 0.18 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:327:        capitalEfficiencyScore * 0.16 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:329:        successProbability * 0.14
+src/services/intelligence/masterOpportunityPipelineEngine.js:335:  scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:336:  scoreV3,
+src/services/intelligence/masterOpportunityPipelineEngine.js:341:    `Opportunity Score V3: ${scoreV3}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:342:    `Base económica V2: ${scoreV2}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:344:    `Executive: ${Number(decisionSignals.executiveBuySignalScore || 0)}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:345:    `Timing: ${Number(decisionSignals.marketTimingScore || 0)}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:346:    `Capital: ${Number(decisionSignals.capitalEfficiencyScore || 0)}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:347:    `Allocation: ${Number(decisionSignals.allocationScore || 0)}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:348:    `Success: ${Number(decisionSignals.successProbability || 0)}/100.`,
+src/services/intelligence/masterOpportunityPipelineEngine.js:362:      baseOpportunity?.opportunityScore ??
+src/services/intelligence/masterOpportunityPipelineEngine.js:393:  let scoreV2 = clampScore(score);
+src/services/intelligence/masterOpportunityPipelineEngine.js:397:    scoreV2 = Math.min(scoreV2, 35);
+src/services/intelligence/masterOpportunityPipelineEngine.js:399:    scoreV2 = Math.min(scoreV2, 45);
+src/services/intelligence/masterOpportunityPipelineEngine.js:401:    scoreV2 = Math.min(scoreV2, 55);
+src/services/intelligence/masterOpportunityPipelineEngine.js:406:    scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:407:    opportunityScoreV2: scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:408:    opportunityLevelV2: buildOpportunityLevel(scoreV2),
+src/services/intelligence/masterOpportunityPipelineEngine.js:415:      scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:445:    Number(latest.sellSpeedScore || 0) - Number(first.sellSpeedScore || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:488:  scoreV2,
+src/services/intelligence/masterOpportunityPipelineEngine.js:492:  if (scoreV2 >= 85) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:496:  if (scoreV2 >= 65 && scoreV2 < 85) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:500:  if (scoreV2 < 65) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:549:  const scoreV2Values = records
+src/services/intelligence/masterOpportunityPipelineEngine.js:550:    .map((item) => Number(item.opportunity?.scoreV2 || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:554:    .map((item) => Number(item.sellSpeed?.sellSpeedScore || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:562:    .map((item) => Number(item.executiveBuySignalScore || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:566:    .map((item) => Number(item.marketTimingScore || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:570:    .map((item) => Number(item.capitalEfficiencyScore || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:581:    averageOpportunityScoreV2: average(scoreV2Values),
+src/services/intelligence/memoryRepository.js:292:  const confidenceScore = normalizeConfidenceScore(
+src/services/intelligence/memoryRepository.js:332:    confidence_score: confidenceScore,
+src/services/intelligence/capitalEfficiencyEngine.js:6:  successProbability = 0,
+src/services/intelligence/capitalEfficiencyEngine.js:7:  executiveBuySignalScore = 0,
+src/services/intelligence/capitalEfficiencyEngine.js:13:  const successScore = safeNumber(successProbability);
+src/services/intelligence/capitalEfficiencyEngine.js:14:  const executiveScore = safeNumber(executiveBuySignalScore);
+src/services/intelligence/capitalEfficiencyEngine.js:24:  let capitalEfficiencyScore = 0;
+src/services/intelligence/capitalEfficiencyEngine.js:26:  capitalEfficiencyScore += Math.min(expectedROI * 2.2, 28);
+src/services/intelligence/capitalEfficiencyEngine.js:27:  capitalEfficiencyScore += Math.min(profitPerThousand * 2.6, 24);
+src/services/intelligence/capitalEfficiencyEngine.js:28:  capitalEfficiencyScore += capitalVelocity * 0.22;
+src/services/intelligence/capitalEfficiencyEngine.js:29:  capitalEfficiencyScore += successScore * 0.18;
+src/services/intelligence/capitalEfficiencyEngine.js:30:  capitalEfficiencyScore += executiveScore * 0.12;
+src/services/intelligence/capitalEfficiencyEngine.js:32:  capitalEfficiencyScore = clamp(
+src/services/intelligence/capitalEfficiencyEngine.js:33:    Math.round(capitalEfficiencyScore),
+src/services/intelligence/capitalEfficiencyEngine.js:47:    capitalEfficiencyScore,
+src/services/intelligence/capitalEfficiencyEngine.js:48:    capitalEfficiencyLabel: getCapitalEfficiencyLabel(capitalEfficiencyScore),
+src/services/intelligence/capitalEfficiencyEngine.js:55:      capitalEfficiencyScore,
+src/services/intelligence/capitalEfficiencyEngine.js:95:  capitalEfficiencyScore,
+src/services/intelligence/capitalEfficiencyEngine.js:101:  return `Eficiencia de capital ${capitalEfficiencyScore}/100: requiere ${formatMoney(
+src/services/intelligence/bulkDemoCandidates.js:43:    comparableConfidence: 0,
+src/services/intelligence/opportunityChangeEngine.js:261:    item.decision?.decisionScore ??
+src/services/intelligence/opportunityChangeEngine.js:262:      item.opportunity?.scoreV2 ??
+src/services/intelligence/opportunityChangeEngine.js:263:      item.opportunity?.opportunityScoreV2 ??
+src/services/intelligence/opportunityChangeEngine.js:285:  return toNumber(item.sellSpeed?.sellSpeedScore ?? item.sellSpeedScore);
+src/services/intelligence/opportunityScoreEngine.js:6:  const comparableConfidence = normalizeScore(vehicle.comparableConfidence ?? 0);
+src/services/intelligence/opportunityScoreEngine.js:10:  const confidenceScore = Math.round((qualityScore + matchScore + comparableConfidence) / 3);
+src/services/intelligence/opportunityScoreEngine.js:12:  const opportunityScore = clampScore(
+src/services/intelligence/opportunityScoreEngine.js:16:        confidenceScore * 0.30 +
+src/services/intelligence/opportunityScoreEngine.js:22:    opportunityScore,
+src/services/intelligence/opportunityScoreEngine.js:24:    comparableConfidence,
+src/services/intelligence/opportunityScoreEngine.js:30:    opportunityScore,
+src/services/intelligence/opportunityScoreEngine.js:37:    opportunityScore,
+src/services/intelligence/opportunityScoreEngine.js:40:    confidenceScore,
+src/services/intelligence/opportunityScoreEngine.js:45:      opportunityScore,
+src/services/intelligence/opportunityScoreEngine.js:63:        b.opportunity.opportunityScore - a.opportunity.opportunityScore
+src/services/intelligence/opportunityScoreEngine.js:92:  opportunityScore,
+src/services/intelligence/opportunityScoreEngine.js:94:  comparableConfidence,
+src/services/intelligence/opportunityScoreEngine.js:98:  if (qualityScore < 60 || comparableConfidence < 60) {
+src/services/intelligence/opportunityScoreEngine.js:106:  if (opportunityScore >= 80) {
+src/services/intelligence/opportunityScoreEngine.js:110:  if (opportunityScore >= 60) {
+src/services/intelligence/opportunityScoreEngine.js:117:function buildDecision({ opportunityScore, riskLevel, roi, profit }) {
+src/services/intelligence/opportunityScoreEngine.js:126:  if (opportunityScore >= 85) {
+src/services/intelligence/opportunityScoreEngine.js:130:  if (opportunityScore >= 70) {
+src/services/intelligence/opportunityScoreEngine.js:134:  if (opportunityScore >= 55) {
+src/services/intelligence/opportunityScoreEngine.js:141:function buildSummary({ opportunityScore, riskLevel, decision, roi, profit }) {
+src/services/intelligence/opportunityScoreEngine.js:143:    `Opportunity Score: ${opportunityScore}/100.`,
+src/services/intelligence/portfolioAllocationEngine.js:2:  executiveBuySignalScore = 0,
+src/services/intelligence/portfolioAllocationEngine.js:3:  marketTimingScore = 0,
+src/services/intelligence/portfolioAllocationEngine.js:4:  capitalEfficiencyScore = 0,
+src/services/intelligence/portfolioAllocationEngine.js:5:  inventoryRiskScore = 50,
+src/services/intelligence/portfolioAllocationEngine.js:6:  successProbability = 0,
+src/services/intelligence/portfolioAllocationEngine.js:12:  score += executiveBuySignalScore * 0.30;
+src/services/intelligence/portfolioAllocationEngine.js:13:  score += marketTimingScore * 0.25;
+src/services/intelligence/portfolioAllocationEngine.js:14:  score += capitalEfficiencyScore * 0.20;
+src/services/intelligence/portfolioAllocationEngine.js:15:  score += successProbability * 0.15;
+src/services/intelligence/portfolioAllocationEngine.js:16:  score += Math.max(0, 100 - inventoryRiskScore) * 0.10;
+src/services/intelligence/portfolioAllocationEngine.js:27:    allocationScore: score,
+src/services/intelligence/marketLearningEngine.js:60:  if (historicalMatch.averageROI >= 12 && historicalMatch.confidenceScore >= 70) {
+src/services/intelligence/marketLearningEngine.js:65:  if (historicalMatch.averageROI >= 18 && historicalMatch.confidenceScore >= 90) {
+src/services/intelligence/marketLearningEngine.js:70:  if (historicalMatch.averageROI < 5 && historicalMatch.confidenceScore >= 70) {
+src/services/intelligence/marketLearningEngine.js:77:    historicalMatch.confidenceScore >= 70
+src/services/intelligence/marketLearningEngine.js:85:    historicalMatch.confidenceScore >= 70
+src/services/intelligence/marketLearningEngine.js:96:    confidenceScore: historicalMatch.confidenceScore || 0,
+src/services/intelligence/marketLearningEngine.js:114:  const finalScore = clamp(Math.round(score + learning.learningBonus), 0, 100);
+src/services/intelligence/marketLearningEngine.js:117:    finalScore,
+src/services/intelligence/marketLearningEngine.js:173:    confidenceScore:
+src/services/intelligence/marketLearningEngine.js:221:        confidenceScore: confidence.score,
+src/services/intelligence/marketLearningEngine.js:225:          confidenceScore: confidence.score,
+src/services/intelligence/marketLearningEngine.js:230:      if (b.confidenceScore !== a.confidenceScore) {
+src/services/intelligence/marketLearningEngine.js:231:        return b.confidenceScore - a.confidenceScore;
+src/services/intelligence/marketLearningEngine.js:246:  confidenceScore,
+src/services/intelligence/marketLearningEngine.js:250:  if (averageROI >= 12 && confidenceScore >= 70) bonus += 6;
+src/services/intelligence/marketLearningEngine.js:251:  if (averageROI >= 18 && confidenceScore >= 90) bonus += 4;
+src/services/intelligence/marketLearningEngine.js:252:  if (averageROI < 5 && confidenceScore >= 70) bonus -= 6;
+src/services/intelligence/marketLearningEngine.js:253:  if (averageProfit >= 5000 && confidenceScore >= 70) bonus += 3;
+src/services/intelligence/marketLearningEngine.js:254:  if (averageProfit < 1000 && confidenceScore >= 70) bonus -= 3;
+src/services/intelligence/marketLearningEngine.js:287:    confidenceScore: 0,
+src/services/intelligence/marketLearningEngine.js:303:      confidenceScore: 0,
+src/services/intelligence/sellSpeedEngine.js:2:  successProbability = 0,
+src/services/intelligence/sellSpeedEngine.js:6:  confidenceScore = 0,
+src/services/intelligence/sellSpeedEngine.js:8:  const normalizedSuccess = clamp(successProbability, 0, 100);
+src/services/intelligence/sellSpeedEngine.js:10:  const normalizedConfidence = clamp(confidenceScore, 0, 100);
+src/services/intelligence/sellSpeedEngine.js:39:    sellSpeedScore: score,
+src/services/intelligence/bulkUrlPreviewEngine.js:38:      comparableConfidence:
+src/services/intelligence/bulkUrlPreviewEngine.js:39:        item.comparableConfidence ||
+src/services/intelligence/predictiveIntelligenceEngine.js:22:          ? prediction.successProbability
+src/services/intelligence/predictiveIntelligenceEngine.js:60:    .map((item) => safeNumber(item.opportunityPrediction?.successProbability))
+src/services/intelligence/predictiveIntelligenceEngine.js:90:    `🥇 Mejor predicción: ${best.title || prediction.model} con probabilidad de éxito ${prediction.successProbability}/100.`,
+src/services/intelligence/predictiveIntelligenceEngine.js:97:  if (prediction.confidenceScore >= 70) {
+src/services/intelligence/executiveBuySignalEngine.js:3:  successProbability = 0,
+src/services/intelligence/executiveBuySignalEngine.js:4:  confidenceScore = 0,
+src/services/intelligence/executiveBuySignalEngine.js:17:    successProbability * 0.30 +
+src/services/intelligence/executiveBuySignalEngine.js:18:    confidenceScore * 0.14 +
+src/services/intelligence/executiveBuySignalEngine.js:23:  const finalScore = clamp(Math.round(score), 0, 100);
+src/services/intelligence/executiveBuySignalEngine.js:26:    finalScore,
+src/services/intelligence/executiveBuySignalEngine.js:27:    signal: getSignal(finalScore),
+src/services/intelligence/executiveBuySignalEngine.js:28:    color: getColor(finalScore),
+src/services/intelligence/executiveBuySignalEngine.js:29:    summary: buildSummary(finalScore, timelineMomentumLabel),
+src/services/intelligence/inventoryRiskEngine.js:3:  successProbability = 0,
+src/services/intelligence/inventoryRiskEngine.js:4:  capitalEfficiencyScore = 50,
+src/services/intelligence/inventoryRiskEngine.js:9:  const success = safeNumber(successProbability);
+src/services/intelligence/inventoryRiskEngine.js:10:  const capitalEfficiency = safeNumber(capitalEfficiencyScore);
+src/services/intelligence/inventoryRiskEngine.js:32:    inventoryRiskScore: riskScore,
+src/services/intelligence/scannerPersistenceAdapter.js:15:    score: Number(candidate?.finalDecision?.finalScore || 0),
+src/services/intelligence/opportunityFeedEngine.js:40:  const decisionScore = toNumber(item.decisionScore);
+src/services/intelligence/opportunityFeedEngine.js:41:  const sellSpeedScore = toNumber(item.sellSpeedScore);
+src/services/intelligence/opportunityFeedEngine.js:62:      text: `BUY activo con Decision Score ${decisionScore}/100.`,
+src/services/intelligence/opportunityFeedEngine.js:68:  if (sellSpeedScore >= 80) {
+src/services/intelligence/opportunityFeedEngine.js:73:      text: `Alta rotación prevista. Sell Speed ${sellSpeedScore}/100.`,
+src/services/intelligence/historicalMemory.js:39:      confidenceScore: confidence.score,
+src/services/intelligence/historicalMemory.js:85:        latestSellSpeed: latest.sellSpeedScore || 0,
+src/services/intelligence/historicalMemory.js:154:      item.decision?.decisionScore ??
+src/services/intelligence/historicalMemory.js:155:        item.opportunity?.scoreV2 ??
+src/services/intelligence/historicalMemory.js:161:    sellSpeedScore: safeNumber(item.sellSpeed?.sellSpeedScore ?? item.sellSpeedScore),
+src/services/intelligence/historicalMemory.js:200:  if (latest.sellSpeedScore - first.sellSpeedScore >= 10) {
+src/services/intelligence/historicalMemory.js:201:    changes.push(`rotación mejora ${formatNumber(latest.sellSpeedScore - first.sellSpeedScore)} puntos`);
+src/services/intelligence/topOpportunitiesEngine.js:44:    `Opportunity Score: ${bestOpportunity.opportunityScore}/100.`,
+src/services/intelligence/topOpportunitiesEngine.js:59:  const score = normalizeNumber(bestOpportunity.opportunityScore);
+src/services/intelligence/opportunityRankingEngine.js:8:      const opportunityScore = resolveOpportunityScore(item);
+src/services/intelligence/opportunityRankingEngine.js:9:      const decisionScore = resolveDecisionScore(item);
+src/services/intelligence/opportunityRankingEngine.js:11:        opportunityScore,
+src/services/intelligence/opportunityRankingEngine.js:12:        decisionScore,
+src/services/intelligence/opportunityRankingEngine.js:13:        valuationScore: resolveValuationScore(item),
+src/services/intelligence/opportunityRankingEngine.js:22:        opportunityScore,
+src/services/intelligence/opportunityRankingEngine.js:23:        decisionScore,
+src/services/intelligence/opportunityRankingEngine.js:68:    item.opportunity?.scoreV2 ??
+src/services/intelligence/opportunityRankingEngine.js:69:      item.opportunity?.opportunityScoreV2 ??
+src/services/intelligence/opportunityRankingEngine.js:70:      item.opportunity?.opportunityScore ??
+src/services/intelligence/opportunityRankingEngine.js:71:      item.opportunityScore ??
+src/services/intelligence/opportunityRankingEngine.js:78:    item.decision?.decisionScore ??
+src/services/intelligence/opportunityRankingEngine.js:79:      item.decisionScore ??
+src/services/intelligence/opportunityRankingEngine.js:86:    item.valuation?.valuationScore ??
+src/services/intelligence/opportunityRankingEngine.js:87:      item.marketValuation?.valuationScore ??
+src/services/intelligence/opportunityRankingEngine.js:88:      item.valuationScore ??
+src/services/intelligence/opportunityRankingEngine.js:116:      item.confidenceScore ??
+src/services/intelligence/opportunityRankingEngine.js:117:      item.comparableConfidence ??
+src/services/intelligence/opportunityRankingEngine.js:132:  opportunityScore,
+src/services/intelligence/opportunityRankingEngine.js:133:  decisionScore,
+src/services/intelligence/opportunityRankingEngine.js:134:  valuationScore,
+src/services/intelligence/opportunityRankingEngine.js:141:    decisionScore > 0
+src/services/intelligence/opportunityRankingEngine.js:142:      ? decisionScore * 0.55 + opportunityScore * 0.30 + valuationScore * 0.15
+src/services/intelligence/opportunityRankingEngine.js:143:      : opportunityScore * 0.55 + valuationScore * 0.25 + confidence * 0.20;
+src/services/intelligence/opportunityRankingEngine.js:165:  if (b.decisionScore !== a.decisionScore) {
+src/services/intelligence/opportunityRankingEngine.js:166:    return b.decisionScore - a.decisionScore;
+src/services/intelligence/opportunityRankingEngine.js:169:  if (b.opportunityScore !== a.opportunityScore) {
+src/services/intelligence/opportunityRankingEngine.js:170:    return b.opportunityScore - a.opportunityScore;
+src/services/intelligence/opportunityRankingEngine.js:229:    if (bestOpportunity.opportunityScore !== undefined) {
+src/services/intelligence/opportunityRankingEngine.js:231:        `Opportunity Score V2 de la mejor oportunidad: ${normalizeNumber(bestOpportunity.opportunityScore)}/100.`
+src/services/intelligence/opportunityRankingEngine.js:235:    if (bestOpportunity.decisionScore !== undefined) {
+src/services/intelligence/opportunityRankingEngine.js:237:        `Decision Score de la mejor oportunidad: ${normalizeNumber(bestOpportunity.decisionScore)}/100.`
+src/services/intelligence/learningDecisionBonusEngine.js:2:  const baseScore = Number(item.score || item.executiveScore || item.decisionScore || 0);
+src/services/intelligence/learningDecisionBonusEngine.js:18:    decisionScore: adjustedScore,
+src/services/intelligence/learningDecisionBonusEngine.js:25:  const confidenceScore = Number(
+src/services/intelligence/learningDecisionBonusEngine.js:26:    learning.confidenceScore ??
+src/services/intelligence/learningDecisionBonusEngine.js:32:  if (confidenceScore >= 85) return 8;
+src/services/intelligence/learningDecisionBonusEngine.js:33:  if (confidenceScore >= 70) return 5;
+src/services/intelligence/learningDecisionBonusEngine.js:34:  if (confidenceScore >= 55) return 2;
+src/services/intelligence/learningDecisionBonusEngine.js:35:  if (confidenceScore > 0 && confidenceScore < 40) return -4;
+src/services/opportunityRadar.js:34:  const decisionScore = Number(
+src/services/opportunityRadar.js:35:    item.decision?.decisionScore ||
+src/services/opportunityRadar.js:36:      item.decisionScore ||
+src/services/opportunityRadar.js:41:    item.opportunity?.scoreV2 ??
+src/services/opportunityRadar.js:42:      item.opportunity?.opportunityScoreV2 ??
+src/services/opportunityRadar.js:43:      item.opportunity?.opportunityScore ??
+src/services/opportunityRadar.js:65:  const sellSpeedScore = Number(
+src/services/opportunityRadar.js:66:    item.sellSpeed?.sellSpeedScore ??
+src/services/opportunityRadar.js:67:      item.sellSpeedScore ??
+src/services/opportunityRadar.js:86:    decisionScore,
+src/services/opportunityRadar.js:92:    sellSpeedScore,
+src/services/opportunityRadar.js:99:    decisionScore,
+src/services/opportunityRadar.js:105:    sellSpeedScore,
+src/services/opportunityRadar.js:118:    decisionScore,
+src/services/opportunityRadar.js:124:    sellSpeedScore,
+src/services/opportunityRadar.js:132:      decisionScore,
+src/services/opportunityRadar.js:136:      sellSpeedScore,
+src/services/opportunityRadar.js:146:  decisionScore,
+src/services/opportunityRadar.js:152:  sellSpeedScore,
+src/services/opportunityRadar.js:158:    decisionScore * 0.42 +
+src/services/opportunityRadar.js:161:    sellSpeedScore * 0.12;
+src/services/opportunityRadar.js:188:  decisionScore,
+src/services/opportunityRadar.js:194:  sellSpeedScore,
+src/services/opportunityRadar.js:208:  if (decisionScore >= 85) {
+src/services/opportunityRadar.js:212:      label: `Decision Score alto: ${decisionScore}/100.`,
+src/services/opportunityRadar.js:248:  if (sellSpeedScore >= 80 || (estimatedSellDays > 0 && estimatedSellDays <= 30)) {
+src/services/opportunityRadar.js:295:    (item) => item.sellSpeedScore >= 80 || item.estimatedSellDays <= 30
+src/services/opportunityRadar.js:326:  decisionScore,
+src/services/opportunityRadar.js:330:  sellSpeedScore,
+src/services/opportunityRadar.js:338:    return `BUY confirmado. Decision Score ${decisionScore}/100, Opportunity Score ${score}/100, confianza ${confidence}/100, ${comparableCount} comparable(s), Sell Speed ${sellSpeedScore}/100 y descuento ${discountPercent}%. ${mainSignal}`;
+src/services/finalDecisionEngine.js:5:  const opportunityScore = toNumber(item.opportunityScore, 0);
+src/services/finalDecisionEngine.js:14:  let finalScore = opportunityScore;
+src/services/finalDecisionEngine.js:16:  if (netRoi >= 12) finalScore += 8;
+src/services/finalDecisionEngine.js:17:  if (netProfit >= 5000) finalScore += 6;
+src/services/finalDecisionEngine.js:18:  if (liquidityScore >= 80) finalScore += 8;
+src/services/finalDecisionEngine.js:20:  if (riskScore >= 70) finalScore -= 30;
+src/services/finalDecisionEngine.js:21:  else if (riskScore >= 45) finalScore -= 16;
+src/services/finalDecisionEngine.js:23:  if (netProfit <= 0) finalScore -= 35;
+src/services/finalDecisionEngine.js:24:  if (netRoi < 6) finalScore -= 12;
+src/services/finalDecisionEngine.js:25:  if (liquidityScore < 55) finalScore -= 10;
+src/services/finalDecisionEngine.js:30:  finalScore += modelModifier.finalScoreModifier;
+src/services/finalDecisionEngine.js:31:  finalScore += learningModifier.learningBonus;
+src/services/finalDecisionEngine.js:33:  finalScore = clamp(Math.round(finalScore), 0, 100);
+src/services/finalDecisionEngine.js:36:    finalScore,
+src/services/finalDecisionEngine.js:45:    finalScore,
+src/services/finalDecisionEngine.js:50:      modifier: modelModifier.finalScoreModifier,
+src/services/finalDecisionEngine.js:58:      confidenceScore: learningModifier.confidenceScore,
+src/services/finalDecisionEngine.js:71:      finalScore,
+src/services/finalDecisionEngine.js:91:      finalScore,
+src/services/finalDecisionEngine.js:110:      finalScoreModifier: 0,
+src/services/finalDecisionEngine.js:117:    finalScoreModifier: knowledge.score.finalScoreModifier || 0,
+src/services/finalDecisionEngine.js:135:  finalScore,
+src/services/finalDecisionEngine.js:150:  if (finalScore >= 78 && netProfit > 3000 && netRoi >= 8 && riskScore < 45) {
+src/services/finalDecisionEngine.js:154:  if (finalScore >= 58) {
+src/services/finalDecisionEngine.js:174:  finalScore,
+src/services/finalDecisionEngine.js:184:    ? ` Ajuste del modelo: ${modelModifier.finalScoreModifier > 0 ? "+" : ""}${modelModifier.finalScoreModifier}.`
+src/services/finalDecisionEngine.js:198:    return `Conviene vigilarla: la señal es interesante, pero todavía no justifica actuar de inmediato. Score ${finalScore}/100, liquidez ${liquidityScore}/100 y riesgo ${riskLevel.toLowerCase()}.`;
+src/services/finalDecisionEngine.js:205:  return `No comprar ahora: el margen neto o el riesgo no compensan la operación. Score ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} (${riskScore}/100), margen ${formatMoney(
+src/services/finalDecisionEngine.js:250:  finalScore,
+src/services/finalDecisionEngine.js:262:    return `Oportunidad para seguimiento: score ${finalScore}/100, riesgo ${riskLevel.toLowerCase()} y liquidez ${liquidityScore}/100.`;
+src/services/opportunityRanking.js:162:    safeNumber(latest.sellSpeedScore) - safeNumber(first.sellSpeedScore);
+src/services/opportunityRanking.js:198:  if (b.allocationScore !== a.allocationScore) {
+src/services/opportunityRanking.js:199:    return b.allocationScore - a.allocationScore;
+src/services/opportunityRanking.js:202:  if (b.executiveBuySignalScore !== a.executiveBuySignalScore) {
+src/services/opportunityRanking.js:203:    return b.executiveBuySignalScore - a.executiveBuySignalScore;
+src/services/opportunityRanking.js:206:  if (b.marketTimingScore !== a.marketTimingScore) {
+src/services/opportunityRanking.js:207:    return b.marketTimingScore - a.marketTimingScore;
+src/services/opportunityRanking.js:210:  if (b.capitalEfficiencyScore !== a.capitalEfficiencyScore) {
+src/services/opportunityRanking.js:211:    return b.capitalEfficiencyScore - a.capitalEfficiencyScore;
+src/services/opportunityRanking.js:214:  if (b.sellSpeedScore !== a.sellSpeedScore) {
+src/services/opportunityRanking.js:215:    return b.sellSpeedScore - a.sellSpeedScore;
+src/services/opportunityRanking.js:218:  if (b.successProbability !== a.successProbability) {
+src/services/opportunityRanking.js:219:    return b.successProbability - a.successProbability;
+src/services/opportunityRanking.js:245:          safeNumber(item.allocationScore) * 0.35 +
+src/services/opportunityRanking.js:246:            safeNumber(item.executiveBuySignalScore) * 0.22 +
+src/services/opportunityRanking.js:247:            safeNumber(item.marketTimingScore) * 0.15 +
+src/services/opportunityRanking.js:248:            safeNumber(item.capitalEfficiencyScore) * 0.13 +
+src/services/opportunityRanking.js:311:    topOpportunities.some((item) => Number(item.allocationScore || 0) > 0)
+src/services/opportunityRanking.js:345:    topOpportunities.some((item) => Number(item.successProbability || 0) > 0)
+src/services/opportunityRanking.js:360:      (item) => item.speedLabel || Number(item.sellSpeedScore || 0) > 0
+src/services/opportunityRanking.js:370:      (item) => Number(item.capitalEfficiencyScore || 0) > 0
+src/services/opportunityRanking.js:380:      (item) => Number(item.inventoryRiskScore || 0) > 0
+src/services/opportunityRanking.js:390:      (item) => Number(item.marketTimingScore || 0) > 0
+src/services/opportunityRanking.js:468:      `🥇 Mejor oportunidad actual: ${strongest.title} · allocation ${strongest.allocationTier} · score ${strongest.allocationScore}/100 · señal ${strongest.executiveBuySignalLabel} · timing ${strongest.marketTimingLabel} · momentum ${strongest.timelineMomentumLabel}.`
+src/services/aiConfidence.js:4:      confidenceScore: 0,
+src/services/aiConfidence.js:31:  let confidenceScore =
+src/services/aiConfidence.js:37:    confidenceScore += 15;
+src/services/aiConfidence.js:41:    confidenceScore += 10;
+src/services/aiConfidence.js:44:  confidenceScore = clampScore(confidenceScore);
+src/services/aiConfidence.js:48:  if (confidenceScore >= 80) {
+src/services/aiConfidence.js:52:  if (confidenceScore <= 45) {
+src/services/aiConfidence.js:93:    confidenceScore,
+src/services/search/opportunityFinder.js:9:    .sort((a, b) => b.opportunityScore - a.opportunityScore);
+src/services/search/opportunityFinder.js:48:  const opportunityScore = clamp(Math.round(score), 0, 100);
+src/services/search/opportunityFinder.js:52:    opportunityScore,
+src/services/search/opportunityFinder.js:53:    opportunityLevel: getOpportunityLevel(opportunityScore),
+src/services/searchRecommendationEngine.js:81:      const finalScore = Number(item.finalDecision?.finalScore || 0);
+src/services/searchRecommendationEngine.js:82:      const opportunityScore = Number(item.opportunityScore || 0);
+src/services/searchRecommendationEngine.js:90:          finalScore * 0.45 +
+src/services/searchRecommendationEngine.js:91:            opportunityScore * 0.25 +
+src/services/market/realMarketFeed.js:1085:  const finalScore = clamp(score, 0, 100);
+src/services/market/realMarketFeed.js:1086:  const isCompatible = finalScore >= 55;
+src/services/market/realMarketFeed.js:1089:    rejectionReasons.push(`score_bajo: ${finalScore}/100`);
+src/services/market/realMarketFeed.js:1094:    score: finalScore,
+src/services/market/marketMemory.js:294:      confidenceScore: confidence.score,
+src/services/dealDecisionEngine.js:4:      decisionScore: 0,
+src/services/dealDecisionEngine.js:14:    .sort((a, b) => b.decisionScore - a.decisionScore);
+src/services/dealDecisionEngine.js:21:  const decisionScore = calculateGlobalDecisionScore({
+src/services/dealDecisionEngine.js:29:  const decisionLevel = getDecisionLevel(decisionScore);
+src/services/dealDecisionEngine.js:39:    decisionScore,
+src/services/dealDecisionEngine.js:53:  const decisionScore = calculateDecisionScore({ score, roi, profit });
+src/services/dealDecisionEngine.js:54:  const decision = detectDecision({ score, roi, profit, decisionScore });
+src/services/dealDecisionEngine.js:55:  const priority = detectPriority(decision, decisionScore);
+src/services/dealDecisionEngine.js:75:    decisionScore,
+src/services/dealDecisionEngine.js:79:function detectDecision({ score, roi, profit, decisionScore }) {
+src/services/dealDecisionEngine.js:80:  if (score >= 85 && roi >= 25 && profit >= 2500 && decisionScore >= 80) {
+src/services/dealDecisionEngine.js:95:function detectPriority(decision, decisionScore) {
+src/services/dealDecisionEngine.js:97:  if (decision === "Negociar") return decisionScore >= 75 ? "Alta" : "Media";
+src/services/marketKnowledgeBase.js:95:    finalScoreModifier: 4,
+src/services/marketKnowledgeBase.js:99:    finalScoreModifier: -2,
+src/services/marketKnowledgeBase.js:103:    finalScoreModifier: 5,
+src/services/marketKnowledgeBase.js:107:    finalScoreModifier: -8,
+src/services/mockMarketFeed.js:41:      const opportunityScore =
+src/services/mockMarketFeed.js:60:        opportunityScore,
+src/services/mockMarketFeed.js:62:          opportunityScore,
+src/services/mockMarketFeed.js:72:        b.opportunityScore - a.opportunityScore
+src/services/mockMarketFeed.js:257:  opportunityScore,
+src/services/mockMarketFeed.js:264:    opportunityScore >= 90 &&
+src/services/mockMarketFeed.js:272:    opportunityScore >= 82 &&
+src/services/mockMarketFeed.js:279:    opportunityScore >= 68 &&
+src/services/mockMarketFeed.js:292:  if (opportunityScore >= 52) {
+src/services/opportunityAlerts.js:26:        item.decision?.decisionScore ||
+src/services/opportunityAlerts.js:27:          item.decisionScore ||

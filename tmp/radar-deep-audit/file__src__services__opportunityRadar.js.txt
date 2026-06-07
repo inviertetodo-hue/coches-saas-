@@ -1,0 +1,348 @@
+===== FILE: src/services/opportunityRadar.js =====
+     1	export function generateOpportunityRadar(analyses = []) {
+     2	  if (!Array.isArray(analyses) || analyses.length === 0) {
+     3	    return {
+     4	      radarScore: 0,
+     5	      radarLevel: "Sin datos",
+     6	      priorityOpportunities: [],
+     7	      radarInsights: [],
+     8	    };
+     9	  }
+    10	
+    11	  const priorityOpportunities = analyses
+    12	    .filter(Boolean)
+    13	    .map(buildRadarOpportunity)
+    14	    .filter((item) => item.action !== "REJECT")
+    15	    .filter((item) => item.radarPriority >= 45)
+    16	    .sort((a, b) => b.radarPriority - a.radarPriority)
+    17	    .slice(0, 12);
+    18	
+    19	  const radarScore = calculateRadarScore(priorityOpportunities);
+    20	  const radarLevel = buildRadarLevel(radarScore);
+    21	  const radarInsights = buildRadarInsights(priorityOpportunities, radarScore);
+    22	
+    23	  return {
+    24	    radarScore,
+    25	    radarLevel,
+    26	    priorityOpportunities,
+    27	    radarInsights,
+    28	  };
+    29	}
+    30	
+    31	function buildRadarOpportunity(item = {}) {
+    32	  const action = item.decision?.action || item.action || "REJECT";
+    33	
+    34	  const decisionScore = Number(
+    35	    item.decision?.decisionScore ||
+    36	      item.decisionScore ||
+    37	      0
+    38	  );
+    39	
+    40	  const score = Number(
+    41	    item.opportunity?.scoreV2 ??
+    42	      item.opportunity?.opportunityScoreV2 ??
+    43	      item.opportunity?.opportunityScore ??
+    44	      item.score ??
+    45	      0
+    46	  );
+    47	
+    48	  const roi = Number(item.valuation?.roi ?? item.roi ?? 0);
+    49	  const profit = Number(item.valuation?.profit ?? item.profit ?? 0);
+    50	
+    51	  const confidence = Number(
+    52	    item.decision?.confidence?.score ??
+    53	      item.vehicleValuation?.confidence ??
+    54	      item.confidence ??
+    55	      0
+    56	  );
+    57	
+    58	  const comparableCount = Number(
+    59	    item.comparables?.totalComparables ??
+    60	      item.vehicleValuation?.comparableCount ??
+    61	      item.comparableCount ??
+    62	      0
+    63	  );
+    64	
+    65	  const sellSpeedScore = Number(
+    66	    item.sellSpeed?.sellSpeedScore ??
+    67	      item.sellSpeedScore ??
+    68	      0
+    69	  );
+    70	
+    71	  const estimatedSellDays = Number(
+    72	    item.sellSpeed?.estimatedSellDays ??
+    73	      item.estimatedSellDays ??
+    74	      0
+    75	  );
+    76	
+    77	  const discountPercent = Number(
+    78	    item.vehicleValuation?.discountPercent ??
+    79	      item.opportunity?.discountPercent ??
+    80	      item.discountPercent ??
+    81	      0
+    82	  );
+    83	
+    84	  const discoverySignals = buildDiscoverySignals({
+    85	    action,
+    86	    decisionScore,
+    87	    score,
+    88	    roi,
+    89	    profit,
+    90	    confidence,
+    91	    comparableCount,
+    92	    sellSpeedScore,
+    93	    estimatedSellDays,
+    94	    discountPercent,
+    95	  });
+    96	
+    97	  const radarPriority = calculateRadarPriority({
+    98	    action,
+    99	    decisionScore,
+   100	    score,
+   101	    roi,
+   102	    profit,
+   103	    confidence,
+   104	    comparableCount,
+   105	    sellSpeedScore,
+   106	    estimatedSellDays,
+   107	    discountPercent,
+   108	    discoverySignals,
+   109	  });
+   110	
+   111	  return {
+   112	    id: item.id,
+   113	    title:
+   114	      item.title ||
+   115	      `${item.brand || ""} ${item.model || ""}`.trim() ||
+   116	      "Vehículo IA",
+   117	    action,
+   118	    decisionScore,
+   119	    score,
+   120	    roi,
+   121	    profit,
+   122	    confidence,
+   123	    comparableCount,
+   124	    sellSpeedScore,
+   125	    estimatedSellDays,
+   126	    discountPercent,
+   127	    radarPriority,
+   128	    discoverySignals,
+   129	    discoveryLevel: buildDiscoveryLevel(radarPriority),
+   130	    reason: buildRadarReason({
+   131	      action,
+   132	      decisionScore,
+   133	      score,
+   134	      confidence,
+   135	      comparableCount,
+   136	      sellSpeedScore,
+   137	      estimatedSellDays,
+   138	      discountPercent,
+   139	      discoverySignals,
+   140	    }),
+   141	  };
+   142	}
+   143	
+   144	function calculateRadarPriority({
+   145	  action,
+   146	  decisionScore,
+   147	  score,
+   148	  roi,
+   149	  profit,
+   150	  confidence,
+   151	  comparableCount,
+   152	  sellSpeedScore,
+   153	  estimatedSellDays,
+   154	  discountPercent,
+   155	  discoverySignals,
+   156	}) {
+   157	  let priority =
+   158	    decisionScore * 0.42 +
+   159	    score * 0.22 +
+   160	    confidence * 0.14 +
+   161	    sellSpeedScore * 0.12;
+   162	
+   163	  if (roi > 0) priority += Math.min(9, roi * 0.28);
+   164	  if (profit > 0) priority += Math.min(9, profit / 1000);
+   165	
+   166	  if (discountPercent > 0) priority += Math.min(10, discountPercent * 0.9);
+   167	
+   168	  if (comparableCount >= 2) priority += 5;
+   169	  if (comparableCount >= 5) priority += 4;
+   170	
+   171	  if (estimatedSellDays > 0 && estimatedSellDays <= 30) priority += 6;
+   172	  if (estimatedSellDays > 60) priority -= 6;
+   173	
+   174	  if (action === "BUY") priority += 10;
+   175	  if (action === "WATCH") priority += 3;
+   176	
+   177	  const strongSignals = discoverySignals.filter(
+   178	    (signal) => signal.importance === "HIGH"
+   179	  ).length;
+   180	
+   181	  priority += strongSignals * 4;
+   182	
+   183	  return clampScore(priority);
+   184	}
+   185	
+   186	function buildDiscoverySignals({
+   187	  action,
+   188	  decisionScore,
+   189	  score,
+   190	  roi,
+   191	  profit,
+   192	  confidence,
+   193	  comparableCount,
+   194	  sellSpeedScore,
+   195	  estimatedSellDays,
+   196	  discountPercent,
+   197	}) {
+   198	  const signals = [];
+   199	
+   200	  if (action === "BUY") {
+   201	    signals.push({
+   202	      type: "BUY_SIGNAL",
+   203	      importance: "HIGH",
+   204	      label: "BUY confirmado por motor de decisión.",
+   205	    });
+   206	  }
+   207	
+   208	  if (decisionScore >= 85) {
+   209	    signals.push({
+   210	      type: "HIGH_DECISION_SCORE",
+   211	      importance: "HIGH",
+   212	      label: `Decision Score alto: ${decisionScore}/100.`,
+   213	    });
+   214	  }
+   215	
+   216	  if (score >= 85) {
+   217	    signals.push({
+   218	      type: "HIGH_OPPORTUNITY_SCORE",
+   219	      importance: "MEDIUM",
+   220	      label: `Opportunity Score alto: ${score}/100.`,
+   221	    });
+   222	  }
+   223	
+   224	  if (confidence >= 80 && comparableCount >= 2) {
+   225	    signals.push({
+   226	      type: "MARKET_EVIDENCE",
+   227	      importance: "HIGH",
+   228	      label: `Evidencia de mercado fuerte: confianza ${confidence}/100 y ${comparableCount} comparable(s).`,
+   229	    });
+   230	  }
+   231	
+   232	  if (discountPercent >= 8) {
+   233	    signals.push({
+   234	      type: "VALUATION_DISCOUNT",
+   235	      importance: "HIGH",
+   236	      label: `Descuento relevante frente a valoración: ${discountPercent}%.`,
+   237	    });
+   238	  }
+   239	
+   240	  if (roi >= 12 && profit > 0) {
+   241	    signals.push({
+   242	      type: "ROI_PROFIT_SIGNAL",
+   243	      importance: "MEDIUM",
+   244	      label: `ROI ${roi}% con margen positivo.`,
+   245	    });
+   246	  }
+   247	
+   248	  if (sellSpeedScore >= 80 || (estimatedSellDays > 0 && estimatedSellDays <= 30)) {
+   249	    signals.push({
+   250	      type: "FAST_SELL_SIGNAL",
+   251	      importance: "HIGH",
+   252	      label: `Alta rotación prevista: venta estimada en ${estimatedSellDays || "pocos"} días.`,
+   253	    });
+   254	  }
+   255	
+   256	  if (signals.length === 0) {
+   257	    signals.push({
+   258	      type: "OBSERVATION",
+   259	      importance: "LOW",
+   260	      label: "Candidato en observación sin señal dominante.",
+   261	    });
+   262	  }
+   263	
+   264	  return signals;
+   265	}
+   266	
+   267	function calculateRadarScore(opportunities = []) {
+   268	  if (!opportunities.length) return 0;
+   269	
+   270	  const average =
+   271	    opportunities.reduce((acc, item) => acc + item.radarPriority, 0) /
+   272	    opportunities.length;
+   273	
+   274	  return clampScore(average);
+   275	}
+   276	
+   277	function buildRadarLevel(score) {
+   278	  if (score >= 85) return "Alto";
+   279	  if (score >= 65) return "Medio";
+   280	  return "Inicial";
+   281	}
+   282	
+   283	function buildDiscoveryLevel(priority) {
+   284	  if (priority >= 85) return "DISCOVER_NOW";
+   285	  if (priority >= 70) return "HIGH_PRIORITY";
+   286	  if (priority >= 55) return "WATCH_CLOSELY";
+   287	  return "OBSERVE";
+   288	}
+   289	
+   290	function buildRadarInsights(opportunities = [], radarScore = 0) {
+   291	  const insights = [];
+   292	
+   293	  const buyCount = opportunities.filter((item) => item.action === "BUY").length;
+   294	  const fastSellCount = opportunities.filter(
+   295	    (item) => item.sellSpeedScore >= 80 || item.estimatedSellDays <= 30
+   296	  ).length;
+   297	  const strongDiscoveryCount = opportunities.filter(
+   298	    (item) => item.discoveryLevel === "DISCOVER_NOW"
+   299	  ).length;
+   300	
+   301	  if (buyCount > 0) {
+   302	    insights.push(`🚀 ${buyCount} oportunidad(es) BUY detectadas por el motor.`);
+   303	  }
+   304	
+   305	  if (strongDiscoveryCount > 0) {
+   306	    insights.push(`🔥 ${strongDiscoveryCount} oportunidad(es) requieren revisión inmediata.`);
+   307	  }
+   308	
+   309	  if (fastSellCount > 0) {
+   310	    insights.push(`⚡ ${fastSellCount} candidato(s) tienen señal de rotación rápida.`);
+   311	  }
+   312	
+   313	  if (radarScore >= 85) {
+   314	    insights.push("🏆 El radar detecta un mercado especialmente atractivo.");
+   315	  }
+   316	
+   317	  if (!opportunities.length) {
+   318	    insights.push("📡 No existen oportunidades válidas tras aplicar los filtros del motor.");
+   319	  }
+   320	
+   321	  return insights;
+   322	}
+   323	
+   324	function buildRadarReason({
+   325	  action,
+   326	  decisionScore,
+   327	  score,
+   328	  confidence,
+   329	  comparableCount,
+   330	  sellSpeedScore,
+   331	  estimatedSellDays,
+   332	  discountPercent,
+   333	  discoverySignals,
+   334	}) {
+   335	  const mainSignal = discoverySignals[0]?.label || "Señal de radar pendiente.";
+   336	
+   337	  if (action === "BUY") {
+   338	    return `BUY confirmado. Decision Score ${decisionScore}/100, Opportunity Score ${score}/100, confianza ${confidence}/100, ${comparableCount} comparable(s), Sell Speed ${sellSpeedScore}/100 y descuento ${discountPercent}%. ${mainSignal}`;
+   339	  }
+   340	
+   341	  return `WATCH. Requiere validación adicional. Confianza ${confidence}/100, ${comparableCount} comparable(s), venta estimada ${estimatedSellDays || 0} días. ${mainSignal}`;
+   342	}
+   343	
+   344	function clampScore(value) {
+   345	  if (!Number.isFinite(Number(value))) return 0;
+   346	  return Math.max(0, Math.min(100, Math.round(value)));
+   347	}

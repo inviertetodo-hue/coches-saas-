@@ -1,0 +1,29 @@
+===== GIT STATE =====
+feature/scanner-pipeline-v2
+En la rama feature/scanner-pipeline-v2
+Tu rama está actualizada con 'origin/feature/scanner-pipeline-v2'.
+
+Cambios no rastreados para el commit:
+  (usa "git add <archivo>..." para actualizar lo que será confirmado)
+  (usa "git restore <archivo>..." para descartar los cambios en el directorio de trabajo)
+	modificados:     src/services/intelligence/successProbabilityEngine.js
+
+Archivos sin seguimiento:
+  (usa "git add <archivo>..." para incluirlo a lo que será confirmado)
+	dashboard_audit_20260607_120321.zip
+	dashboard_audit_20260607_120321/
+	tmp/
+
+sin cambios agregados al commit (usa "git add" y/o "git commit -a")
+13cbffd checkpoint-before-success-probability-recalibration
+57d6dee add-opportunity-score-v3-modern-quality-ranking
+f27b943 connect-scanner-pipeline-v2-with-net-economic-scoring
+d993ab2 add-equipment-analyzer-to-market-feed
+2fc1387 mark-access-denied-sources-in-feed-diagnostics
+8e126af show-direct-url-coverage-in-feed-diagnostics
+8a0d31f resolve-autoscout-direct-listing-urls
+51bdf30 add-search-url-fallback-for-market-feed-links
+2417dd7 show-market-feed-identity-source
+b12d4ac mark-comparable-valuation-as-provisional
+d0fae91 add-vehicle-reality-filter
+9638498 add-original-listing-link-to-market-feed

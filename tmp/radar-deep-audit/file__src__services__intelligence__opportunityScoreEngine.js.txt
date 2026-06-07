@@ -1,0 +1,179 @@
+===== FILE: src/services/intelligence/opportunityScoreEngine.js =====
+     1	export function buildOpportunityScore(vehicle = {}) {
+     2	  const qualityScore = normalizeScore(vehicle.qualityScore ?? vehicle.quality ?? 0);
+     3	  const roi = normalizeNumber(vehicle.roi);
+     4	  const profit = normalizeNumber(vehicle.profit);
+     5	  const matchScore = normalizeScore(vehicle.matchScore ?? 0);
+     6	  const comparableConfidence = normalizeScore(vehicle.comparableConfidence ?? 0);
+     7	
+     8	  const roiScore = scoreROI(roi);
+     9	  const profitScore = scoreProfit(profit);
+    10	  const confidenceScore = Math.round((qualityScore + matchScore + comparableConfidence) / 3);
+    11	
+    12	  const opportunityScore = clampScore(
+    13	    Math.round(
+    14	      roiScore * 0.35 +
+    15	        profitScore * 0.25 +
+    16	        confidenceScore * 0.30 +
+    17	        qualityScore * 0.10
+    18	    )
+    19	  );
+    20	
+    21	  const riskLevel = detectRiskLevel({
+    22	    opportunityScore,
+    23	    qualityScore,
+    24	    comparableConfidence,
+    25	    roi,
+    26	    profit,
+    27	  });
+    28	
+    29	  const decision = buildDecision({
+    30	    opportunityScore,
+    31	    riskLevel,
+    32	    roi,
+    33	    profit,
+    34	  });
+    35	
+    36	  return {
+    37	    opportunityScore,
+    38	    roiScore,
+    39	    profitScore,
+    40	    confidenceScore,
+    41	    qualityScore,
+    42	    riskLevel,
+    43	    decision,
+    44	    summary: buildSummary({
+    45	      opportunityScore,
+    46	      riskLevel,
+    47	      decision,
+    48	      roi,
+    49	      profit,
+    50	    }),
+    51	  };
+    52	}
+    53	
+    54	export function rankOpportunities(items = []) {
+    55	  return items
+    56	    .filter(Boolean)
+    57	    .map((item) => ({
+    58	      ...item,
+    59	      opportunity: buildOpportunityScore(item),
+    60	    }))
+    61	    .sort(
+    62	      (a, b) =>
+    63	        b.opportunity.opportunityScore - a.opportunity.opportunityScore
+    64	    );
+    65	}
+    66	
+    67	function scoreROI(roi) {
+    68	  if (roi >= 15) return 100;
+    69	  if (roi >= 10) return 90;
+    70	  if (roi >= 7) return 80;
+    71	  if (roi >= 5) return 70;
+    72	  if (roi >= 3) return 60;
+    73	  if (roi >= 1) return 50;
+    74	  if (roi >= 0) return 40;
+    75	  if (roi >= -3) return 25;
+    76	  return 10;
+    77	}
+    78	
+    79	function scoreProfit(profit) {
+    80	  if (profit >= 5000) return 100;
+    81	  if (profit >= 3500) return 90;
+    82	  if (profit >= 2500) return 80;
+    83	  if (profit >= 1500) return 70;
+    84	  if (profit >= 750) return 60;
+    85	  if (profit >= 250) return 50;
+    86	  if (profit >= 0) return 40;
+    87	  if (profit >= -750) return 25;
+    88	  return 10;
+    89	}
+    90	
+    91	function detectRiskLevel({
+    92	  opportunityScore,
+    93	  qualityScore,
+    94	  comparableConfidence,
+    95	  roi,
+    96	  profit,
+    97	}) {
+    98	  if (qualityScore < 60 || comparableConfidence < 60) {
+    99	    return "high";
+   100	  }
+   101	
+   102	  if (roi < 0 || profit < 0) {
+   103	    return "market_observation";
+   104	  }
+   105	
+   106	  if (opportunityScore >= 80) {
+   107	    return "low";
+   108	  }
+   109	
+   110	  if (opportunityScore >= 60) {
+   111	    return "medium";
+   112	  }
+   113	
+   114	  return "high";
+   115	}
+   116	
+   117	function buildDecision({ opportunityScore, riskLevel, roi, profit }) {
+   118	  if (riskLevel === "market_observation") {
+   119	    return "Dato útil de mercado, no oportunidad de compra";
+   120	  }
+   121	
+   122	  if (roi < 0 || profit < 0) {
+   123	    return "No comprar";
+   124	  }
+   125	
+   126	  if (opportunityScore >= 85) {
+   127	    return "Oportunidad fuerte";
+   128	  }
+   129	
+   130	  if (opportunityScore >= 70) {
+   131	    return "Interesante";
+   132	  }
+   133	
+   134	  if (opportunityScore >= 55) {
+   135	    return "Revisar";
+   136	  }
+   137	
+   138	  return "Descartar";
+   139	}
+   140	
+   141	function buildSummary({ opportunityScore, riskLevel, decision, roi, profit }) {
+   142	  return [
+   143	    `Opportunity Score: ${opportunityScore}/100.`,
+   144	    `Decisión: ${decision}.`,
+   145	    `Riesgo: ${formatRisk(riskLevel)}.`,
+   146	    `ROI estimado: ${roi}%.`,
+   147	    `Margen estimado: ${profit} €.`,
+   148	  ].join(" ");
+   149	}
+   150	
+   151	function formatRisk(riskLevel) {
+   152	  const labels = {
+   153	    low: "bajo",
+   154	    medium: "medio",
+   155	    high: "alto",
+   156	    market_observation: "observación de mercado",
+   157	  };
+   158	
+   159	  return labels[riskLevel] || "sin clasificar";
+   160	}
+   161	
+   162	function normalizeScore(value) {
+   163	  return clampScore(Math.round(normalizeNumber(value)));
+   164	}
+   165	
+   166	function normalizeNumber(value) {
+   167	  const numericValue = Number(value);
+   168	
+   169	  if (!Number.isFinite(numericValue)) {
+   170	    return 0;
+   171	  }
+   172	
+   173	  return numericValue;
+   174	}
+   175	
+   176	function clampScore(value) {
+   177	  return Math.max(0, Math.min(100, value));
+   178	}

@@ -1,0 +1,62 @@
+===== PIPELINE ORDER / IMPORTS =====
+src/hooks/useEnrichedMarketFeed.js:6:import { analyzeVehicleMemory } from "../services/vehicleMemoryEngine";
+src/hooks/useEnrichedMarketFeed.js:7:import { analyzeDealRisk } from "../services/dealRiskEngine";
+src/hooks/useEnrichedMarketFeed.js:8:import { buildLiquidityProfile } from "../services/liquidityEngine";
+src/hooks/useEnrichedMarketFeed.js:10:import { buildFinalDealDecision } from "../services/finalDecisionEngine";
+src/hooks/useEnrichedMarketFeed.js:11:import { buildMasterOpportunityPipeline } from "../services/intelligence/masterOpportunityPipelineEngine";
+src/hooks/useEnrichedMarketFeed.js:151:      const modernPipeline = buildMasterOpportunityPipeline(enrichedBaseOpportunities);
+src/services/intelligence/executiveOpportunityReportEngine.js:1:import { buildTopOpportunities } from "./topOpportunitiesEngine";
+src/services/intelligence/portfolioOpportunityEngine.js:1:import { buildOpportunityDecision } from "./opportunityDecisionEngine";
+src/services/intelligence/portfolioOpportunityEngine.js:6:    decision: item.decision || buildOpportunityDecision(item),
+src/services/intelligence/opportunityDecisionEngine.js:1:import { buildOpportunityScore } from "./opportunityScoreEngine";
+src/services/intelligence/opportunityDecisionEngine.js:2:import { buildMarketValuation } from "./marketValuationEngine";
+src/services/intelligence/opportunityDecisionEngine.js:4:export function buildOpportunityDecision(vehicle = {}) {
+src/services/intelligence/opportunityDecisionEngine.js:223:      decision: item.decision || buildOpportunityDecision(item),
+src/services/intelligence/marketTimingEngine.js:1:export function buildMarketTiming({
+src/services/intelligence/successProbabilityEngine.js:1:export function buildSuccessProbability({
+src/services/intelligence/successProbabilityEngine.js:81:      successEngine: buildSuccessProbability({
+src/services/intelligence/decisionPipeline.js:1:import { calculateLearningBonus } from "./marketLearningEngine";
+src/services/intelligence/decisionPipeline.js:2:import { buildSuccessProbability } from "./successProbabilityEngine";
+src/services/intelligence/decisionPipeline.js:3:import { buildExecutiveBuySignal } from "./executiveBuySignalEngine";
+src/services/intelligence/decisionPipeline.js:4:import { buildSellSpeed } from "./sellSpeedEngine";
+src/services/intelligence/decisionPipeline.js:5:import { buildCapitalEfficiency } from "./capitalEfficiencyEngine";
+src/services/intelligence/decisionPipeline.js:6:import { buildInventoryRisk } from "./inventoryRiskEngine";
+src/services/intelligence/decisionPipeline.js:7:import { buildMarketTiming } from "./marketTimingEngine";
+src/services/intelligence/decisionPipeline.js:8:import { buildPortfolioAllocation } from "./portfolioAllocationEngine";
+src/services/intelligence/decisionPipeline.js:11:export function buildDecisionPipeline({
+src/services/intelligence/decisionPipeline.js:105:  const successProbability = buildSuccessProbability({
+src/services/intelligence/decisionPipeline.js:120:  const executiveBuySignal = buildExecutiveBuySignal({
+src/services/intelligence/decisionPipeline.js:128:  const sellSpeed = buildSellSpeed({
+src/services/intelligence/decisionPipeline.js:136:  const capitalEfficiency = buildCapitalEfficiency({
+src/services/intelligence/decisionPipeline.js:145:  const inventoryRisk = buildInventoryRisk({
+src/services/intelligence/decisionPipeline.js:153:  const marketTiming = buildMarketTiming({
+src/services/intelligence/decisionPipeline.js:161:  const portfolioAllocation = buildPortfolioAllocation({
+src/services/intelligence/masterOpportunityPipelineEngine.js:2:import { generateWatchlist } from "../watchlistEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:3:import { buildComparableVehicles } from "./comparableVehiclesEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:4:import { buildDecisionPipeline } from "./decisionPipeline";
+src/services/intelligence/masterOpportunityPipelineEngine.js:9:import { buildMarketValuation } from "./marketValuationEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:10:import { buildOpportunityChanges } from "./opportunityChangeEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:11:import { buildOpportunityDecision } from "./opportunityDecisionEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:12:import { buildOpportunityScore } from "./opportunityScoreEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:13:import { buildPortfolioOpportunity } from "./portfolioOpportunityEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:19:import { buildVehicleValuation } from "./vehicleValuationEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:21:export function buildMasterOpportunityPipeline(records = [], options = {}) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:66:    const opportunity = buildOpportunityScoreV2({
+src/services/intelligence/masterOpportunityPipelineEngine.js:144:    const decisionPipeline = buildDecisionPipeline({
+src/services/intelligence/masterOpportunityPipelineEngine.js:152:    const modernOpportunity = buildModernOpportunityScoreV3({
+src/services/intelligence/masterOpportunityPipelineEngine.js:166:    const decision = buildOpportunityDecision(modernVehicle);
+src/services/intelligence/masterOpportunityPipelineEngine.js:174:  const ranked = [...enriched].sort(sortModernOpportunities);
+src/services/intelligence/masterOpportunityPipelineEngine.js:224:function sortModernOpportunities(a, b) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:255:function buildModernOpportunityScoreV3({
+src/services/intelligence/masterOpportunityPipelineEngine.js:266:  const modernQualityScore = buildModernQualityScore(decisionSignals);
+src/services/intelligence/masterOpportunityPipelineEngine.js:314:function buildModernQualityScore(signals = {}) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:352:function buildOpportunityScoreV2({
+src/services/intelligence/memoryRepository.js:1:import { buildListingIdentity } from "./listingIdentityEngine";
+src/services/intelligence/memoryRepository.js:2:import { buildListingLifecycle, LISTING_STATUS } from "./marketListingLifecycleEngine";
+src/services/intelligence/capitalEfficiencyEngine.js:1:export function buildCapitalEfficiency({
+src/services/intelligence/portfolioAllocationEngine.js:1:export function buildPortfolioAllocation({
+src/services/intelligence/sellSpeedEngine.js:1:export function buildSellSpeed({
+src/services/intelligence/predictiveIntelligenceEngine.js:1:import { buildOpportunityPredictor } from "./opportunityPredictorEngine";
+src/services/intelligence/executiveBuySignalEngine.js:1:export function buildExecutiveBuySignal({
+src/services/intelligence/inventoryRiskEngine.js:1:export function buildInventoryRisk({
+src/services/intelligence/topOpportunitiesEngine.js:1:import { buildOpportunityRanking } from "./opportunityRankingEngine";

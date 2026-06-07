@@ -1,0 +1,59 @@
+===== FILE: src/services/intelligence/portfolioAllocationEngine.js =====
+     1	export function buildPortfolioAllocation({
+     2	  executiveBuySignalScore = 0,
+     3	  marketTimingScore = 0,
+     4	  capitalEfficiencyScore = 0,
+     5	  inventoryRiskScore = 50,
+     6	  successProbability = 0,
+     7	  price = 0,
+     8	  profit = 0,
+     9	} = {}) {
+    10	  let score = 0;
+    11	
+    12	  score += executiveBuySignalScore * 0.30;
+    13	  score += marketTimingScore * 0.25;
+    14	  score += capitalEfficiencyScore * 0.20;
+    15	  score += successProbability * 0.15;
+    16	  score += Math.max(0, 100 - inventoryRiskScore) * 0.10;
+    17	
+    18	  if (profit >= 5000) score += 3;
+    19	  if (profit >= 10000) score += 2;
+    20	
+    21	  if (price >= 60000) score -= 2;
+    22	  if (price >= 100000) score -= 3;
+    23	
+    24	  score = clamp(Math.round(score), 0, 100);
+    25	
+    26	  return {
+    27	    allocationScore: score,
+    28	    allocationTier: getTier(score),
+    29	    summary: buildSummary(score),
+    30	  };
+    31	}
+    32	
+    33	function getTier(score) {
+    34	  if (score >= 85) return "TIER_1";
+    35	  if (score >= 70) return "TIER_2";
+    36	  if (score >= 55) return "TIER_3";
+    37	  return "AVOID";
+    38	}
+    39	
+    40	function buildSummary(score) {
+    41	  if (score >= 85) {
+    42	    return "Prioridad máxima de asignación de capital.";
+    43	  }
+    44	
+    45	  if (score >= 70) {
+    46	    return "Buena utilización potencial del capital.";
+    47	  }
+    48	
+    49	  if (score >= 55) {
+    50	    return "Oportunidad aceptable, pero no prioritaria.";
+    51	  }
+    52	
+    53	  return "No recomendable para asignación de capital.";
+    54	}
+    55	
+    56	function clamp(value, min, max) {
+    57	  return Math.min(Math.max(value, min), max);
+    58	}

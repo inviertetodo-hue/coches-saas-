@@ -1,0 +1,32 @@
+===== BUILD =====
+
+> coches-saas@0.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 230 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.46 kB │ gzip:  0.30 kB
+dist/assets/index-o8rxL2mm.css                       3.92 kB │ gzip:  1.43 kB
+dist/assets/NotFound-DB4220YO.js                     0.58 kB │ gzip:  0.42 kB
+dist/assets/AdvancedIntelligencePanel-B9hBxB2O.js    1.17 kB │ gzip:  0.64 kB
+dist/assets/DataQualityPanel-CWsykbwu.js             1.24 kB │ gzip:  0.63 kB
+dist/assets/AdvancedMetricsPanel-D4rWJxVL.js         1.42 kB │ gzip:  0.69 kB
+dist/assets/DealPipelinePanel-D4s1sIr5.js            2.84 kB │ gzip:  1.09 kB
+dist/assets/PortfolioSimulatorPanel-Dv1-wzc9.js      4.34 kB │ gzip:  1.63 kB
+dist/assets/AIInsightsPanel-Du_3nC5V.js              6.35 kB │ gzip:  2.09 kB
+dist/assets/DealDecisionPanel-Czx2uIzZ.js            6.51 kB │ gzip:  2.10 kB
+dist/assets/WatchlistPanel-I97fQ4GN.js               6.96 kB │ gzip:  2.47 kB
+dist/assets/OpportunityRadarPanel-CTCQ5sGj.js        8.69 kB │ gzip:  2.88 kB
+dist/assets/OpportunityRankingPanel-Dmjjfs-W.js     10.86 kB │ gzip:  3.40 kB
+dist/assets/rankingUtils-Dvq3UpLz.js                32.19 kB │ gzip: 10.21 kB
+dist/assets/Importer-DHjPG3S9.js                    50.31 kB │ gzip: 17.13 kB
+dist/assets/realMarketFeed-BxCthrEq.js              61.88 kB │ gzip: 19.09 kB
+dist/assets/BulkImport-CPf0w694.js                  69.44 kB │ gzip: 18.86 kB
+dist/assets/Scanner-C6s4kDpg.js                     90.59 kB │ gzip: 28.06 kB
+dist/assets/History-CEmxbLZK.js                    106.32 kB │ gzip: 28.05 kB
+dist/assets/profitAnalyzer-CqFw8SGe.js             226.35 kB │ gzip: 59.83 kB
+dist/assets/index-YcX9JtC_.js                      237.95 kB │ gzip: 76.09 kB
+✓ built in 1.01s

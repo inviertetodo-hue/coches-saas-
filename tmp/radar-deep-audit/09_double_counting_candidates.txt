@@ -1,0 +1,60 @@
+===== POSSIBLE DOUBLE COUNTING =====
+src/services/intelligence/marketValuationEngine.js:22:    price > 0 ? Number(((profit / price) * 100).toFixed(2)) : 0;
+src/services/intelligence/marketValuationEngine.js:74:  score += roi * 2;
+src/services/intelligence/intelligenceEngine.js:148:      Math.min(roi, 45) * 0.85 +
+src/services/intelligence/intelligenceEngine.js:149:      Math.min(profit / 100, 45) * 0.45
+src/services/intelligence/intelligenceEngine.js:171:    safeNumber(item.allocationScore) * 0.25 +
+src/services/intelligence/intelligenceEngine.js:172:      safeNumber(item.executiveBuySignalScore) * 0.20 +
+src/services/intelligence/intelligenceEngine.js:173:      safeNumber(item.marketTimingScore) * 0.16 +
+src/services/intelligence/intelligenceEngine.js:174:      safeNumber(item.capitalEfficiencyScore) * 0.16 +
+src/services/intelligence/intelligenceEngine.js:176:      safeNumber(item.successProbability) * 0.08 +
+src/services/intelligence/intelligenceEngine.js:177:      safeNumber(item.decisionScore) * 0.05
+src/services/intelligence/opportunityChampionEngine.js:85:  value += Math.min(roi, 45) * 0.8;
+src/services/intelligence/opportunityChampionEngine.js:87:  value += Math.min(decisionScore, 100) * 0.25;
+src/services/intelligence/opportunityDecisionEngine.js:253:        successProbability * 0.16
+src/services/intelligence/opportunityDecisionEngine.js:258:    score = Math.round(score * 0.72 + executiveBuySignalScore * 0.28);
+src/services/intelligence/opportunityDecisionEngine.js:262:    score = Math.round(score * 0.86 + allocationScore * 0.14);
+src/services/intelligence/opportunityDecisionEngine.js:266:    score = Math.round(score * 0.90 + marketTimingScore * 0.10);
+src/services/intelligence/opportunityDecisionEngine.js:270:    score = Math.round(score * 0.91 + capitalEfficiencyScore * 0.09);
+src/services/intelligence/opportunityDecisionEngine.js:435:      opportunityScoreV2 * 0.20 +
+src/services/intelligence/opportunityDecisionEngine.js:437:      executiveBuySignalScore * 0.08 +
+src/services/intelligence/opportunityDecisionEngine.js:439:      marketTimingScore * 0.04 +
+src/services/intelligence/opportunityDecisionEngine.js:440:      capitalEfficiencyScore * 0.04
+src/services/intelligence/marketTimingEngine.js:10:  score += successProbability * 0.35;
+src/services/intelligence/marketTimingEngine.js:12:  score += capitalEfficiencyScore * 0.20;
+src/services/intelligence/successProbabilityEngine.js:37:  successProbability += executiveScore * 0.22;
+src/services/intelligence/successProbabilityEngine.js:38:  successProbability += buildRoiScore(roi) * 0.36;
+src/services/intelligence/successProbabilityEngine.js:39:  successProbability += buildProfitScore(profit) * 0.32;
+src/services/intelligence/successProbabilityEngine.js:40:  successProbability += confidenceScore * 0.08;
+src/services/intelligence/successProbabilityEngine.js:41:  successProbability += learningBonus * 0.8;
+src/services/intelligence/decisionPipeline.js:87:    roi * 0.95 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:324:      allocationScore * 0.22 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:325:        executiveBuySignalScore * 0.20 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:326:        marketTimingScore * 0.18 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:327:        capitalEfficiencyScore * 0.16 +
+src/services/intelligence/masterOpportunityPipelineEngine.js:329:        successProbability * 0.14
+src/services/intelligence/masterOpportunityPipelineEngine.js:373:  score += Math.min(18, Math.max(-18, roi * 2));
+src/services/intelligence/capitalEfficiencyEngine.js:22:  const annualizedProfitPotential = Math.round(profitPerDay * 365);
+src/services/intelligence/capitalEfficiencyEngine.js:26:  capitalEfficiencyScore += Math.min(expectedROI * 2.2, 28);
+src/services/intelligence/capitalEfficiencyEngine.js:27:  capitalEfficiencyScore += Math.min(profitPerThousand * 2.6, 24);
+src/services/intelligence/capitalEfficiencyEngine.js:28:  capitalEfficiencyScore += capitalVelocity * 0.22;
+src/services/intelligence/capitalEfficiencyEngine.js:29:  capitalEfficiencyScore += successScore * 0.18;
+src/services/intelligence/capitalEfficiencyEngine.js:30:  capitalEfficiencyScore += executiveScore * 0.12;
+src/services/intelligence/opportunityScoreEngine.js:14:      roiScore * 0.35 +
+src/services/intelligence/opportunityScoreEngine.js:15:        profitScore * 0.25 +
+src/services/intelligence/portfolioAllocationEngine.js:12:  score += executiveBuySignalScore * 0.30;
+src/services/intelligence/portfolioAllocationEngine.js:13:  score += marketTimingScore * 0.25;
+src/services/intelligence/portfolioAllocationEngine.js:14:  score += capitalEfficiencyScore * 0.20;
+src/services/intelligence/portfolioAllocationEngine.js:15:  score += successProbability * 0.15;
+src/services/intelligence/executiveBuySignalEngine.js:16:    executiveScore * 0.30 +
+src/services/intelligence/executiveBuySignalEngine.js:17:    successProbability * 0.30 +
+src/services/intelligence/inventoryRiskEngine.js:18:  riskScore += Math.max(0, 100 - capitalEfficiency) * 0.12;
+src/services/intelligence/opportunityRankingEngine.js:142:      ? decisionScore * 0.55 + opportunityScore * 0.30 + valuationScore * 0.15
+src/services/intelligence/opportunityRankingEngine.js:143:      : opportunityScore * 0.55 + valuationScore * 0.25 + confidence * 0.20;
+src/services/intelligence/opportunityRankingEngine.js:145:  if (roi > 0) score += Math.min(10, roi * 0.5);
+src/services/opportunityRadar.js:158:    decisionScore * 0.42 +
+src/services/opportunityRadar.js:163:  if (roi > 0) priority += Math.min(9, roi * 0.28);
+src/services/opportunityRanking.js:245:          safeNumber(item.allocationScore) * 0.35 +
+src/services/opportunityRanking.js:246:            safeNumber(item.executiveBuySignalScore) * 0.22 +
+src/services/opportunityRanking.js:247:            safeNumber(item.marketTimingScore) * 0.15 +
+src/services/opportunityRanking.js:248:            safeNumber(item.capitalEfficiencyScore) * 0.13 +

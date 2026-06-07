@@ -1,0 +1,189 @@
+===== FILE: src/components/scanner/BestOpportunityCard.jsx =====
+     1	import { getDecisionTheme } from "../../services/decisionBadgeTheme";
+     2	
+     3	export default function BestOpportunityCard({ best }) {
+     4	  if (!best) return null;
+     5	
+     6	  return (
+     7	    <div style={bestDealStyle}>
+     8	      <p style={bestDealLabelStyle}>🏆 Mejor oportunidad detectada</p>
+     9	
+    10	      <h3 style={bestDealTitleStyle}>{best.title}</h3>
+    11	
+    12	      <div
+    13	        style={{
+    14	          ...bestDecisionBadgeStyle,
+    15	          ...getDecisionTheme(best.finalDecision?.label),
+    16	        }}
+    17	      >
+    18	        {best.finalDecision?.label}
+    19	      </div>
+    20	
+    21	      <p style={marketInsightStyle}>{best.finalDecision?.explanation}</p>
+    22	
+    23	      <div style={bestDealGridStyle}>
+    24	        <MetricCard
+    25	          label="Score final"
+    26	          value={`${best.finalDecision?.finalScore || 0}/100`}
+    27	        />
+    28	
+    29	        <MetricCard
+    30	          label="Margen Neto"
+    31	          value={`${best.netProfit.toLocaleString("es-ES")} €`}
+    32	        />
+    33	
+    34	        <MetricCard
+    35	          label="Liquidez"
+    36	          value={`${best.liquidity?.liquidityScore || 0}/100`}
+    37	        />
+    38	
+    39	        <MetricCard
+    40	          label="Riesgo real"
+    41	          value={best.dealRisk?.level || "Medio"}
+    42	        />
+    43	      </div>
+    44	
+    45	      <div style={liquidityBoxStyle}>
+    46	        <h4 style={miniTitleStyle}>💧 Liquidez estimada</h4>
+    47	
+    48	        <div style={marketGridStyle}>
+    49	          <SmallMetric
+    50	            label="Venta estimada"
+    51	            value={`${best.liquidity?.expectedDaysToSell || 0} días`}
+    52	          />
+    53	
+    54	          <SmallMetric
+    55	            label="Compradores"
+    56	            value={best.liquidity?.buyerPool || "Medio"}
+    57	          />
+    58	        </div>
+    59	
+    60	        <p style={marketInsightStyle}>{best.liquidity?.summary}</p>
+    61	      </div>
+    62	
+    63	      <div style={riskBoxStyle}>
+    64	        <h4 style={miniTitleStyle}>🛡️ Lectura de riesgo</h4>
+    65	
+    66	        <p style={marketInsightStyle}>{best.dealRisk?.recommendation}</p>
+    67	      </div>
+    68	    </div>
+    69	  );
+    70	}
+    71	
+    72	function MetricCard({ label, value }) {
+    73	  return (
+    74	    <div style={metricCardStyle}>
+    75	      <p style={metricLabelStyle}>{label}</p>
+    76	      <h3 style={metricValueStyle}>{value}</h3>
+    77	    </div>
+    78	  );
+    79	}
+    80	
+    81	function SmallMetric({ label, value }) {
+    82	  return (
+    83	    <div style={smallMetricStyle}>
+    84	      <p style={smallMetricLabelStyle}>{label}</p>
+    85	      <strong style={smallMetricValueStyle}>{value}</strong>
+    86	    </div>
+    87	  );
+    88	}
+    89	
+    90	const bestDealStyle = {
+    91	  marginTop: "30px",
+    92	  padding: "24px",
+    93	  borderRadius: "24px",
+    94	  background:
+    95	    "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(59,130,246,0.14))",
+    96	};
+    97	
+    98	const bestDealLabelStyle = {
+    99	  color: "#86efac",
+   100	  fontWeight: "900",
+   101	};
+   102	
+   103	const bestDealTitleStyle = {
+   104	  fontSize: "28px",
+   105	};
+   106	
+   107	const bestDecisionBadgeStyle = {
+   108	  display: "inline-block",
+   109	  marginTop: "14px",
+   110	  marginBottom: "14px",
+   111	  padding: "12px 18px",
+   112	  borderRadius: "999px",
+   113	  fontWeight: "900",
+   114	};
+   115	
+   116	const bestDealGridStyle = {
+   117	  display: "grid",
+   118	  gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
+   119	  gap: "14px",
+   120	  marginTop: "22px",
+   121	};
+   122	
+   123	const metricCardStyle = {
+   124	  background: "rgba(2,6,23,0.55)",
+   125	  borderRadius: "18px",
+   126	  padding: "18px",
+   127	};
+   128	
+   129	const metricLabelStyle = {
+   130	  color: "#cbd5e1",
+   131	};
+   132	
+   133	const metricValueStyle = {
+   134	  fontSize: "26px",
+   135	};
+   136	
+   137	const liquidityBoxStyle = {
+   138	  marginTop: "18px",
+   139	  padding: "18px",
+   140	  borderRadius: "20px",
+   141	  background: "rgba(14,165,233,0.10)",
+   142	  border: "1px solid rgba(14,165,233,0.22)",
+   143	};
+   144	
+   145	const riskBoxStyle = {
+   146	  marginTop: "18px",
+   147	  padding: "18px",
+   148	  borderRadius: "20px",
+   149	  background: "rgba(245,158,11,0.10)",
+   150	  border: "1px solid rgba(245,158,11,0.22)",
+   151	};
+   152	
+   153	const miniTitleStyle = {
+   154	  marginTop: 0,
+   155	  marginBottom: "14px",
+   156	  fontSize: "15px",
+   157	};
+   158	
+   159	const marketGridStyle = {
+   160	  display: "grid",
+   161	  gridTemplateColumns: "1fr 1fr",
+   162	  gap: "10px",
+   163	};
+   164	
+   165	const smallMetricStyle = {
+   166	  background: "rgba(2,6,23,0.45)",
+   167	  borderRadius: "14px",
+   168	  padding: "12px",
+   169	};
+   170	
+   171	const smallMetricLabelStyle = {
+   172	  color: "#cbd5e1",
+   173	  fontSize: "12px",
+   174	  margin: 0,
+   175	};
+   176	
+   177	const smallMetricValueStyle = {
+   178	  display: "block",
+   179	  marginTop: "8px",
+   180	  fontSize: "16px",
+   181	};
+   182	
+   183	const marketInsightStyle = {
+   184	  marginBottom: 0,
+   185	  color: "#e5e7eb",
+   186	  lineHeight: "1.55",
+   187	  fontSize: "14px",
+   188	};

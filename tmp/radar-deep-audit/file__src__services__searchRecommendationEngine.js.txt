@@ -1,0 +1,303 @@
+===== FILE: src/services/searchRecommendationEngine.js =====
+     1	const AVOID_LANES = [
+     2	  {
+     3	    id: "too-cheap-listings",
+     4	    label: "Anuncios demasiado baratos",
+     5	    risk: "Muy alto",
+     6	    reason:
+     7	      "Un precio excesivamente bajo puede esconder daños, fraude, historial incompleto, impuestos pendientes o datos inconsistentes.",
+     8	  },
+     9	  {
+    10	    id: "low-data-cars",
+    11	    label: "Coches sin datos suficientes",
+    12	    risk: "Alto",
+    13	    reason:
+    14	      "Sin kilómetros, año, versión, historial o equipamiento claro, la IA debe bajar confianza y evitar recomendar compra agresiva.",
+    15	  },
+    16	  {
+    17	    id: "negative-margin",
+    18	    label: "Operaciones con margen neto negativo",
+    19	    risk: "Crítico",
+    20	    reason:
+    21	      "Aunque el coche parezca barato, si el margen neto calculado es negativo o muy bajo, no debe priorizarse para compra.",
+    22	  },
+    23	  {
+    24	    id: "slow-luxury",
+    25	    label: "Lujo caro de baja rotación",
+    26	    risk: "Medio-alto",
+    27	    reason:
+    28	      "Puede inmovilizar capital durante demasiado tiempo aunque parezca barato frente a mercado.",
+    29	  },
+    30	];
+    31	
+    32	export function buildSearchRecommendations(input = {}) {
+    33	  const form = input.form || {};
+    34	  const scan = input.scan || {};
+    35	  const marketFeed = input.marketFeed || null;
+    36	
+    37	  const queryLabel = cleanLabel(form.query || scan.query || "vehículo buscado");
+    38	  const country = form.country || "Europa";
+    39	  const useCase = form.useCase || "reventa";
+    40	
+    41	  const liveOpportunities = Array.isArray(marketFeed?.opportunities)
+    42	    ? marketFeed.opportunities
+    43	    : [];
+    44	
+    45	  const realRecommendations = buildRecommendationsFromMarketFeed({
+    46	    opportunities: liveOpportunities,
+    47	    queryLabel,
+    48	    country,
+    49	    useCase,
+    50	  });
+    51	
+    52	  const recommendedSearches =
+    53	    realRecommendations.length > 0
+    54	      ? realRecommendations
+    55	      : buildFallbackRecommendations({ queryLabel, country, useCase });
+    56	
+    57	  const topSearch = recommendedSearches[0];
+    58	
+    59	  return {
+    60	    summary: buildSummary({
+    61	      topSearch,
+    62	      queryLabel,
+    63	      country,
+    64	      useCase,
+    65	      hasRealData: realRecommendations.length > 0,
+    66	    }),
+    67	    recommendedSearches,
+    68	    avoidSearches: buildAvoidRecommendations({ scan, useCase }),
+    69	  };
+    70	}
+    71	
+    72	function buildRecommendationsFromMarketFeed({
+    73	  opportunities,
+    74	  queryLabel,
+    75	  country,
+    76	}) {
+    77	  return opportunities
+    78	    .filter((item) => item && item.title && item.price && (item.km || item.mileage) && item.year)
+    79	    .filter((item) => !isNoiseTitle(item.title))
+    80	    .map((item, index) => {
+    81	      const finalScore = Number(item.finalDecision?.finalScore || 0);
+    82	      const opportunityScore = Number(item.opportunityScore || 0);
+    83	      const liquidityScore = Number(item.liquidity?.liquidityScore || 0);
+    84	      const riskScore = Number(item.dealRisk?.riskScore || 0);
+    85	      const netRoi = Number(item.netRoi || 0);
+    86	      const netProfit = Number(item.netProfit || 0);
+    87	
+    88	      const priority = clamp(
+    89	        Math.round(
+    90	          finalScore * 0.45 +
+    91	            opportunityScore * 0.25 +
+    92	            liquidityScore * 0.15 +
+    93	            Math.max(0, 100 - riskScore) * 0.10 +
+    94	            Math.min(Math.max(netRoi, 0), 20) * 0.25
+    95	        ),
+    96	        1,
+    97	        100
+    98	      );
+    99	
+   100	      return {
+   101	        id: item.id || `real-opportunity-${index}`,
+   102	        label: item.title || queryLabel,
+   103	        segment: "real-market-opportunity",
+   104	        priority,
+   105	        liquidity: item.liquidity?.demand || scoreToLiquidity(liquidityScore),
+   106	        risk: item.dealRisk?.level || scoreToRisk(riskScore),
+   107	        marginPotential: marginToLabel({ netProfit, netRoi }),
+   108	        budgetTarget: formatVehicleBudget(item.price),
+   109	        countriesTarget: [item.country || country || "Europa"],
+   110	        isDirectMatch: true,
+   111	        reason: buildRealReason({ item, netProfit, netRoi, riskScore, liquidityScore }),
+   112	      };
+   113	    })
+   114	    .sort((a, b) => b.priority - a.priority)
+   115	    .slice(0, 6);
+   116	}
+   117	
+   118	function buildFallbackRecommendations({ queryLabel, country }) {
+   119	  return [
+   120	    {
+   121	      id: "fallback-current-query",
+   122	      label: queryLabel,
+   123	      segment: "current-search",
+   124	      priority: 70,
+   125	      liquidity: "Pendiente",
+   126	      risk: "Pendiente",
+   127	      marginPotential: "Pendiente",
+   128	      budgetTarget: "Según presupuesto",
+   129	      countriesTarget: [country || "Europa"],
+   130	      isDirectMatch: true,
+   131	      reason:
+   132	        "Todavía no hay suficientes anuncios reales compatibles para priorizar oportunidades. Conviene revisar diagnóstico del feed y ampliar fuentes reales.",
+   133	    },
+   134	  ];
+   135	}
+   136	
+   137	function buildRealReason({ item, netProfit, netRoi, riskScore, liquidityScore }) {
+   138	  const price = Number(item.price || 0);
+   139	  const km = Number(item.km || item.mileage || 0);
+   140	  const year = item.year || "año no detectado";
+   141	
+   142	  const parts = [];
+   143	
+   144	  parts.push(
+   145	    `${item.source || "Fuente real"} detecta este vehículo con precio ${formatMoney(price)}, año ${year} y ${formatKm(km)}.`
+   146	  );
+   147	
+   148	  if (Number.isFinite(netProfit)) {
+   149	    parts.push(`Margen neto estimado: ${formatMoney(netProfit)}.`);
+   150	  }
+   151	
+   152	  if (Number.isFinite(netRoi)) {
+   153	    parts.push(`ROI estimado: ${netRoi}%.`);
+   154	  }
+   155	
+   156	  if (liquidityScore > 0) {
+   157	    parts.push(`Liquidez estimada: ${liquidityScore}/100.`);
+   158	  }
+   159	
+   160	  if (riskScore >= 50) {
+   161	    parts.push("Riesgo elevado: validar historial, daños, impuestos y costes antes de contactar.");
+   162	  } else {
+   163	    parts.push("Riesgo controlado si documentación, historial y estado cuadran.");
+   164	  }
+   165	
+   166	  return parts.join(" ");
+   167	}
+   168	
+   169	function buildAvoidRecommendations({ scan, useCase }) {
+   170	  const recommendations = [...AVOID_LANES];
+   171	
+   172	  if (scan.semantic?.isPerformance) {
+   173	    recommendations.unshift({
+   174	      id: "performance-warning",
+   175	      label: "Performance premium con score artificialmente alto",
+   176	      risk: "Alto",
+   177	      reason:
+   178	        "Si el coche es muy prestacional, exige más margen de seguridad porque la salida puede ser lenta y el mantenimiento pesa más.",
+   179	    });
+   180	  }
+   181	
+   182	  if (useCase === "reventa") {
+   183	    recommendations.unshift({
+   184	      id: "low-roi-warning",
+   185	      label: "ROI bajo aunque el score sea alto",
+   186	      risk: "Medio",
+   187	      reason:
+   188	        "Para reventa, prioriza oportunidades con margen neto real y no solo buen precio aparente frente al mercado.",
+   189	    });
+   190	  }
+   191	
+   192	  return recommendations.slice(0, 5);
+   193	}
+   194	
+   195	function buildSummary({
+   196	  topSearch,
+   197	  queryLabel,
+   198	  country,
+   199	  useCase,
+   200	  hasRealData,
+   201	}) {
+   202	  if (!topSearch) {
+   203	    return "No hay suficientes datos para priorizar oportunidades todavía.";
+   204	  }
+   205	
+   206	  const objective =
+   207	    useCase === "quedarmelo" ? "compra segura" : "reventa con margen";
+   208	
+   209	  if (hasRealData) {
+   210	    return `Radar IA está priorizando oportunidades reales encontradas para ${queryLabel} en ${country}. Mejor candidata actual: ${topSearch.label}, prioridad ${topSearch.priority}/100, liquidez ${String(topSearch.liquidity).toLowerCase()} y riesgo ${String(topSearch.risk).toLowerCase()}.`;
+   211	  }
+   212	
+   213	  return `Radar IA no tiene aún suficientes anuncios reales compatibles para ${queryLabel}. Mantiene una recomendación provisional para ${objective} en ${country}.`;
+   214	}
+   215	
+   216	function isNoiseTitle(title = "") {
+   217	  const text = normalizeText(title);
+   218	
+   219	  const noiseTerms = [
+   220	    "häufige fragen",
+   221	    "haeufige fragen",
+   222	    "preguntas frecuentes",
+   223	    "faq",
+   224	    "autoscout24",
+   225	    "anuncios de",
+   226	    "coches similares",
+   227	    "vehiculos similares",
+   228	    "financiacion",
+   229	    "precio justo",
+   230	    "super oferta",
+   231	    "sin comparacion",
+   232	  ];
+   233	
+   234	  return noiseTerms.some((term) => text.includes(normalizeText(term)));
+   235	}
+   236	
+   237	function scoreToLiquidity(score) {
+   238	  if (score >= 85) return "Muy alta";
+   239	  if (score >= 75) return "Alta";
+   240	  if (score >= 60) return "Media";
+   241	  return "Baja";
+   242	}
+   243	
+   244	function scoreToRisk(score) {
+   245	  if (score >= 70) return "Crítico";
+   246	  if (score >= 50) return "Alto";
+   247	  if (score >= 25) return "Medio";
+   248	  return "Bajo";
+   249	}
+   250	
+   251	function marginToLabel({ netProfit, netRoi }) {
+   252	  if (netProfit >= 3000 || netRoi >= 10) return "Alto";
+   253	  if (netProfit >= 1500 || netRoi >= 6) return "Medio-alto";
+   254	  if (netProfit >= 500 || netRoi >= 3) return "Medio";
+   255	  if (netProfit > 0) return "Bajo";
+   256	  return "Negativo";
+   257	}
+   258	
+   259	function formatVehicleBudget(price) {
+   260	  const value = Number(price || 0);
+   261	
+   262	  if (!Number.isFinite(value) || value <= 0) {
+   263	    return "Sin precio fiable";
+   264	  }
+   265	
+   266	  const min = Math.max(0, Math.round(value * 0.92));
+   267	  const max = Math.round(value * 1.05);
+   268	
+   269	  return `${min.toLocaleString("es-ES")} € - ${max.toLocaleString("es-ES")} €`;
+   270	}
+   271	
+   272	function formatMoney(value) {
+   273	  const number = Number(value || 0);
+   274	
+   275	  return `${Math.round(number).toLocaleString("es-ES")} €`;
+   276	}
+   277	
+   278	function formatKm(value) {
+   279	  const number = Number(value || 0);
+   280	
+   281	  if (!Number.isFinite(number) || number <= 0) return "km no detectados";
+   282	
+   283	  return `${Math.round(number).toLocaleString("es-ES")} km`;
+   284	}
+   285	
+   286	function cleanLabel(value) {
+   287	  return String(value || "")
+   288	    .replace(/^https?:\/\/\S+/i, "vehículo buscado")
+   289	    .trim();
+   290	}
+   291	
+   292	function normalizeText(value) {
+   293	  return String(value)
+   294	    .toLowerCase()
+   295	    .normalize("NFD")
+   296	    .replace(/[\u0300-\u036f]/g, "")
+   297	    .trim();
+   298	}
+   299	
+   300	function clamp(value, min, max) {
+   301	  return Math.min(Math.max(value, min), max);
+   302	}

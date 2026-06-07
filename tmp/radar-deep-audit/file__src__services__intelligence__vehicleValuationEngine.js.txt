@@ -1,0 +1,399 @@
+===== FILE: src/services/intelligence/vehicleValuationEngine.js =====
+     1	export function buildVehicleValuation(vehicle = {}, memoryRecords = [], options = {}) {
+     2	  const comparableRecords = resolveComparableRecords(vehicle, memoryRecords, options);
+     3	
+     4	  const price = toNumber(vehicle.price);
+     5	  const marketValue = calculateEstimatedMarketValue(vehicle, comparableRecords);
+     6	  const discountAmount = Math.round(marketValue - price);
+     7	  const discountPercent =
+     8	    price > 0 ? Number(((discountAmount / price) * 100).toFixed(2)) : 0;
+     9	
+    10	  const confidence = calculateValuationConfidence({
+    11	    vehicle,
+    12	    comparableRecords,
+    13	    marketValue,
+    14	    comparableQuality: options.comparables?.quality,
+    15	  });
+    16	
+    17	  const opportunityLevel = buildOpportunityLevel({
+    18	    discountPercent,
+    19	    confidence,
+    20	    comparableCount: comparableRecords.length,
+    21	  });
+    22	
+    23	  return {
+    24	    brand: vehicle.brand || "",
+    25	    model: vehicle.model || "",
+    26	    year: vehicle.year || null,
+    27	    price,
+    28	    estimatedMarketValue: marketValue,
+    29	    discountAmount,
+    30	    discountPercent,
+    31	    comparableCount: comparableRecords.length,
+    32	    confidence,
+    33	    opportunityLevel,
+    34	    comparableQuality: options.comparables?.quality || null,
+    35	    summary: buildSummary({
+    36	      vehicle,
+    37	      price,
+    38	      marketValue,
+    39	      discountAmount,
+    40	      discountPercent,
+    41	      confidence,
+    42	      opportunityLevel,
+    43	      comparableCount: comparableRecords.length,
+    44	    }),
+    45	    comparables: comparableRecords.slice(0, 10),
+    46	  };
+    47	}
+    48	
+    49	export function buildVehicleValuationBatch(vehicles = [], memoryRecords = []) {
+    50	  const valuations = vehicles
+    51	    .filter(Boolean)
+    52	    .map((vehicle) => buildVehicleValuation(vehicle, memoryRecords));
+    53	
+    54	  const highOpportunities = valuations.filter(
+    55	    (item) => item.opportunityLevel === "HIGH"
+    56	  );
+    57	
+    58	  const mediumOpportunities = valuations.filter(
+    59	    (item) => item.opportunityLevel === "MEDIUM"
+    60	  );
+    61	
+    62	  const lowOpportunities = valuations.filter(
+    63	    (item) => item.opportunityLevel === "LOW"
+    64	  );
+    65	
+    66	  return {
+    67	    total: valuations.length,
+    68	    high: highOpportunities.length,
+    69	    medium: mediumOpportunities.length,
+    70	    low: lowOpportunities.length,
+    71	    valuations,
+    72	    topValuations: [...valuations]
+    73	      .sort((a, b) => b.discountPercent - a.discountPercent)
+    74	      .slice(0, 10),
+    75	  };
+    76	}
+    77	
+    78	function resolveComparableRecords(vehicle = {}, memoryRecords = [], options = {}) {
+    79	  const externalComparables = Array.isArray(options.comparables?.bestComparables)
+    80	    ? options.comparables.bestComparables
+    81	    : [];
+    82	
+    83	  if (externalComparables.length > 0) {
+    84	    return externalComparables
+    85	      .filter((record) => isRealValuationRecord(record))
+    86	      .sort((a, b) => {
+    87	        const scoreA = toNumber(a.comparableQualityScore ?? a.comparableScore);
+    88	        const scoreB = toNumber(b.comparableQualityScore ?? b.comparableScore);
+    89	
+    90	        if (scoreB !== scoreA) {
+    91	          return scoreB - scoreA;
+    92	        }
+    93	
+    94	        return toTimestamp(b.savedAt || b.created_at || b.updated_at) -
+    95	          toTimestamp(a.savedAt || a.created_at || a.updated_at);
+    96	      });
+    97	  }
+    98	
+    99	  return findComparableRecords(vehicle, memoryRecords);
+   100	}
+   101	
+   102	function findComparableRecords(vehicle = {}, memoryRecords = []) {
+   103	  const brand = normalize(vehicle.brand);
+   104	  const model = normalize(vehicle.model);
+   105	  const year = toNumber(vehicle.year);
+   106	
+   107	  return memoryRecords
+   108	    .filter((record) => isComparable(record, { brand, model, year }))
+   109	    .sort((a, b) => {
+   110	      const yearDistanceA = Math.abs(toNumber(a.year) - year);
+   111	      const yearDistanceB = Math.abs(toNumber(b.year) - year);
+   112	
+   113	      if (yearDistanceA !== yearDistanceB) {
+   114	        return yearDistanceA - yearDistanceB;
+   115	      }
+   116	
+   117	      return (
+   118	        toTimestamp(b.savedAt || b.created_at || b.updated_at) -
+   119	        toTimestamp(a.savedAt || a.created_at || a.updated_at)
+   120	      );
+   121	    });
+   122	}
+   123	
+   124	function isComparable(record = {}, target = {}) {
+   125	  if (!record) return false;
+   126	
+   127	  const status = String(record.status || "ACTIVE").toUpperCase();
+   128	
+   129	  if (status !== "ACTIVE") return false;
+   130	
+   131	  if (!isRealValuationRecord(record)) return false;
+   132	
+   133	  if (normalize(record.brand) !== target.brand) return false;
+   134	  if (normalize(record.model) !== target.model) return false;
+   135	
+   136	  const recordYear = toNumber(record.year);
+   137	
+   138	  if (target.year > 0 && recordYear > 0) {
+   139	    return Math.abs(recordYear - target.year) <= 2;
+   140	  }
+   141	
+   142	  return true;
+   143	}
+   144	
+   145	function isRealValuationRecord(record = {}) {
+   146	  const sourceMode = normalize(record.sourceMode);
+   147	
+   148	  const blockedSourceModes = new Set([
+   149	    "mock-fallback",
+   150	    "mock-fallback-ranking",
+   151	    "review",
+   152	    "unresolved-url-query",
+   153	    "brand-url-query",
+   154	    "semantic-url-query",
+   155	    "ready_for_live_feed",
+   156	    "missing_model",
+   157	    "insufficient_query",
+   158	  ]);
+   159	
+   160	  if (blockedSourceModes.has(sourceMode)) return false;
+   161	  if (record.needsLiveMarketFeed) return false;
+   162	  if (record.isRealMarketData === false) return false;
+   163	
+   164	  const brand = normalize(record.brand);
+   165	  const model = normalize(record.model);
+   166	  const year = toNumber(record.year);
+   167	  const price = toNumber(record.price);
+   168	  const km = toNumber(record.km ?? record.mileage);
+   169	
+   170	  if (!brand || !model) return false;
+   171	  if (model === "gama") return false;
+   172	  if (year <= 0 || price <= 0 || km <= 0) return false;
+   173	
+   174	  return true;
+   175	}
+   176	
+   177	function calculateEstimatedMarketValue(vehicle = {}, comparableRecords = []) {
+   178	  const price = toNumber(vehicle.price);
+   179	
+   180	  if (!comparableRecords.length) {
+   181	    return fallbackMarketValue(vehicle);
+   182	  }
+   183	
+   184	  const weightedValues = comparableRecords.map((record) => {
+   185	    const comparablePrice = toNumber(record.price);
+   186	    const weight = calculateComparableWeight(vehicle, record);
+   187	
+   188	    return {
+   189	      value: comparablePrice,
+   190	      weight,
+   191	    };
+   192	  });
+   193	
+   194	  const totalWeight = weightedValues.reduce((sum, item) => sum + item.weight, 0);
+   195	
+   196	  if (totalWeight <= 0) {
+   197	    return fallbackMarketValue(vehicle);
+   198	  }
+   199	
+   200	  const weightedAverage =
+   201	    weightedValues.reduce((sum, item) => sum + item.value * item.weight, 0) /
+   202	    totalWeight;
+   203	
+   204	  if (!Number.isFinite(weightedAverage) || weightedAverage <= 0) {
+   205	    return fallbackMarketValue(vehicle);
+   206	  }
+   207	
+   208	  if (price > 0) {
+   209	    const minimumReasonableValue = price * 0.75;
+   210	    const maximumReasonableValue = price * 1.35;
+   211	
+   212	    return Math.round(
+   213	      Math.max(
+   214	        minimumReasonableValue,
+   215	        Math.min(maximumReasonableValue, weightedAverage)
+   216	      )
+   217	    );
+   218	  }
+   219	
+   220	  return Math.round(weightedAverage);
+   221	}
+   222	
+   223	function fallbackMarketValue(vehicle = {}) {
+   224	  const price = toNumber(vehicle.price);
+   225	
+   226	  if (price <= 0) return 0;
+   227	
+   228	  return Math.round(price * 1.05);
+   229	}
+   230	
+   231	function calculateComparableWeight(vehicle = {}, record = {}) {
+   232	  let weight = 1;
+   233	
+   234	  const comparableQualityScore = toNumber(
+   235	    record.comparableQualityScore ?? record.comparableScore
+   236	  );
+   237	
+   238	  if (comparableQualityScore >= 85) weight += 2;
+   239	  if (comparableQualityScore >= 75) weight += 1.4;
+   240	  if (comparableQualityScore >= 65) weight += 0.8;
+   241	  if (comparableQualityScore > 0 && comparableQualityScore < 55) weight -= 0.8;
+   242	
+   243	  const vehicleYear = toNumber(vehicle.year);
+   244	  const recordYear = toNumber(record.year);
+   245	
+   246	  if (vehicleYear > 0 && recordYear > 0) {
+   247	    const yearDistance = Math.abs(vehicleYear - recordYear);
+   248	
+   249	    if (yearDistance === 0) weight += 2;
+   250	    if (yearDistance === 1) weight += 1;
+   251	    if (yearDistance >= 2) weight -= 0.3;
+   252	  }
+   253	
+   254	  const vehicleKm = toNumber(vehicle.km ?? vehicle.mileage);
+   255	  const recordKm = toNumber(record.km ?? record.mileage);
+   256	
+   257	  if (vehicleKm > 0 && recordKm > 0) {
+   258	    const kmDistance = Math.abs(vehicleKm - recordKm);
+   259	
+   260	    if (kmDistance <= 15000) weight += 1;
+   261	    if (kmDistance <= 30000) weight += 0.5;
+   262	    if (kmDistance > 70000) weight -= 0.4;
+   263	  }
+   264	
+   265	  const confidence = toNumber(record.comparableConfidence);
+   266	
+   267	  if (confidence >= 85) weight += 1;
+   268	  if (confidence >= 75) weight += 0.5;
+   269	  if (confidence > 0 && confidence < 60) weight -= 0.5;
+   270	
+   271	  return Math.max(0.2, weight);
+   272	}
+   273	
+   274	function calculateValuationConfidence({
+   275	  vehicle,
+   276	  comparableRecords,
+   277	  marketValue,
+   278	  comparableQuality,
+   279	}) {
+   280	  let confidence = 20;
+   281	
+   282	  if (vehicle.brand) confidence += 10;
+   283	  if (vehicle.model) confidence += 15;
+   284	  if (toNumber(vehicle.year) > 0) confidence += 10;
+   285	  if (toNumber(vehicle.price) > 0) confidence += 10;
+   286	  if (toNumber(vehicle.km ?? vehicle.mileage) > 0) confidence += 10;
+   287	  if (marketValue > 0) confidence += 10;
+   288	
+   289	  confidence += Math.min(20, comparableRecords.length * 5);
+   290	
+   291	  const avgComparableConfidence =
+   292	    comparableRecords.length > 0
+   293	      ? comparableRecords.reduce(
+   294	          (sum, item) => sum + toNumber(item.comparableConfidence),
+   295	          0
+   296	        ) / comparableRecords.length
+   297	      : 0;
+   298	
+   299	  const avgComparableQuality =
+   300	    comparableRecords.length > 0
+   301	      ? comparableRecords.reduce(
+   302	          (sum, item) =>
+   303	            sum + toNumber(item.comparableQualityScore ?? item.comparableScore),
+   304	          0
+   305	        ) / comparableRecords.length
+   306	      : 0;
+   307	
+   308	  if (avgComparableConfidence >= 85) confidence += 10;
+   309	  if (avgComparableConfidence >= 75) confidence += 5;
+   310	
+   311	  if (avgComparableQuality >= 85) confidence += 10;
+   312	  if (avgComparableQuality >= 75) confidence += 6;
+   313	  if (avgComparableQuality > 0 && avgComparableQuality < 55) confidence -= 10;
+   314	
+   315	  const comparableQualityScore = toNumber(comparableQuality?.score);
+   316	
+   317	  if (comparableQualityScore >= 90) confidence += 5;
+   318	  if (comparableQualityScore > 0 && comparableQualityScore < 55) confidence -= 5;
+   319	
+   320	  return Math.max(0, Math.min(100, Math.round(confidence)));
+   321	}
+   322	
+   323	function buildOpportunityLevel({ discountPercent, confidence, comparableCount }) {
+   324	  if (confidence < 50 || comparableCount === 0) {
+   325	    return "LOW";
+   326	  }
+   327	
+   328	  if (discountPercent >= 8 && confidence >= 75) {
+   329	    return "HIGH";
+   330	  }
+   331	
+   332	  if (discountPercent >= 4 && confidence >= 60) {
+   333	    return "MEDIUM";
+   334	  }
+   335	
+   336	  return "LOW";
+   337	}
+   338	
+   339	function buildSummary({
+   340	  vehicle,
+   341	  price,
+   342	  marketValue,
+   343	  discountAmount,
+   344	  discountPercent,
+   345	  confidence,
+   346	  opportunityLevel,
+   347	  comparableCount,
+   348	}) {
+   349	  const name = [vehicle.brand, vehicle.model, vehicle.year]
+   350	    .filter(Boolean)
+   351	    .join(" ");
+   352	
+   353	  if (!price || !marketValue) {
+   354	    return `${name || "Vehículo"} sin datos suficientes para valoración fiable.`;
+   355	  }
+   356	
+   357	  return `${name || "Vehículo"} valorado en ${formatNumber(
+   358	    marketValue
+   359	  )} €. Precio actual ${formatNumber(price)} €. Diferencia ${formatNumber(
+   360	    discountAmount
+   361	  )} € (${discountPercent}%). Confianza ${confidence}/100 con ${comparableCount} comparables. Nivel: ${opportunityLevel}.`;
+   362	}
+   363	
+   364	function formatNumber(value) {
+   365	  const numericValue = Number(value);
+   366	
+   367	  if (!Number.isFinite(numericValue)) {
+   368	    return "0";
+   369	  }
+   370	
+   371	  return numericValue.toLocaleString("es-ES", {
+   372	    maximumFractionDigits: 0,
+   373	  });
+   374	}
+   375	
+   376	function toTimestamp(value) {
+   377	  const timestamp = new Date(value).getTime();
+   378	
+   379	  if (!Number.isFinite(timestamp)) {
+   380	    return 0;
+   381	  }
+   382	
+   383	  return timestamp;
+   384	}
+   385	
+   386	function toNumber(value) {
+   387	  const numericValue = Number(value);
+   388	
+   389	  if (!Number.isFinite(numericValue)) {
+   390	    return 0;
+   391	  }
+   392	
+   393	  return numericValue;
+   394	}
+   395	
+   396	function normalize(value) {
+   397	  return String(value || "").trim().toLowerCase();
+   398	}

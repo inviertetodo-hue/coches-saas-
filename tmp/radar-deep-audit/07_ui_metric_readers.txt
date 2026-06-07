@@ -1,0 +1,151 @@
+===== UI METRIC READERS =====
+src/components/opportunities/OpportunityCard.jsx:86:          label="Executive"
+src/components/opportunities/OpportunityDetail.jsx:161:            label="Liquidez"
+src/components/opportunities/OpportunityDetail.jsx:177:            label="Margen"
+src/components/dashboard/CarAnalysisCard.jsx:6:  const recommendation = getRecommendation(item.score);
+src/components/dashboard/CarAnalysisCard.jsx:21:          <span style={scoreNumberStyle}>{item.score}</span>
+src/components/dashboard/CarAnalysisCard.jsx:131:  if (!Number.isFinite(Number(item.score))) {
+src/components/dashboard/CarAnalysisCard.jsx:146:  if (Number(item.score) >= 85 && Number(item.roi) <= 0) {
+src/components/dashboard/CarAnalysisCard.jsx:151:  if (Number(item.profit) < 0 && Number(item.score) >= 60) {
+src/components/dashboard/CarAnalysisCard.jsx:182:  const score = Number(item.score || 0);
+src/components/dashboard/ExecutiveSummaryPanel.jsx:1:export default function ExecutiveSummaryPanel({
+src/components/dashboard/ExecutiveSummaryPanel.jsx:4:  const hasExecutiveData =
+src/components/dashboard/ExecutiveSummaryPanel.jsx:17:            Executive Layer
+src/components/dashboard/ExecutiveSummaryPanel.jsx:21:            🧠 Executive AI Summary
+src/components/dashboard/ExecutiveSummaryPanel.jsx:26:          {hasExecutiveData
+src/components/dashboard/ExecutiveSummaryPanel.jsx:33:        title="📊 Executive Summary"
+src/components/dashboard/OpportunityRankingPanel.jsx:9:  const bestExecutiveScore = topOpportunities[0]?.executiveScore || 0;
+src/components/dashboard/OpportunityRankingPanel.jsx:10:  const bestSuccessProbability = topOpportunities[0]?.successProbability || 0;
+src/components/dashboard/OpportunityRankingPanel.jsx:11:  const bestAllocationScore = topOpportunities[0]?.allocationScore || 0;
+src/components/dashboard/OpportunityRankingPanel.jsx:12:  const bestAllocationTier = topOpportunities[0]?.allocationTier || "Sin datos";
+src/components/dashboard/OpportunityRankingPanel.jsx:35:          label="Allocation Score"
+src/components/dashboard/OpportunityRankingPanel.jsx:36:          value={`${bestAllocationScore}/100`}
+src/components/dashboard/OpportunityRankingPanel.jsx:40:          label="Allocation Tier"
+src/components/dashboard/OpportunityRankingPanel.jsx:41:          value={bestAllocationTier}
+src/components/dashboard/OpportunityRankingPanel.jsx:50:          label="Success Probability"
+src/components/dashboard/OpportunityRankingPanel.jsx:51:          value={`${bestSuccessProbability}/100`}
+src/components/dashboard/OpportunityRankingPanel.jsx:69:          title="Executive Score"
+src/components/dashboard/OpportunityRankingPanel.jsx:70:          value={`${bestExecutiveScore}/100`}
+src/components/dashboard/OpportunityRankingPanel.jsx:119:  const score = Number(item.score || 0);
+src/components/dashboard/OpportunityRankingPanel.jsx:175:              label="Allocation"
+src/components/dashboard/OpportunityRankingPanel.jsx:197:          <MiniMetric label="Success" value={`${successProbability}/100`} />
+src/components/dashboard/OpportunityRankingPanel.jsx:200:          <MiniMetric label="Executive" value={`${executiveScore}/100`} />
+src/components/dashboard/OpportunityRankingPanel.jsx:223:            <MiniMetric label="Riesgo esperado" value={successRiskLabel} />
+src/components/dashboard/OpportunityRankingPanel.jsx:381:    return `Señal fuerte: probabilidad de éxito ${successProbability}/100, venta estimada en ${estimatedSellDays} días, ROI esperado ${expectedROI}% y beneficio esperado de ${expectedProfit} €. Executive score ${executiveScore}, score IA ${score}, confianza histórica ${historicalConfidence}.${learningText}`;
+src/components/dashboard/DashboardHeader.jsx:9:            🚘 Coches SaaS · Executive Intelligence
+src/components/dashboard/MemoryIntelligencePanel.jsx:58:        <Metric label="Margen medio" value={`${formatNumber(dataset.avgProfit)} €`} />
+src/components/dashboard/MemoryIntelligencePanel.jsx:127:        ROI {formatNumber(item.valuation?.roi ?? item.roi)}% · Margen {formatNumber(item.valuation?.profit ?? item.profit)} €
+src/components/dashboard/AnalysisGrid.jsx:103:    `${item.title || "vehicle"}-${item.price || item.score || "unknown"}`
+src/components/dashboard/PortfolioSimulatorPanel.jsx:113:        <MiniMetric label="Allocation" value={`${allocationScore}/100`} />
+src/components/dashboard/DealDecisionPanel.jsx:8:  const buyCount = items.filter((item) => item.decision === "Comprar").length;
+src/components/dashboard/DealDecisionPanel.jsx:10:    (item) => item.decision === "Negociar"
+src/components/dashboard/DealDecisionPanel.jsx:13:    (item) => item.decision === "Vigilar"
+src/components/dashboard/DealDecisionPanel.jsx:16:    (item) => item.decision === "Descartar"
+src/components/dashboard/DealDecisionPanel.jsx:30:          label="Decision Score"
+src/components/dashboard/DealDecisionPanel.jsx:66:          text="Riesgo o rentabilidad insuficiente."
+src/components/dashboard/DealDecisionPanel.jsx:114:    <div style={getDecisionCardStyle(item.decision)}>
+src/components/dashboard/DealDecisionPanel.jsx:122:            {getDecisionEmoji(item.decision)} {item.decision}
+src/components/dashboard/DealDecisionPanel.jsx:134:          value={`${item.score || 0}/100`}
+src/components/dashboard/DealDecisionPanel.jsx:148:          label="Decision Score"
+src/components/dashboard/DealDecisionPanel.jsx:149:          value={`${item.decisionScore || 0}/100`}
+src/components/dashboard/DealDecisionPanel.jsx:155:          label="Riesgo"
+src/components/dashboard/DealDecisionPanel.jsx:160:          label="Liquidez"
+src/components/dashboard/MarketMemoryPanel.jsx:103:          title="Liquidez alta"
+src/components/dashboard/MarketMemoryPanel.jsx:109:          title="Liquidez media"
+src/components/dashboard/MarketIntelligencePanel.jsx:114:          <p style={opportunityTextStyle}>Score clásico {item.score}/100</p>
+src/components/dashboard/MarketIntelligencePanel.jsx:115:          <p style={opportunityTextStyle}>Decision Score {item.decisionScore || 0}/100</p>
+src/components/dashboard/MarketIntelligencePanel.jsx:116:          <p style={opportunityTextStyle}>Allocation {item.allocationScore || 0}/100</p>
+src/components/dashboard/MarketIntelligencePanel.jsx:118:            Executive {item.executiveBuySignalScore || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:130:            Success {item.successProbability || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:155:            Allocation medio {item.averageAllocationScore || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:158:            Executive medio {item.averageExecutiveScore || 0}/100
+src/components/dashboard/MarketIntelligencePanel.jsx:170:            Success medio {item.averageSuccessProbability || 0}/100
+src/components/dashboard/InstantDecisionPanel.jsx:76:          <Metric label="Riesgo" value={bestDeal.riskLevel || "-"} />
+src/components/dashboard/InstantDecisionPanel.jsx:77:          <Metric label="Liquidez" value={bestDeal.liquidityLevel || "-"} />
+src/components/dashboard/DealPipelinePanel.jsx:105:            Score {item.score} · ROI {item.roi}% · Beneficio {item.profit} €
+src/components/dashboard/OpportunityRadarPanel.jsx:104:  const score = Number(item.score || 0);
+src/components/dashboard/OpportunityRadarPanel.jsx:105:  const decisionScore = Number(item.decisionScore || 0);
+src/components/dashboard/OpportunityRadarPanel.jsx:209:        text: `BUY confirmado con Decision Score ${item.decisionScore || 0}/100.`,
+src/components/dashboard/OpportunityRadarPanel.jsx:265:    return `BUY confirmado. Prioridad ${item.radarPriority || 0}/100 y Decision Score ${item.decisionScore || 0}/100.`;
+src/components/dashboard/WatchlistPanel.jsx:131:  const watchScore = Number(item.watchScore || item.score || 0);
+src/components/bulk-import/BulkImportMemoryAnalyticsPanel.jsx:17:        <Metric label="Margen medio" value={`${analytics.avgProfit} €`} />
+src/components/bulk-import/BulkImportMemoryAnalyticsPanel.jsx:48:        ROI {item.roi}% · Margen {item.profit} €
+src/components/bulk-import/BulkImportReviewPanel.jsx:16:        <ReviewMetric label="Riesgo" value={contaminationRisk} />
+src/components/bulk-import/BulkImportMemorySimulationPanel.jsx:54:            {item.brand} · {item.model} · {item.year} · {item.opportunityType}
+src/components/bulk-import/BulkImportMemorySimulationPanel.jsx:58:            ROI {item.roi}% · Margen {item.profit} € · Quality{" "}
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:118:  const decision = item.decision || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:119:  const valuation = item.valuation || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:120:  const opportunity = item.opportunity || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:138:        item.score ||
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:166:  const decision = item.decision || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:167:  const valuation = item.valuation || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:168:  const opportunity = item.opportunity || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:229:  const decision = item.decision || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:230:  const valuation = item.valuation || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:231:  const opportunity = item.opportunity || {};
+src/components/bulk-import/OpportunityIntelligencePanel.jsx:272:          <span style={tagStyle}>Margen {formatNumber(valuation.profit ?? item.profit)} €</span>
+src/components/bulk-import/BulkImportPreviewCard.jsx:25:        <BulkImportMiniMetric label="Margen" value={`${item.profit || 0} €`} />
+src/components/bulk-import/BulkImportApprovedCard.jsx:25:        <BulkImportMiniMetric label="Margen" value={`${item.profit || 0} €`} />
+src/components/bulk-import/BulkImportMemoryExplorerPanel.jsx:29:            {item.brand} · {item.model} · {item.year} · ROI {item.roi}% · Margen{" "}
+src/components/scanner/MarketFeedSection.jsx:33:                item.finalDecision?.action
+src/components/scanner/MarketFeedSection.jsx:74:              action={item.finalDecision?.action}
+src/components/scanner/MarketFeedSection.jsx:75:              label={item.finalDecision?.label}
+src/components/scanner/MarketFeedSection.jsx:83:                  label="Opportunity Score"
+src/components/scanner/MarketFeedSection.jsx:84:                  value={`${item.opportunityScore || 0}/100`}
+src/components/scanner/MarketFeedSection.jsx:89:                  value={item.opportunityLevel || "NONE"}
+src/components/scanner/MarketFeedSection.jsx:96:                label="Score final"
+src/components/scanner/MarketFeedSection.jsx:97:                value={`${item.finalDecision?.finalScore || 0}/100`}
+src/components/scanner/MarketFeedSection.jsx:100:              <FeedMetric label="ROI neto" value={`${item.netRoi || 0}%`} />
+src/components/scanner/MarketFeedSection.jsx:103:                label="Margen"
+src/components/scanner/MarketFeedSection.jsx:108:            <div style={decisionStyle}>{item.finalDecision?.explanation}</div>
+src/components/scanner/MarketFeedSection.jsx:111:              <h4 style={miniTitleStyle}>💧 Liquidez</h4>
+src/components/scanner/MarketFeedSection.jsx:115:                  label="Liquidez"
+src/components/scanner/MarketFeedSection.jsx:136:              <h4 style={miniTitleStyle}>🛡️ Riesgo de operación</h4>
+src/components/scanner/MarketFeedSection.jsx:194:                <SmallMetric label="Riesgo" value={item.memory?.riskLevel || "-"} />
+src/components/scanner/SearchRadarSection.jsx:24:              <SmallMetric label="Liquidez" value={item.liquidity} />
+src/components/scanner/SearchRadarSection.jsx:25:              <SmallMetric label="Riesgo" value={item.risk} />
+src/components/scanner/SearchRadarSection.jsx:26:              <SmallMetric label="Margen" value={item.marginPotential} />
+src/components/scanner/SearchRadarSection.jsx:47:              <p style={avoidRiskStyle}>Riesgo: {item.risk}</p>
+src/components/scanner/ScannerResultsSection.jsx:52:        const finalScore = Number(item.finalDecision?.finalScore || 0);
+src/components/scanner/BestOpportunityCard.jsx:25:          label="Score final"
+src/components/scanner/BestOpportunityCard.jsx:30:          label="Margen Neto"
+src/components/scanner/BestOpportunityCard.jsx:35:          label="Liquidez"
+src/components/scanner/BestOpportunityCard.jsx:40:          label="Riesgo real"
+src/components/scanner/BestOpportunityCard.jsx:46:        <h4 style={miniTitleStyle}>💧 Liquidez estimada</h4>
+src/components/scanner/TrendSummaryCard.jsx:24:          label="Riesgo"
+src/components/scanner/BestDealCard.jsx:18:          label="Score final"
+src/components/scanner/BestDealCard.jsx:23:          label="Margen neto"
+src/components/scanner/BestDealCard.jsx:28:          label="Liquidez"
+src/components/scanner/BestDealCard.jsx:33:          label="Riesgo"
+src/pages/History.jsx:13:import { generateExecutiveSummary } from "../services/executiveSummary";
+src/pages/History.jsx:38:import ExecutiveSummaryPanel from "../components/dashboard/ExecutiveSummaryPanel";
+src/pages/History.jsx:241:    const executive = generateExecutiveSummary({
+src/pages/History.jsx:321:      result = result.filter((item) => item.score >= 85);
+src/pages/History.jsx:325:      result = result.filter((item) => item.score >= 60 && item.score < 85);
+src/pages/History.jsx:329:      result = result.filter((item) => item.score < 60);
+src/pages/History.jsx:390:            <ExecutiveSummaryPanel executive={executive} />
+src/pages/Dashboard.jsx:30:      data.filter(item => item.score >= 85).length
+src/pages/Dashboard.jsx:34:        item.score >= 60 && item.score < 85
+src/pages/Dashboard.jsx:38:      data.filter(item => item.score < 60).length
+src/pages/Deals.jsx:39:              {item.score >= 85 ? "🔥 CHOLLO IA" : "🟡 ANALIZAR"}
+src/pages/Deals.jsx:45:            <p>🤖 Score: {item.score}/100</p>
+src/hooks/useEnrichedMarketFeed.js:109:        const legacyOpportunityScore = Number(item.opportunityScore || 0);
+src/hooks/useEnrichedMarketFeed.js:110:        const legacyOpportunityLevel = item.opportunityLevel || "NONE";
+src/hooks/useEnrichedMarketFeed.js:169:            item.opportunityScore ||
+src/hooks/useEnrichedMarketFeed.js:175:            item.opportunityLevel ||
+src/hooks/useEnrichedMarketFeed.js:181:            item.finalDecision?.finalScore ||
+src/hooks/useEnrichedMarketFeed.js:190:              ...(item.opportunitySignals || {}),
+src/hooks/useEnrichedMarketFeed.js:208:              legacyFinalDecision: item.finalDecision,
+src/hooks/useEnrichedMarketFeed.js:234:        opportunityScore: item.opportunityScore,
+src/hooks/useEnrichedMarketFeed.js:235:        opportunityLevel: item.opportunityLevel,
+src/hooks/useEnrichedMarketFeed.js:236:        opportunitySignals: item.opportunitySignals,
+src/hooks/useEnrichedMarketFeed.js:361:    `Decision Score: ${Number(finalScore || 0)}/100.`,
+src/hooks/useEnrichedMarketFeed.js:362:    `Opportunity Score V2: ${Number(opportunityScore || 0)}/100 (${opportunityLevel}).`,
+src/hooks/useEnrichedMarketFeed.js:363:    `Margen neto estimado: ${formatRuntimeMoney(netProfit)}.`,
+src/hooks/useEnrichedMarketFeed.js:364:    `ROI neto estimado: ${Number(netRoi || 0)}%.`,
+src/hooks/useEnrichedMarketFeed.js:365:    `Liquidez: ${Number(liquidityScore || 0)}/100.`,
+src/hooks/useEnrichedMarketFeed.js:366:    `Riesgo: ${riskLevel || "sin clasificar"} (${Number(riskScore || 0)}/100).`,
+src/hooks/useEnrichedMarketFeed.js:550:    const finalScore = Number(item.finalDecision?.finalScore || 0);
+src/hooks/useEnrichedMarketFeed.js:648:    `💰 Margen neto estimado: ${best.netProfit.toLocaleString("es-ES")} €.`,
+src/hooks/useEnrichedMarketFeed.js:649:    `📊 ROI neto estimado: ${best.netRoi}%.`,
+src/hooks/useEnrichedMarketFeed.js:652:    `🎯 Riesgo estimado: ${best.memory.riskLevel}.`,

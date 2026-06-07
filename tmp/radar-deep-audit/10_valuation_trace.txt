@@ -1,0 +1,492 @@
+===== VALUATION / COMPARABLE TRACE =====
+src/services/intelligence/executiveOpportunityReportEngine.js:21:    confidence: buildConfidence(best),
+src/services/intelligence/executiveOpportunityReportEngine.js:82:  if (normalizeNumber(best.comparableConfidence) >= 75) {
+src/services/intelligence/executiveOpportunityReportEngine.js:83:    reasons.push("Confianza de comparables suficiente para análisis inicial.");
+src/services/intelligence/executiveOpportunityReportEngine.js:110:  if (normalizeNumber(best.comparableConfidence) < 70) {
+src/services/intelligence/executiveOpportunityReportEngine.js:111:    risks.push("Confianza de comparables baja.");
+src/services/intelligence/executiveOpportunityReportEngine.js:134:  const comparableConfidence = normalizeNumber(best.comparableConfidence);
+src/services/intelligence/executiveOpportunityReportEngine.js:137:  const score = Math.round((quality + comparableConfidence + matchScore) / 3);
+src/services/intelligence/executiveOpportunityReportEngine.js:144:      reason: "Calidad, comparables y match score son sólidos.",
+src/services/intelligence/marketValuationEngine.js:1:export function buildMarketValuation(vehicle = {}, options = {}) {
+src/services/intelligence/marketValuationEngine.js:10:  const memoryEstimatedValue = toNumber(memoryValuation?.estimatedMarketValue);
+src/services/intelligence/marketValuationEngine.js:11:  const memoryConfidence = toNumber(memoryValuation?.confidence);
+src/services/intelligence/marketValuationEngine.js:12:  const memoryComparableCount = toNumber(memoryValuation?.comparableCount);
+src/services/intelligence/marketValuationEngine.js:14:  const estimatedMarketValue =
+src/services/intelligence/marketValuationEngine.js:20:  const profit = Math.round(estimatedMarketValue - price);
+src/services/intelligence/marketValuationEngine.js:25:  const discountPercent = roi;
+src/services/intelligence/marketValuationEngine.js:27:  const valuationScore = calculateValuationScore({
+src/services/intelligence/marketValuationEngine.js:28:    discountPercent,
+src/services/intelligence/marketValuationEngine.js:37:    estimatedMarketValue,
+src/services/intelligence/marketValuationEngine.js:41:    discountPercent,
+src/services/intelligence/marketValuationEngine.js:42:    valuationScore,
+src/services/intelligence/marketValuationEngine.js:43:    valuationLabel: buildValuationLabel(valuationScore),
+src/services/intelligence/marketValuationEngine.js:46:        ? "memory_comparables"
+src/services/intelligence/marketValuationEngine.js:49:    comparableCount: memoryComparableCount,
+src/services/intelligence/marketValuationEngine.js:60:  // Sin comparables reales, asumimos un valor conservador cercano al precio
+src/services/intelligence/marketValuationEngine.js:65:  discountPercent,
+src/services/intelligence/marketValuationEngine.js:73:  score += discountPercent * 2;
+src/services/intelligence/memoryAnalyticsEngine.js:26:  const confidenceScores = validRecords.map((item) =>
+src/services/intelligence/memoryAnalyticsEngine.js:27:    Number(item.confidence_score ?? item.dataQualityScore ?? item.qualityScore ?? 0)
+src/services/intelligence/memoryAnalyticsEngine.js:82:    avgConfidenceScore: Math.round(calculateAverage(confidenceScores)),
+src/services/intelligence/memoryAnalyticsEngine.js:90:      avgConfidenceScore: calculateAverage(confidenceScores),
+src/services/intelligence/vehicleValuationEngine.js:1:export function buildVehicleValuation(vehicle = {}, memoryRecords = [], options = {}) {
+src/services/intelligence/vehicleValuationEngine.js:2:  const comparableRecords = resolveComparableRecords(vehicle, memoryRecords, options);
+src/services/intelligence/vehicleValuationEngine.js:5:  const marketValue = calculateEstimatedMarketValue(vehicle, comparableRecords);
+src/services/intelligence/vehicleValuationEngine.js:6:  const discountAmount = Math.round(marketValue - price);
+src/services/intelligence/vehicleValuationEngine.js:7:  const discountPercent =
+src/services/intelligence/vehicleValuationEngine.js:8:    price > 0 ? Number(((discountAmount / price) * 100).toFixed(2)) : 0;
+src/services/intelligence/vehicleValuationEngine.js:10:  const confidence = calculateValuationConfidence({
+src/services/intelligence/vehicleValuationEngine.js:12:    comparableRecords,
+src/services/intelligence/vehicleValuationEngine.js:13:    marketValue,
+src/services/intelligence/vehicleValuationEngine.js:14:    comparableQuality: options.comparables?.quality,
+src/services/intelligence/vehicleValuationEngine.js:18:    discountPercent,
+src/services/intelligence/vehicleValuationEngine.js:19:    confidence,
+src/services/intelligence/vehicleValuationEngine.js:20:    comparableCount: comparableRecords.length,
+src/services/intelligence/vehicleValuationEngine.js:28:    estimatedMarketValue: marketValue,
+src/services/intelligence/vehicleValuationEngine.js:29:    discountAmount,
+src/services/intelligence/vehicleValuationEngine.js:30:    discountPercent,
+src/services/intelligence/vehicleValuationEngine.js:31:    comparableCount: comparableRecords.length,
+src/services/intelligence/vehicleValuationEngine.js:32:    confidence,
+src/services/intelligence/vehicleValuationEngine.js:34:    comparableQuality: options.comparables?.quality || null,
+src/services/intelligence/vehicleValuationEngine.js:38:      marketValue,
+src/services/intelligence/vehicleValuationEngine.js:39:      discountAmount,
+src/services/intelligence/vehicleValuationEngine.js:40:      discountPercent,
+src/services/intelligence/vehicleValuationEngine.js:41:      confidence,
+src/services/intelligence/vehicleValuationEngine.js:43:      comparableCount: comparableRecords.length,
+src/services/intelligence/vehicleValuationEngine.js:45:    comparables: comparableRecords.slice(0, 10),
+src/services/intelligence/vehicleValuationEngine.js:49:export function buildVehicleValuationBatch(vehicles = [], memoryRecords = []) {
+src/services/intelligence/vehicleValuationEngine.js:52:    .map((vehicle) => buildVehicleValuation(vehicle, memoryRecords));
+src/services/intelligence/vehicleValuationEngine.js:73:      .sort((a, b) => b.discountPercent - a.discountPercent)
+src/services/intelligence/vehicleValuationEngine.js:79:  const externalComparables = Array.isArray(options.comparables?.bestComparables)
+src/services/intelligence/vehicleValuationEngine.js:80:    ? options.comparables.bestComparables
+src/services/intelligence/vehicleValuationEngine.js:87:        const scoreA = toNumber(a.comparableQualityScore ?? a.comparableScore);
+src/services/intelligence/vehicleValuationEngine.js:88:        const scoreB = toNumber(b.comparableQualityScore ?? b.comparableScore);
+src/services/intelligence/vehicleValuationEngine.js:177:function calculateEstimatedMarketValue(vehicle = {}, comparableRecords = []) {
+src/services/intelligence/vehicleValuationEngine.js:180:  if (!comparableRecords.length) {
+src/services/intelligence/vehicleValuationEngine.js:184:  const weightedValues = comparableRecords.map((record) => {
+src/services/intelligence/vehicleValuationEngine.js:185:    const comparablePrice = toNumber(record.price);
+src/services/intelligence/vehicleValuationEngine.js:189:      value: comparablePrice,
+src/services/intelligence/vehicleValuationEngine.js:234:  const comparableQualityScore = toNumber(
+src/services/intelligence/vehicleValuationEngine.js:235:    record.comparableQualityScore ?? record.comparableScore
+src/services/intelligence/vehicleValuationEngine.js:238:  if (comparableQualityScore >= 85) weight += 2;
+src/services/intelligence/vehicleValuationEngine.js:239:  if (comparableQualityScore >= 75) weight += 1.4;
+src/services/intelligence/vehicleValuationEngine.js:240:  if (comparableQualityScore >= 65) weight += 0.8;
+src/services/intelligence/vehicleValuationEngine.js:241:  if (comparableQualityScore > 0 && comparableQualityScore < 55) weight -= 0.8;
+src/services/intelligence/vehicleValuationEngine.js:265:  const confidence = toNumber(record.comparableConfidence);
+src/services/intelligence/vehicleValuationEngine.js:267:  if (confidence >= 85) weight += 1;
+src/services/intelligence/vehicleValuationEngine.js:268:  if (confidence >= 75) weight += 0.5;
+src/services/intelligence/vehicleValuationEngine.js:269:  if (confidence > 0 && confidence < 60) weight -= 0.5;
+src/services/intelligence/vehicleValuationEngine.js:276:  comparableRecords,
+src/services/intelligence/vehicleValuationEngine.js:277:  marketValue,
+src/services/intelligence/vehicleValuationEngine.js:278:  comparableQuality,
+src/services/intelligence/vehicleValuationEngine.js:280:  let confidence = 20;
+src/services/intelligence/vehicleValuationEngine.js:282:  if (vehicle.brand) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:283:  if (vehicle.model) confidence += 15;
+src/services/intelligence/vehicleValuationEngine.js:284:  if (toNumber(vehicle.year) > 0) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:285:  if (toNumber(vehicle.price) > 0) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:286:  if (toNumber(vehicle.km ?? vehicle.mileage) > 0) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:287:  if (marketValue > 0) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:289:  confidence += Math.min(20, comparableRecords.length * 5);
+src/services/intelligence/vehicleValuationEngine.js:292:    comparableRecords.length > 0
+src/services/intelligence/vehicleValuationEngine.js:293:      ? comparableRecords.reduce(
+src/services/intelligence/vehicleValuationEngine.js:294:          (sum, item) => sum + toNumber(item.comparableConfidence),
+src/services/intelligence/vehicleValuationEngine.js:296:        ) / comparableRecords.length
+src/services/intelligence/vehicleValuationEngine.js:300:    comparableRecords.length > 0
+src/services/intelligence/vehicleValuationEngine.js:301:      ? comparableRecords.reduce(
+src/services/intelligence/vehicleValuationEngine.js:303:            sum + toNumber(item.comparableQualityScore ?? item.comparableScore),
+src/services/intelligence/vehicleValuationEngine.js:305:        ) / comparableRecords.length
+src/services/intelligence/vehicleValuationEngine.js:308:  if (avgComparableConfidence >= 85) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:309:  if (avgComparableConfidence >= 75) confidence += 5;
+src/services/intelligence/vehicleValuationEngine.js:311:  if (avgComparableQuality >= 85) confidence += 10;
+src/services/intelligence/vehicleValuationEngine.js:312:  if (avgComparableQuality >= 75) confidence += 6;
+src/services/intelligence/vehicleValuationEngine.js:313:  if (avgComparableQuality > 0 && avgComparableQuality < 55) confidence -= 10;
+src/services/intelligence/vehicleValuationEngine.js:315:  const comparableQualityScore = toNumber(comparableQuality?.score);
+src/services/intelligence/vehicleValuationEngine.js:317:  if (comparableQualityScore >= 90) confidence += 5;
+src/services/intelligence/vehicleValuationEngine.js:318:  if (comparableQualityScore > 0 && comparableQualityScore < 55) confidence -= 5;
+src/services/intelligence/vehicleValuationEngine.js:320:  return Math.max(0, Math.min(100, Math.round(confidence)));
+src/services/intelligence/vehicleValuationEngine.js:323:function buildOpportunityLevel({ discountPercent, confidence, comparableCount }) {
+src/services/intelligence/vehicleValuationEngine.js:324:  if (confidence < 50 || comparableCount === 0) {
+src/services/intelligence/vehicleValuationEngine.js:328:  if (discountPercent >= 8 && confidence >= 75) {
+src/services/intelligence/vehicleValuationEngine.js:332:  if (discountPercent >= 4 && confidence >= 60) {
+src/services/intelligence/vehicleValuationEngine.js:342:  marketValue,
+src/services/intelligence/vehicleValuationEngine.js:343:  discountAmount,
+src/services/intelligence/vehicleValuationEngine.js:344:  discountPercent,
+src/services/intelligence/vehicleValuationEngine.js:345:  confidence,
+src/services/intelligence/vehicleValuationEngine.js:347:  comparableCount,
+src/services/intelligence/vehicleValuationEngine.js:353:  if (!price || !marketValue) {
+src/services/intelligence/vehicleValuationEngine.js:358:    marketValue
+src/services/intelligence/vehicleValuationEngine.js:360:    discountAmount
+src/services/intelligence/vehicleValuationEngine.js:361:  )} € (${discountPercent}%). Confianza ${confidence}/100 con ${comparableCount} comparables. Nivel: ${opportunityLevel}.`;
+src/services/intelligence/opportunityPredictorEngine.js:17:      confidence: "Sin datos",
+src/services/intelligence/opportunityPredictorEngine.js:18:      confidenceScore: 0,
+src/services/intelligence/opportunityPredictorEngine.js:26:  const confidenceScore = safeNumber(match.confidenceScore);
+src/services/intelligence/opportunityPredictorEngine.js:32:        confidenceScore * 0.28 +
+src/services/intelligence/opportunityPredictorEngine.js:50:      confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:55:      confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:58:    confidence: match.confidence,
+src/services/intelligence/opportunityPredictorEngine.js:59:    confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:106:  confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:108:  if (confidenceScore < 50) return "Desconocido";
+src/services/intelligence/opportunityPredictorEngine.js:119:  confidenceScore,
+src/services/intelligence/opportunityPredictorEngine.js:121:  if (confidenceScore < 50) return "Sin confirmar";
+src/services/intelligence/opportunityPredictorEngine.js:140:    `Confianza histórica: ${match.confidence}.`,
+src/services/intelligence/persistencePolicyEngine.js:105:      record.confidence_score
+src/services/intelligence/persistencePolicyEngine.js:161:    comparableConfidence:
+src/services/intelligence/persistencePolicyEngine.js:162:      record.comparableConfidence ||
+src/services/intelligence/persistencePolicyEngine.js:163:      record.comparable_confidence ||
+src/services/intelligence/persistencePolicyEngine.js:165:      record.market_confidence,
+src/services/intelligence/protectedMemorySaveEngine.js:93:      confidence_score: accepted ? quality : Math.min(quality, 49),
+src/services/intelligence/historicalConfidence.js:15:  const confidenceBonus = clampConfidenceBonus(
+src/services/intelligence/historicalConfidence.js:19:  const confidenceLevel = detectConfidenceLevel(confidenceBonus);
+src/services/intelligence/historicalConfidence.js:29:        ? `${title} todavía no tiene suficiente histórico comparable.`
+src/services/intelligence/historicalConfidence.js:30:        : "Todavía no hay suficiente histórico comparable para este vehículo."
+src/services/intelligence/historicalConfidence.js:35:    confidenceBonus,
+src/services/intelligence/historicalConfidence.js:36:    confidenceLevel,
+src/services/intelligence/historicalConfidence.js:37:    confidenceReason: reasons[0],
+src/services/intelligence/historicalConfidence.js:38:    confidenceReasons: reasons,
+src/services/intelligence/historicalConfidence.js:43:  const confidence = calculateHistoricalConfidence(decision, intelligence);
+src/services/intelligence/historicalConfidence.js:46:    Number(decision.decisionScore || 0) + confidence.confidenceBonus
+src/services/intelligence/historicalConfidence.js:52:    historicalConfidence: confidence,
+src/services/intelligence/historicalConfidence.js:53:    historicalConfidenceBonus: confidence.confidenceBonus,
+src/services/intelligence/historicalConfidence.js:54:    historicalConfidenceLevel: confidence.confidenceLevel,
+src/services/intelligence/historicalConfidence.js:55:    historicalConfidenceReason: confidence.confidenceReason,
+src/services/intelligence/comparableVehiclesEngine.js:5:export function buildComparableVehicles(vehicle = {}, memoryRecords = []) {
+src/services/intelligence/comparableVehiclesEngine.js:6:  const comparables = memoryRecords
+src/services/intelligence/comparableVehiclesEngine.js:9:      const comparableScore = calculateComparableScore(vehicle, record);
+src/services/intelligence/comparableVehiclesEngine.js:13:        comparableScore,
+src/services/intelligence/comparableVehiclesEngine.js:14:        comparableQualityScore: comparableScore,
+src/services/intelligence/comparableVehiclesEngine.js:15:        comparableReasons: buildComparableReasons(vehicle, record),
+src/services/intelligence/comparableVehiclesEngine.js:18:    .filter((record) => record.comparableScore >= MIN_COMPARABLE_SCORE)
+src/services/intelligence/comparableVehiclesEngine.js:19:    .sort((a, b) => b.comparableScore - a.comparableScore);
+src/services/intelligence/comparableVehiclesEngine.js:21:  const bestComparables = comparables.slice(0, 20);
+src/services/intelligence/comparableVehiclesEngine.js:24:    totalComparables: comparables.length,
+src/services/intelligence/comparableVehiclesEngine.js:181:  const confidence = toNumber(record.comparableConfidence);
+src/services/intelligence/comparableVehiclesEngine.js:183:  if (confidence >= 85) score += 8;
+src/services/intelligence/comparableVehiclesEngine.js:184:  if (confidence >= 75) score += 5;
+src/services/intelligence/comparableVehiclesEngine.js:185:  if (confidence > 0 && confidence < 60) score -= 8;
+src/services/intelligence/comparableVehiclesEngine.js:215:    reasons.push("Año comparable");
+src/services/intelligence/comparableVehiclesEngine.js:232:    reasons.push("Kilometraje comparable");
+src/services/intelligence/comparableVehiclesEngine.js:288:    label: "Sin comparables reales",
+src/services/intelligence/comparableVehiclesEngine.js:338:    .map((item) => toNumber(item.comparableScore ?? item.comparableQualityScore))
+src/services/intelligence/opportunityDecisionEngine.js:2:import { buildMarketValuation } from "./marketValuationEngine";
+src/services/intelligence/opportunityDecisionEngine.js:9:    buildMarketValuation(vehicle);
+src/services/intelligence/opportunityDecisionEngine.js:13:  const comparables = vehicle.comparables || vehicle.valuation?.comparables || null;
+src/services/intelligence/opportunityDecisionEngine.js:22:  const valuationScore = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:23:    vehicle.valuation?.valuationScore ?? marketValuation.valuationScore
+src/services/intelligence/opportunityDecisionEngine.js:27:  const comparableConfidence = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:28:    vehicleValuation?.confidence ?? vehicle.comparableConfidence
+src/services/intelligence/opportunityDecisionEngine.js:33:  const comparableCount = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:34:    comparables?.totalComparables ?? vehicleValuation?.comparableCount
+src/services/intelligence/opportunityDecisionEngine.js:43:  const discountPercent = normalizeNumber(
+src/services/intelligence/opportunityDecisionEngine.js:44:    vehicleValuation?.discountPercent ??
+src/services/intelligence/opportunityDecisionEngine.js:45:      vehicle.valuation?.discountPercent ??
+src/services/intelligence/opportunityDecisionEngine.js:46:      marketValuation.discountPercent
+src/services/intelligence/opportunityDecisionEngine.js:78:    valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:80:    comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:81:    comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:85:    discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:99:    comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:100:    comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:121:    confidence: buildDecisionConfidenceV2({
+src/services/intelligence/opportunityDecisionEngine.js:123:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:125:      valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:126:      comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:135:      valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:137:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:138:      comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:141:      discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:162:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:163:      comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:166:      discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:177:    comparables,
+src/services/intelligence/opportunityDecisionEngine.js:196:      valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:199:      discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:200:      comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:201:      comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:229:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:231:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:232:  comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:236:  discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:249:      valuationScore * 0.30 +
+src/services/intelligence/opportunityDecisionEngine.js:251:        comparableConfidence * 0.22 +
+src/services/intelligence/opportunityDecisionEngine.js:282:  if (discountPercent < 0) score -= 12;
+src/services/intelligence/opportunityDecisionEngine.js:288:  if (comparableConfidence > 0 && comparableConfidence < 55) score -= 12;
+src/services/intelligence/opportunityDecisionEngine.js:327:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:328:  comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:368:    comparableConfidence >= 70 && comparableCount >= 2;
+src/services/intelligence/opportunityDecisionEngine.js:414:  if (comparableCount === 0 && comparableConfidence < 60) {
+src/services/intelligence/opportunityDecisionEngine.js:423:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:425:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:426:  comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:434:      comparableConfidence * 0.25 +
+src/services/intelligence/opportunityDecisionEngine.js:436:      valuationScore * 0.15 +
+src/services/intelligence/opportunityDecisionEngine.js:443:  if (comparableCount >= 1) score += 5;
+src/services/intelligence/opportunityDecisionEngine.js:444:  if (comparableCount >= 3) score += 5;
+src/services/intelligence/opportunityDecisionEngine.js:462:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:464:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:465:  comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:468:  discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:497:  if (valuationScore >= 70) {
+src/services/intelligence/opportunityDecisionEngine.js:498:    reasons.push(`Valoración de mercado favorable: ${valuationScore}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:502:    vehicleValuation?.discountAmount ?? marketValuation.discountValue
+src/services/intelligence/opportunityDecisionEngine.js:511:  if (discountPercent > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:512:    reasons.push(`Descuento frente a valoración: ${formatNumber(discountPercent)}%.`);
+src/services/intelligence/opportunityDecisionEngine.js:523:  if (comparableCount > 0) {
+src/services/intelligence/opportunityDecisionEngine.js:524:    reasons.push(`${comparableCount} comparable(s) usados para la valoración.`);
+src/services/intelligence/opportunityDecisionEngine.js:527:  if (comparableConfidence >= 75) {
+src/services/intelligence/opportunityDecisionEngine.js:528:    reasons.push(`Confianza de valoración alta: ${comparableConfidence}/100.`);
+src/services/intelligence/opportunityDecisionEngine.js:574:    (comparableConfidence < 70 || comparableCount < 2)
+src/services/intelligence/opportunityDecisionEngine.js:604:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:605:  comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:608:  discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:622:  if (comparableCount === 0) {
+src/services/intelligence/opportunityDecisionEngine.js:623:    risks.push("Sin comparables suficientes para defender la valoración.");
+src/services/intelligence/opportunityDecisionEngine.js:626:  if (comparableCount > 0 && comparableCount < 2) {
+src/services/intelligence/opportunityDecisionEngine.js:627:    risks.push("Pocos comparables para confirmar una compra directa.");
+src/services/intelligence/opportunityDecisionEngine.js:630:  if (comparableConfidence > 0 && comparableConfidence < 70) {
+src/services/intelligence/opportunityDecisionEngine.js:642:  if (discountPercent <= 0) {
+src/services/intelligence/opportunityDecisionEngine.js:681:  valuationScore,
+src/services/intelligence/opportunityDecisionEngine.js:684:  discountPercent,
+src/services/intelligence/opportunityDecisionEngine.js:685:  comparableCount,
+src/services/intelligence/opportunityDecisionEngine.js:686:  comparableConfidence,
+src/services/intelligence/opportunityDecisionEngine.js:704:    `Valuation Score: ${valuationScore}/100.`,
+src/services/intelligence/opportunityDecisionEngine.js:707:    `Descuento frente a valoración: ${formatNumber(discountPercent)}%.`,
+src/services/intelligence/opportunityDecisionEngine.js:708:    `Comparables: ${comparableCount}.`,
+src/services/intelligence/opportunityDecisionEngine.js:709:    `Confianza: ${comparableConfidence}/100.`,
+src/services/intelligence/marketTimingEngine.js:6:  confidenceScore = 50,
+src/services/intelligence/marketTimingEngine.js:13:  score += confidenceScore * 0.10;
+src/services/intelligence/README.md:88:- comparableVehiclesEngine.js
+src/services/intelligence/analysisToMemoryCandidateAdapter.js:53:      analysis.confidence_score ||
+src/services/intelligence/analysisToMemoryCandidateAdapter.js:54:      analysis.confidenceScore ||
+src/services/intelligence/successProbabilityEngine.js:24:  const confidenceScore = safeNumber(
+src/services/intelligence/successProbabilityEngine.js:26:      prediction.confidenceScore ??
+src/services/intelligence/successProbabilityEngine.js:27:      learning.confidenceScore
+src/services/intelligence/successProbabilityEngine.js:40:  successProbability += confidenceScore * 0.08;
+src/services/intelligence/successProbabilityEngine.js:56:    confidenceScore,
+src/services/intelligence/successProbabilityEngine.js:58:    riskLabel: getRiskLabel(successProbability, confidenceScore),
+src/services/intelligence/successProbabilityEngine.js:63:      confidenceScore,
+src/services/intelligence/successProbabilityEngine.js:76:      confidenceScore: item.historicalConfidenceScore,
+src/services/intelligence/successProbabilityEngine.js:121:function getRiskLabel(probability, confidenceScore) {
+src/services/intelligence/successProbabilityEngine.js:122:  if (confidenceScore < 50) return "Desconocido";
+src/services/intelligence/successProbabilityEngine.js:133:  confidenceScore,
+src/services/intelligence/successProbabilityEngine.js:136:  return `Probabilidad de éxito ${successProbability}/100, ROI esperado ${roi}%, beneficio esperado ${profit} €, confianza histórica ${confidenceScore}/100 y ajuste learning ${formatBonus(learningBonus)}.`;
+src/services/intelligence/dataQualityGate.js:11:  comparableConfidence = null,
+src/services/intelligence/dataQualityGate.js:64:    hasExplicitScore(comparableConfidence) &&
+src/services/intelligence/dataQualityGate.js:65:    Number(comparableConfidence) < 70
+src/services/intelligence/dataQualityGate.js:68:    reasons.push("Confianza de comparables baja.");
+src/services/intelligence/decisionPipeline.js:53:    comparableConfidence:
+src/services/intelligence/decisionPipeline.js:54:      vehicle.comparableConfidence ||
+src/services/intelligence/decisionPipeline.js:55:      vehicle.comparable_confidence ||
+src/services/intelligence/decisionPipeline.js:57:      vehicle.market_confidence,
+src/services/intelligence/decisionPipeline.js:67:  const confidenceWeight =
+src/services/intelligence/decisionPipeline.js:94:    Math.round(rawPriority * confidenceWeight * dataQualityWeight)
+src/services/intelligence/decisionPipeline.js:101:        safeNumber(learning.confidenceScore) * 0.12
+src/services/intelligence/decisionPipeline.js:113:      historicalConfidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:123:    confidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:133:    confidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:149:    historicalConfidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:158:    confidenceScore: learning.confidenceScore,
+src/services/intelligence/decisionPipeline.js:200:      historicalConfidence: learning.confidence,
+src/services/intelligence/decisionPipeline.js:202:        learning.confidenceScore,
+src/services/intelligence/masterOpportunityPipelineEngine.js:3:import { buildComparableVehicles } from "./comparableVehiclesEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:9:import { buildMarketValuation } from "./marketValuationEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:19:import { buildVehicleValuation } from "./vehicleValuationEngine";
+src/services/intelligence/masterOpportunityPipelineEngine.js:35:    const comparables = buildComparableVehicles(vehicle, memoryRecords);
+src/services/intelligence/masterOpportunityPipelineEngine.js:37:    const vehicleValuation = buildVehicleValuation(vehicle, memoryRecords, {
+src/services/intelligence/masterOpportunityPipelineEngine.js:38:      comparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:44:      ...buildMarketValuation(vehicle, {
+src/services/intelligence/masterOpportunityPipelineEngine.js:48:      comparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:69:      comparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:128:      comparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:129:      comparableConfidence: vehicleValuation.confidence,
+src/services/intelligence/masterOpportunityPipelineEngine.js:205:      totalComparables: valuationSummary.totalComparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:355:  comparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:367:  const comparableCount = Number(comparables?.totalComparables || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:368:  const confidence = Number(vehicleValuation?.confidence || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:369:  const discountPercent = Number(vehicleValuation?.discountPercent || 0);
+src/services/intelligence/masterOpportunityPipelineEngine.js:374:  score += Math.min(15, Math.max(-15, discountPercent * 1.4));
+src/services/intelligence/masterOpportunityPipelineEngine.js:380:  if (comparableCount >= 1) score += 5;
+src/services/intelligence/masterOpportunityPipelineEngine.js:381:  if (comparableCount >= 2) score += 5;
+src/services/intelligence/masterOpportunityPipelineEngine.js:382:  if (comparableCount >= 5) score += 5;
+src/services/intelligence/masterOpportunityPipelineEngine.js:384:  if (confidence >= 60) score += 5;
+src/services/intelligence/masterOpportunityPipelineEngine.js:385:  if (confidence >= 75) score += 7;
+src/services/intelligence/masterOpportunityPipelineEngine.js:386:  if (confidence >= 90) score += 5;
+src/services/intelligence/masterOpportunityPipelineEngine.js:388:  if (confidence < 50) score -= 15;
+src/services/intelligence/masterOpportunityPipelineEngine.js:389:  if (comparableCount === 0) score -= 10;
+src/services/intelligence/masterOpportunityPipelineEngine.js:412:      comparableCount,
+src/services/intelligence/masterOpportunityPipelineEngine.js:413:      confidence,
+src/services/intelligence/masterOpportunityPipelineEngine.js:414:      discountPercent,
+src/services/intelligence/masterOpportunityPipelineEngine.js:417:    valuationConfidence: confidence,
+src/services/intelligence/masterOpportunityPipelineEngine.js:418:    comparableCount,
+src/services/intelligence/masterOpportunityPipelineEngine.js:419:    discountPercent,
+src/services/intelligence/masterOpportunityPipelineEngine.js:420:    estimatedMarketValue: vehicleValuation?.estimatedMarketValue || 0,
+src/services/intelligence/masterOpportunityPipelineEngine.js:485:  comparableCount,
+src/services/intelligence/masterOpportunityPipelineEngine.js:486:  confidence,
+src/services/intelligence/masterOpportunityPipelineEngine.js:487:  discountPercent,
+src/services/intelligence/masterOpportunityPipelineEngine.js:512:  if (discountPercent > 0) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:513:    reasons.push(`Descuento frente a valoración: ${discountPercent}%.`);
+src/services/intelligence/masterOpportunityPipelineEngine.js:516:  if (comparableCount > 0) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:517:    reasons.push(`${comparableCount} comparable(s) encontrados en memoria.`);
+src/services/intelligence/masterOpportunityPipelineEngine.js:520:  if (confidence >= 75) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:521:    reasons.push(`Confianza de valoración alta: ${confidence}/100.`);
+src/services/intelligence/masterOpportunityPipelineEngine.js:524:  if (confidence < 50) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:528:  if (comparableCount === 0) {
+src/services/intelligence/masterOpportunityPipelineEngine.js:529:    reasons.push("Sin comparables suficientes en memoria.");
+src/services/intelligence/masterOpportunityPipelineEngine.js:536:  const totalComparables = records.reduce(
+src/services/intelligence/masterOpportunityPipelineEngine.js:537:    (sum, item) => sum + Number(item.comparables?.totalComparables || 0),
+src/services/intelligence/masterOpportunityPipelineEngine.js:541:  const confidenceValues = records
+src/services/intelligence/masterOpportunityPipelineEngine.js:542:    .map((item) => Number(item.vehicleValuation?.confidence || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:546:    .map((item) => Number(item.vehicleValuation?.discountPercent || 0))
+src/services/intelligence/masterOpportunityPipelineEngine.js:578:    totalComparables,
+src/services/intelligence/masterOpportunityPipelineEngine.js:579:    averageConfidence: average(confidenceValues),
+src/services/intelligence/masterOpportunityPipelineEngine.js:589:      (item) => Number(item.comparables?.totalComparables || 0) > 0
+src/services/intelligence/memoryRepository.js:292:  const confidenceScore = normalizeConfidenceScore(
+src/services/intelligence/memoryRepository.js:293:    item.confidence_score ??
+src/services/intelligence/memoryRepository.js:332:    confidence_score: confidenceScore,
+src/services/intelligence/bulkDemoCandidates.js:43:    comparableConfidence: 0,
+src/services/intelligence/opportunityChangeEngine.js:25:  const confidenceChange = currentConfidence - previousConfidence;
+src/services/intelligence/opportunityChangeEngine.js:33:    confidenceChange,
+src/services/intelligence/opportunityChangeEngine.js:55:    confidenceChange,
+src/services/intelligence/opportunityChangeEngine.js:116:  confidenceChange,
+src/services/intelligence/opportunityChangeEngine.js:157:  if (confidenceChange >= 8) {
+src/services/intelligence/opportunityChangeEngine.js:161:      label: `Confianza mejora ${formatNumber(confidenceChange)} puntos.`,
+src/services/intelligence/opportunityChangeEngine.js:165:  if (confidenceChange <= -8) {
+src/services/intelligence/opportunityChangeEngine.js:169:      label: `Confianza cae ${formatNumber(Math.abs(confidenceChange))} puntos.`,
+src/services/intelligence/opportunityChangeEngine.js:270:    item.decision?.confidence?.score ??
+src/services/intelligence/opportunityChangeEngine.js:271:      item.vehicleValuation?.confidence ??
+src/services/intelligence/opportunityChangeEngine.js:272:      item.confidence
+src/services/intelligence/opportunityScoreEngine.js:6:  const comparableConfidence = normalizeScore(vehicle.comparableConfidence ?? 0);
+src/services/intelligence/opportunityScoreEngine.js:10:  const confidenceScore = Math.round((qualityScore + matchScore + comparableConfidence) / 3);
+src/services/intelligence/opportunityScoreEngine.js:16:        confidenceScore * 0.30 +
+src/services/intelligence/opportunityScoreEngine.js:24:    comparableConfidence,
+src/services/intelligence/opportunityScoreEngine.js:40:    confidenceScore,
+src/services/intelligence/opportunityScoreEngine.js:94:  comparableConfidence,
+src/services/intelligence/opportunityScoreEngine.js:98:  if (qualityScore < 60 || comparableConfidence < 60) {
+src/services/intelligence/marketLearningEngine.js:60:  if (historicalMatch.averageROI >= 12 && historicalMatch.confidenceScore >= 70) {
+src/services/intelligence/marketLearningEngine.js:65:  if (historicalMatch.averageROI >= 18 && historicalMatch.confidenceScore >= 90) {
+src/services/intelligence/marketLearningEngine.js:70:  if (historicalMatch.averageROI < 5 && historicalMatch.confidenceScore >= 70) {
+src/services/intelligence/marketLearningEngine.js:77:    historicalMatch.confidenceScore >= 70
+src/services/intelligence/marketLearningEngine.js:85:    historicalMatch.confidenceScore >= 70
+src/services/intelligence/marketLearningEngine.js:95:    confidence: historicalMatch.confidence || "Media",
+src/services/intelligence/marketLearningEngine.js:96:    confidenceScore: historicalMatch.confidenceScore || 0,
+src/services/intelligence/marketLearningEngine.js:171:    confidence:
+src/services/intelligence/marketLearningEngine.js:173:    confidenceScore:
+src/services/intelligence/marketLearningEngine.js:213:      const confidence = getConfidence(group.count);
+src/services/intelligence/marketLearningEngine.js:220:        confidence: confidence.label,
+src/services/intelligence/marketLearningEngine.js:221:        confidenceScore: confidence.score,
+src/services/intelligence/marketLearningEngine.js:225:          confidenceScore: confidence.score,
+src/services/intelligence/marketLearningEngine.js:230:      if (b.confidenceScore !== a.confidenceScore) {
+src/services/intelligence/marketLearningEngine.js:231:        return b.confidenceScore - a.confidenceScore;
+src/services/intelligence/marketLearningEngine.js:246:  confidenceScore,
+src/services/intelligence/marketLearningEngine.js:250:  if (averageROI >= 12 && confidenceScore >= 70) bonus += 6;
+src/services/intelligence/marketLearningEngine.js:251:  if (averageROI >= 18 && confidenceScore >= 90) bonus += 4;
+src/services/intelligence/marketLearningEngine.js:252:  if (averageROI < 5 && confidenceScore >= 70) bonus -= 6;
+src/services/intelligence/marketLearningEngine.js:253:  if (averageProfit >= 5000 && confidenceScore >= 70) bonus += 3;
+src/services/intelligence/marketLearningEngine.js:254:  if (averageProfit < 1000 && confidenceScore >= 70) bonus -= 3;
+src/services/intelligence/marketLearningEngine.js:263:    `Histórico global: ROI medio ${globalLearning.averageROI}%, beneficio medio ${globalLearning.averageProfit} € y confianza ${globalLearning.confidence.toLowerCase()}.`
+src/services/intelligence/marketLearningEngine.js:268:      `Modelo líder aprendido: ${modelLearning[0].label} con ROI medio ${modelLearning[0].averageROI}% y confianza ${modelLearning[0].confidence.toLowerCase()}.`
+src/services/intelligence/marketLearningEngine.js:286:    confidence: "Sin datos",
+src/services/intelligence/marketLearningEngine.js:287:    confidenceScore: 0,
+src/services/intelligence/marketLearningEngine.js:302:      confidence: "Sin datos",
+src/services/intelligence/marketLearningEngine.js:303:      confidenceScore: 0,
+src/services/intelligence/sellSpeedEngine.js:6:  confidenceScore = 0,
+src/services/intelligence/sellSpeedEngine.js:10:  const normalizedConfidence = clamp(confidenceScore, 0, 100);
+src/services/intelligence/bulkUrlPreviewEngine.js:37:      matchScore: item.matchScore || item.match_score || item.confidence,
+src/services/intelligence/bulkUrlPreviewEngine.js:38:      comparableConfidence:
+src/services/intelligence/bulkUrlPreviewEngine.js:39:        item.comparableConfidence ||
+src/services/intelligence/bulkUrlPreviewEngine.js:41:        item.comparable_confidence,
+src/services/intelligence/predictiveIntelligenceEngine.js:97:  if (prediction.confidenceScore >= 70) {
+src/services/intelligence/predictiveIntelligenceEngine.js:99:      `✅ Confianza histórica ${prediction.confidence.toLowerCase()} basada en ${prediction.analyses} análisis.`
+src/services/intelligence/executiveBuySignalEngine.js:4:  confidenceScore = 0,
+src/services/intelligence/executiveBuySignalEngine.js:18:    confidenceScore * 0.14 +
+src/services/intelligence/inventoryRiskEngine.js:11:  const confidence = safeNumber(historicalConfidenceScore);
+src/services/intelligence/inventoryRiskEngine.js:19:  riskScore += Math.max(0, 100 - confidence) * 0.08;
+src/services/intelligence/opportunityFeedEngine.js:42:  const discountPercent = toNumber(item.discountPercent);
+src/services/intelligence/opportunityFeedEngine.js:79:  if (discountPercent >= 8) {
+src/services/intelligence/opportunityFeedEngine.js:84:      text: `Descuento relevante frente a valoración: ${formatNumber(discountPercent)}%.`,
+src/services/intelligence/historicalMemory.js:30:    const confidence = getHistoricalConfidence(group.analyses);
+src/services/intelligence/historicalMemory.js:38:      confidence: confidence.label,
+src/services/intelligence/historicalMemory.js:39:      confidenceScore: confidence.score,
+src/services/intelligence/historicalMemory.js:162:    confidence: safeNumber(
+src/services/intelligence/historicalMemory.js:163:      item.decision?.confidence?.score ??
+src/services/intelligence/historicalMemory.js:164:        item.vehicleValuation?.confidence ??
+src/services/intelligence/historicalMemory.js:165:        item.confidence
+src/services/intelligence/opportunityRankingEngine.js:13:        valuationScore: resolveValuationScore(item),
+src/services/intelligence/opportunityRankingEngine.js:16:        confidence: resolveConfidence(item),
+src/services/intelligence/opportunityRankingEngine.js:17:        comparableCount: resolveComparableCount(item),
+src/services/intelligence/opportunityRankingEngine.js:32:          item.decision?.confidence?.level ||
+src/services/intelligence/opportunityRankingEngine.js:86:    item.valuation?.valuationScore ??
+src/services/intelligence/opportunityRankingEngine.js:87:      item.marketValuation?.valuationScore ??
+src/services/intelligence/opportunityRankingEngine.js:88:      item.valuationScore ??
+src/services/intelligence/opportunityRankingEngine.js:113:    item.decision?.confidence?.score ??
+src/services/intelligence/opportunityRankingEngine.js:114:      item.vehicleValuation?.confidence ??
+src/services/intelligence/opportunityRankingEngine.js:116:      item.confidenceScore ??
+src/services/intelligence/opportunityRankingEngine.js:117:      item.comparableConfidence ??
+src/services/intelligence/opportunityRankingEngine.js:124:    item.comparables?.totalComparables ??
+src/services/intelligence/opportunityRankingEngine.js:125:      item.vehicleValuation?.comparableCount ??
+src/services/intelligence/opportunityRankingEngine.js:126:      item.valuation?.comparableCount ??
+src/services/intelligence/opportunityRankingEngine.js:134:  valuationScore,
+src/services/intelligence/opportunityRankingEngine.js:137:  confidence,
+src/services/intelligence/opportunityRankingEngine.js:138:  comparableCount,
+src/services/intelligence/opportunityRankingEngine.js:142:      ? decisionScore * 0.55 + opportunityScore * 0.30 + valuationScore * 0.15
+src/services/intelligence/opportunityRankingEngine.js:143:      : opportunityScore * 0.55 + valuationScore * 0.25 + confidence * 0.20;
+src/services/intelligence/opportunityRankingEngine.js:148:  if (comparableCount >= 1) score += 3;
+src/services/intelligence/opportunityRankingEngine.js:149:  if (comparableCount >= 3) score += 4;
+src/services/intelligence/opportunityRankingEngine.js:151:  if (confidence >= 75) score += 4;
+src/services/intelligence/opportunityRankingEngine.js:152:  if (confidence > 0 && confidence < 50) score -= 10;
+src/services/intelligence/learningDecisionBonusEngine.js:5:      learning.confidenceBonus ??
+src/services/intelligence/learningDecisionBonusEngine.js:25:  const confidenceScore = Number(
+src/services/intelligence/learningDecisionBonusEngine.js:26:    learning.confidenceScore ??
+src/services/intelligence/learningDecisionBonusEngine.js:32:  if (confidenceScore >= 85) return 8;
+src/services/intelligence/learningDecisionBonusEngine.js:33:  if (confidenceScore >= 70) return 5;
+src/services/intelligence/learningDecisionBonusEngine.js:34:  if (confidenceScore >= 55) return 2;
+src/services/intelligence/learningDecisionBonusEngine.js:35:  if (confidenceScore > 0 && confidenceScore < 40) return -4;
+src/services/comparableIntelligence.js:10:  const fairPrice = estimateFairMarketPrice(car);
+src/services/comparableIntelligence.js:11:  const deviationAmount = fairPrice - price;
+src/services/comparableIntelligence.js:13:    fairPrice > 0 ? Math.round((deviationAmount / fairPrice) * 100) : 0;
+src/services/comparableIntelligence.js:15:  const confidence = calculateComparableConfidence(car);
+src/services/comparableIntelligence.js:19:    confidence,
+src/services/comparableIntelligence.js:24:    fairPrice,
+src/services/comparableIntelligence.js:27:    confidence,
+src/services/comparableIntelligence.js:30:    label: buildComparableLabel(deviationPercent, confidence),
+src/services/comparableIntelligence.js:34:      fairPrice,
+src/services/comparableIntelligence.js:36:      confidence,
+src/services/comparableIntelligence.js:99:  let confidence = 25;
+src/services/comparableIntelligence.js:101:  if (car.title) confidence += 10;
+src/services/comparableIntelligence.js:102:  if (car.brand) confidence += 10;
+src/services/comparableIntelligence.js:103:  if (car.model) confidence += 10;
+src/services/comparableIntelligence.js:104:  if (car.fuelType) confidence += 6;
+src/services/comparableIntelligence.js:105:  if (car.bodyType) confidence += 4;
+src/services/comparableIntelligence.js:106:  if (car.drivetrain) confidence += 3;
+src/services/comparableIntelligence.js:107:  if (car.performancePackage) confidence += 3;
+src/services/comparableIntelligence.js:109:  // Esta valoración aún no usa comparables reales del mercado.
+src/services/comparableIntelligence.js:111:  return Math.min(clampScore(confidence), 65);
+src/services/comparableIntelligence.js:114:function calculateUnderpricingScore({ deviationPercent, confidence, car }) {
+src/services/comparableIntelligence.js:123:  if (confidence >= 80) score += 8;
+src/services/comparableIntelligence.js:124:  else if (confidence < 50) score -= 16;
+src/services/comparableIntelligence.js:142:function buildComparableLabel(deviationPercent, confidence) {
+src/services/comparableIntelligence.js:143:  if (confidence < 45) {
+src/services/comparableIntelligence.js:165:  fairPrice,
+src/services/comparableIntelligence.js:167:  confidence,
+src/services/comparableIntelligence.js:172:  if (confidence < 45) {
+src/services/comparableIntelligence.js:177:    return `${title}: estimación provisional ${deviationPercent}% por debajo del precio de referencia calculado. Validar con anuncio original y comparables reales antes de decidir.`;
+src/services/comparableIntelligence.js:181:    return `${title}: estimación provisional algo inferior al precio de referencia calculado. Conviene validar estado, historial y comparables reales.`;
+src/services/comparableIntelligence.js:193:    fairPrice: 0,
+src/services/comparableIntelligence.js:196:    confidence: 0,
+src/services/comparableIntelligence.js:198:    label: "Sin comparables",
+src/services/comparableIntelligence.js:199:    insight: "Datos insuficientes para calcular comparables.",
+src/hooks/useEnrichedMarketFeed.js:5:import { analyzeComparableMarket } from "../services/comparableIntelligence";
+src/hooks/useEnrichedMarketFeed.js:62:        const comparable =
+src/hooks/useEnrichedMarketFeed.js:63:          item.comparable ||
+src/hooks/useEnrichedMarketFeed.js:89:            comparable,
+src/hooks/useEnrichedMarketFeed.js:97:          comparable,
+src/hooks/useEnrichedMarketFeed.js:115:          comparable,
+src/hooks/useEnrichedMarketFeed.js:131:          comparable,
+src/hooks/useEnrichedMarketFeed.js:198:              valuationScore: modern.valuation?.valuationScore || 0,
+src/hooks/useEnrichedMarketFeed.js:199:              comparableCount: modern.comparables?.totalComparables || 0,
+src/hooks/useEnrichedMarketFeed.js:200:              valuationConfidence: modern.vehicleValuation?.confidence || 0,
+src/hooks/useEnrichedMarketFeed.js:650:    `🧠 Desviación de mercado: ${best.comparable.deviationPercent}%.`,
+src/components/scanner/MarketFeedSection.jsx:161:                  value={`${Number(item.comparable?.fairPrice || 0).toLocaleString(
+src/components/scanner/MarketFeedSection.jsx:168:                  value={`${item.comparable?.deviationPercent || 0}%`}
+src/components/scanner/MarketFeedSection.jsx:173:                  value={`${item.comparable?.confidence || 0}/100`}
+src/components/scanner/MarketFeedSection.jsx:177:              <p style={marketInsightStyle}>{item.comparable?.insight}</p>

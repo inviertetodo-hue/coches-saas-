@@ -1,0 +1,7 @@
+===== BUSCANDO DATOS MOCK / JSON / CSV / XLSX =====
+./dashboard_audit_20260607_120321/src/services/intelligence/bulkDemoCandidates.js
+./package-lock.json
+./package.json
+./src/services/intelligence/bulkDemoCandidates.js
+./src/services/mockMarketFeed.js
+./supabase/.temp/linked-project.json
