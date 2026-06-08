@@ -15,7 +15,7 @@ export async function extractListingsWithDeepSeek(rawText = "", options = {}) {
 
   const response = await callDeepSeekJson({
     apiKey: options.apiKey,
-    model: options.model || "deepseek-chat",
+    model: options.aiModel || "deepseek-v4-flash",
     temperature: 0,
     maxTokens: options.maxTokens || 2200,
     systemPrompt: buildSystemPrompt(),

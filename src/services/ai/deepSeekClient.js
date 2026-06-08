@@ -1,5 +1,10 @@
 const DEEPSEEK_CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions";
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
+
+const ALLOWED_DEEPSEEK_MODELS = new Set([
+  "deepseek-v4-flash",
+  "deepseek-v4-pro",
+]);
 
 export async function callDeepSeekJson({
   systemPrompt = "",
@@ -24,6 +29,10 @@ export async function callDeepSeekJson({
     };
   }
 
+  const safeModel = ALLOWED_DEEPSEEK_MODELS.has(model)
+    ? model
+    : DEFAULT_DEEPSEEK_MODEL;
+
   try {
     const response = await fetch(DEEPSEEK_CHAT_COMPLETIONS_URL, {
       method: "POST",
@@ -32,7 +41,7 @@ export async function callDeepSeekJson({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model,
+        model: safeModel,
         temperature,
         max_tokens: maxTokens,
         response_format: {
@@ -77,7 +86,7 @@ export async function callDeepSeekJson({
       rawText,
       usage: json?.usage || null,
       diagnostics: [
-        `Modelo: ${model}`,
+        `Modelo: ${safeModel}`,
         `Tokens input: ${json?.usage?.prompt_tokens ?? "n/d"}`,
         `Tokens output: ${json?.usage?.completion_tokens ?? "n/d"}`,
       ],
