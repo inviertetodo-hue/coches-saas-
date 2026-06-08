@@ -67,14 +67,20 @@ export async function runOpenAiScout(searchInput = {}, options = {}) {
     const parsed = parseScoutJson(text);
     const candidates = Array.isArray(parsed?.candidates) ? parsed.candidates : [];
 
-    const normalizedListings = candidates
-      .map((candidate, index) =>
-        normalizeScoutCandidate(candidate, {
-          index,
-          searchInput,
-        })
-      )
-      .filter((item) => item.isValidScoutCandidate);
+    const normalizedBeforeQualityGate = candidates.map((candidate, index) =>
+      normalizeScoutCandidate(candidate, {
+        index,
+        searchInput,
+      })
+    );
+
+    const rejectedByQualityGate = normalizedBeforeQualityGate.filter(
+      (item) => !item.isValidScoutCandidate
+    ).length;
+
+    const normalizedListings = deduplicateScoutListings(
+      normalizedBeforeQualityGate.filter((item) => item.isValidScoutCandidate)
+    );
 
     return {
       status: normalizedListings.length > 0 ? "ready" : "empty",
@@ -88,7 +94,8 @@ export async function runOpenAiScout(searchInput = {}, options = {}) {
       diagnostics: [
         `Modelo: ${model}`,
         `Candidatos devueltos: ${candidates.length}`,
-        `Candidatos normalizados: ${normalizedListings.length}`,
+        `Candidatos rechazados por calidad: ${rejectedByQualityGate}`,
+        `Candidatos normalizados únicos: ${normalizedListings.length}`,
         `Duración: ${Date.now() - startedAt} ms`,
       ],
       rawText: options.includeRawText ? text : "",
@@ -125,6 +132,7 @@ export function normalizeScoutCandidate(candidate = {}, context = {}) {
   const scoutConfidence = clampScore(candidate.scoutConfidence ?? candidate.confidence);
 
   const sourceUrl = cleanText(candidate.sourceUrl || candidate.url || "");
+  const sourceUrlQuality = assessSourceUrlQuality(sourceUrl);
   const country = cleanText(candidate.country || searchInput.country || "Germany");
   const fuelType = cleanText(candidate.fuelType || candidate.fuel || "");
   const sellerType = cleanText(candidate.sellerType || candidate.seller || "");
@@ -142,6 +150,15 @@ export function normalizeScoutCandidate(candidate = {}, context = {}) {
     index,
   });
 
+  const scoutFingerprint = buildScoutFingerprint({
+    brand,
+    model,
+    title,
+    price,
+    year,
+    km,
+  });
+
   const isValidScoutCandidate = Boolean(
     brand &&
       model &&
@@ -149,7 +166,8 @@ export function normalizeScoutCandidate(candidate = {}, context = {}) {
       price > 0 &&
       year > 0 &&
       km > 0 &&
-      sourceUrl
+      sourceUrl &&
+      sourceUrlQuality === "reliable"
   );
 
   return {
@@ -179,6 +197,8 @@ export function normalizeScoutCandidate(candidate = {}, context = {}) {
     validationNotes: cleanText(candidate.validationNotes || ""),
     dataTruthStatus: "CANDIDATE_UNVERIFIED",
     verificationLevel: "OPENAI_SCOUT_REQUIRES_URL_CHECK",
+    sourceUrlQuality,
+    scoutFingerprint,
     memoryEligible: false,
     isValidScoutCandidate,
     createdAt: new Date().toISOString(),
@@ -205,8 +225,10 @@ OBJETIVO:
 
 REGLAS CRÍTICAS:
 - Devuelve SOLO JSON válido.
-- No inventes URLs.
-- Cada candidato debe tener URL real del anuncio o ficha de fuente.
+- Prohibido inventar, construir o aproximar URLs.
+- Cada candidato debe tener una URL real encontrada durante la búsqueda.
+- No uses URLs con IDs ficticios, search_id inventado, ejemplos, placeholders o patrones secuenciales.
+- Si no tienes URL real verificable, no incluyas el candidato.
 - Si un dato no está claro, usa null.
 - Prioriza anuncios con precio, año, km, motor, país y fuente verificable.
 - No decidas BUY/WATCH/REJECT. Solo recolecta candidatos.
@@ -311,6 +333,65 @@ function buildScoutId({ sourceUrl, title, price, year, km, index }) {
   }
 
   return `openai-scout-${Math.abs(hash)}`;
+}
+
+function deduplicateScoutListings(listings = []) {
+  const seen = new Set();
+  const uniqueListings = [];
+
+  for (const item of listings) {
+    const key = item.scoutFingerprint || item.sourceUrl || item.id;
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    uniqueListings.push(item);
+  }
+
+  return uniqueListings;
+}
+
+function buildScoutFingerprint({ brand, model, title, price, year, km }) {
+  return [
+    cleanText(brand).toLowerCase(),
+    cleanText(model).toLowerCase(),
+    cleanText(title).toLowerCase().replace(/\s+/g, " "),
+    Number(price || 0),
+    Number(year || 0),
+    Number(km || 0),
+  ].join("|");
+}
+
+function assessSourceUrlQuality(sourceUrl = "") {
+  const url = cleanText(sourceUrl);
+  const lowerUrl = url.toLowerCase();
+
+  if (!url) return "missing";
+  if (!lowerUrl.startsWith("http")) return "suspicious";
+
+  const fakePatterns = [
+    "1234567890",
+    "2345678901",
+    "3456789012",
+    "4567890123",
+    "5678901234",
+    "example.com",
+    "placeholder",
+    "fake",
+    "dummy",
+  ];
+
+  if (fakePatterns.some((pattern) => lowerUrl.includes(pattern))) {
+    return "suspicious";
+  }
+
+  if (lowerUrl.includes("search_id=")) {
+    return "suspicious";
+  }
+
+  return "reliable";
 }
 
 function cleanText(value) {
