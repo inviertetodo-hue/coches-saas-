@@ -37,6 +37,9 @@ export async function buildAutoScoutVerifiedDetailPreview(url = "", options = {}
         "Debe ser una URL tipo /angebote/, /aanbod/, /offerta/ o similar.",
       ],
       extractedAt: new Date().toISOString(),
+      isVerifiedDetail: false,
+      canShowAsDetailCard: false,
+      canScoreAsOpportunity: false,
     };
   }
 
@@ -62,7 +65,7 @@ export async function buildAutoScoutVerifiedDetailPreview(url = "", options = {}
   };
 }
 
-export function openAutoScoutVerifiedDetailPreviewWindow(preview = {}, options = {}) {
+export function openAutoScoutVerifiedDetailPreviewWindow(preview = {}) {
   if (typeof window === "undefined") {
     return {
       opened: false,
@@ -72,7 +75,6 @@ export function openAutoScoutVerifiedDetailPreviewWindow(preview = {}, options =
   }
 
   const html = String(preview?.html || "");
-  const title = options.title || preview?.detail?.title || "Ficha enriquecida";
 
   if (!html) {
     return {
@@ -82,29 +84,35 @@ export function openAutoScoutVerifiedDetailPreviewWindow(preview = {}, options =
     };
   }
 
-  const popup = window.open("", "_blank", "noopener,noreferrer,width=1280,height=900");
+  const blob = new Blob([html], {
+    type: "text/html;charset=utf-8",
+  });
 
-  if (popup) {
-    popup.document.open();
-    popup.document.write(html);
-    popup.document.close();
-    popup.document.title = title;
+  const blobUrl = URL.createObjectURL(blob);
+
+  const openedWindow = window.open(blobUrl, "_blank");
+
+  if (openedWindow) {
+    try {
+      openedWindow.opener = null;
+    } catch {
+      // Algunos navegadores no permiten modificar opener. No afecta a la ficha.
+    }
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(blobUrl);
+    }, 60000);
 
     return {
       opened: true,
-      reason: "popup",
-      fallbackUrl: "",
+      reason: "blob_url",
+      fallbackUrl: blobUrl,
     };
   }
 
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const fallbackUrl = URL.createObjectURL(blob);
-
-  window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-
   return {
     opened: false,
-    reason: "popup_blocked_blob_created",
-    fallbackUrl,
+    reason: "popup_blocked",
+    fallbackUrl: blobUrl,
   };
 }
