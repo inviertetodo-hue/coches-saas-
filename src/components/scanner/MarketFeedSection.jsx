@@ -1,6 +1,7 @@
 import SmallMetric from "./SmallMetric";
 import FeedMetric from "./FeedMetric";
 import DealDecisionPill, { getDecisionColor } from "./DealDecisionPill";
+import VerifiedAutoScoutInlineCard from "../detail/VerifiedAutoScoutInlineCard";
 import VerifiedAutoScoutDetailButton from "../detail/VerifiedAutoScoutDetailButton";
 
 export default function MarketFeedSection({ marketFeed }) {
@@ -38,6 +39,12 @@ export default function MarketFeedSection({ marketFeed }) {
             {index === 0 && (
               <div style={topOpportunityStyle}>🏆 TOP OPPORTUNITY</div>
             )}
+
+            <VerifiedAutoScoutInlineCard
+              url={item.url}
+              opportunity={item}
+              enabled={index === 0}
+            />
 
             <div>
               <p style={feedSourceStyle}>{item.source}</p>
