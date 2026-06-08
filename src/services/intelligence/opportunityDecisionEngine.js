@@ -360,13 +360,26 @@ function buildActionV2({
     return { action: "WATCH", label: "Observar mercado" };
   }
 
-  if (
+  const hasPositiveEconomics =
+    roi >= 5 &&
+    profit >= 1500;
+
+  const hasBasicEvidence =
+    comparableConfidence >= 60 &&
+    comparableCount >= 1;
+
+  const hasCriticalModernRisk =
     inventoryRiskLabel === "CRITICAL_RISK" ||
     inventoryRiskScore >= 85 ||
     marketTimingLabel === "AVOID" ||
-    timelineMomentumLabel === "AVOID_TREND"
-  ) {
+    timelineMomentumLabel === "AVOID_TREND";
+
+  if (hasCriticalModernRisk && (!hasPositiveEconomics || !hasBasicEvidence)) {
     return { action: "REJECT", label: "Descartar" };
+  }
+
+  if (hasCriticalModernRisk && hasPositiveEconomics && hasBasicEvidence) {
+    return { action: "WATCH", label: "Validar riesgo alto" };
   }
 
   const hasExecutiveBuy =
@@ -377,10 +390,6 @@ function buildActionV2({
   const hasStrongScore = opportunityScoreV2 >= 85 && decisionScore >= 80;
   const hasReliableEvidence =
     comparableConfidence >= 70 && comparableCount >= 2;
-  const hasPositiveEconomics =
-    roi >= 5 &&
-    profit >= 1500;
-
   const hasModernConfirmation =
     successProbability >= 70 ||
     allocationScore >= 70 ||

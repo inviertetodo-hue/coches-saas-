@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "../lib/supabase";
 import { analyzeCar } from "../services/profitAnalyzer";
-import { analyzeDealRisk } from "../services/dealRiskEngine";
 import { buildLiquidityProfile } from "../services/liquidityEngine";
 import { buildScannerOpportunityPayload } from "../services/intelligence/scannerPersistenceAdapter";
 import { buildFinalDealDecision } from "../services/finalDecisionEngine";
@@ -48,7 +47,13 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
       function enrichDeal(item) {
         const analysis = item.analysis || analyzeCar(item);
 
-        const comparable = item.comparable || null;
+        const comparable =
+          item.comparable ||
+          {
+            valuationSource: "modern_pipeline_only",
+            confidence: 0,
+            insights: [],
+          };
 
         const equipment = item.equipment || analyzeEquipment(item);
 
@@ -66,16 +71,20 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
               ? Math.round((netProfit / item.price) * 100)
               : 0;
 
-        const memory = item.memory || null;
+        const memory =
+          item.memory ||
+          {
+            memoryScore: 0,
+            confidence: 0,
+            insights: [],
+          };
 
-        const dealRisk = analyzeDealRisk({
-          ...item,
-          analysis,
-          comparable,
-          memory,
-          netProfit,
-          netRoi,
-        });
+        const dealRisk = {
+          level: "Evaluado por Decision Engine",
+          riskScore: 0,
+          recommendation:
+            "Riesgo evaluado por el pipeline moderno de decisión.",
+        };
 
         const liquidity = buildLiquidityProfile({
           query: item.title || form.query,
@@ -157,9 +166,63 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
             item.finalDecision?.finalScore ||
             0;
 
+          const modernProfit =
+            modern.valuation?.profit ??
+            modern.marketValuation?.profit ??
+            modern.vehicleValuation?.profit ??
+            modern.profit ??
+            item.netProfit ??
+            item.profit ??
+            0;
+
+          const modernRoi =
+            modern.valuation?.roi ??
+            modern.marketValuation?.roi ??
+            modern.vehicleValuation?.roi ??
+            modern.roi ??
+            item.netRoi ??
+            item.roi ??
+            0;
+
+          const modernDecision = {
+            ...(modern.decision || {}),
+            summary: buildModernDecisionSummaryV2({
+              action: modern.decision?.label || modern.decision?.action || "Observar mercado",
+              decisionScore,
+              opportunityScore,
+              valuationScore:
+                modern.valuation?.valuationScore ??
+                modern.marketValuation?.valuationScore ??
+                modern.vehicleValuation?.valuationScore ??
+                0,
+              roi: modernRoi,
+              profit: modernProfit,
+              discountPercent:
+                modern.valuation?.discountPercent ??
+                modern.marketValuation?.discountPercent ??
+                modern.vehicleValuation?.discountPercent ??
+                0,
+              comparableCount:
+                modern.valuation?.comparableCount ??
+                modern.marketValuation?.comparableCount ??
+                modern.vehicleValuation?.comparableCount ??
+                0,
+              valuationConfidence:
+                modern.valuation?.valuationConfidence ??
+                modern.marketValuation?.valuationConfidence ??
+                modern.vehicleValuation?.confidence ??
+                0,
+            }),
+          };
+
           return {
             ...item,
             ...modern,
+            decision: modernDecision,
+            netProfit: modernProfit,
+            profit: modernProfit,
+            netRoi: modernRoi,
+            roi: modernRoi,
             opportunityScore,
             opportunityLevel,
             opportunitySignals: {
@@ -190,11 +253,11 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
               opportunityScore,
               opportunityLevel,
               decisionScore,
-              netProfit: item.netProfit,
-              netRoi: item.netRoi,
+              netProfit: modernProfit,
+              netRoi: modernRoi,
               liquidityScore: item.liquidity?.liquidityScore,
-              riskScore: item.dealRisk?.riskScore,
-              riskLevel: item.dealRisk?.level,
+              riskScore: modernDecision?.inventoryRiskScore ?? item.inventoryRiskScore ?? 0,
+              riskLevel: modernDecision?.action || modernDecision?.label || "modern_decision",
             }),
           };
         })
@@ -254,15 +317,33 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
         setMarketFeed(nextFeed);
       }
 
-      await saveBestRealOpportunityToMarketMemory({
+      saveBestRealOpportunityToMarketMemory({
         sourceMode: rawFeed.sourceMode,
         opportunities,
         scan,
         savedScanRef,
+      }).catch((error) => {
+        console.error("Error saving scanner opportunity:", error);
       });
     }
 
-    buildFeed();
+    buildFeed().catch((error) => {
+      console.error("Error building enriched market feed:", error);
+
+      if (!cancelled) {
+        setMarketFeed({
+          total: 0,
+          opportunities: [],
+          best: null,
+          insights: [
+            "No se ha podido completar el feed real. Revisa el diagnóstico técnico.",
+          ],
+          sourceMode: "real-feed-error",
+          realFeedErrors: [String(error?.message || error)],
+          realFeedDiagnostics: [],
+        });
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -270,6 +351,30 @@ export function useEnrichedMarketFeed({ searchTriggered, scan, form }) {
   }, [form.query, form.maxBudget, scan, searchTriggered]);
 
   return marketFeed;
+}
+
+function buildModernDecisionSummaryV2({
+  action,
+  decisionScore,
+  opportunityScore,
+  valuationScore,
+  roi,
+  profit,
+  discountPercent,
+  comparableCount,
+  valuationConfidence,
+}) {
+  return [
+    `Decisión: ${action}.`,
+    `Decision Score V2: ${Number(decisionScore || 0)}/100.`,
+    `Opportunity Score V2: ${Number(opportunityScore || 0)}/100.`,
+    `Valuation Score: ${Number(valuationScore || 0)}/100.`,
+    `ROI estimado: ${Number(roi || 0).toFixed(2)}%.`,
+    `Margen estimado: ${Math.round(Number(profit || 0))} €.`,
+    `Descuento frente a valoración: ${Number(discountPercent || 0).toFixed(2)}%.`,
+    `Comparables: ${Number(comparableCount || 0)}.`,
+    `Confianza: ${Number(valuationConfidence || 0)}/100.`,
+  ].join(" ");
 }
 
 function buildModernFinalDecision({
@@ -627,10 +732,10 @@ function buildRuntimeInsights(opportunities, sourceMode) {
     `📡 Modo de datos: ${sourceLabel}.`,
     `💰 Margen neto estimado: ${best.netProfit.toLocaleString("es-ES")} €.`,
     `📊 ROI neto estimado: ${best.netRoi}%.`,
-    `🧠 Desviación de mercado: ${best.comparable.deviationPercent}%.`,
-    `⚡ Probabilidad de venta rápida: ${best.memory.resaleSpeed.label}.`,
-    `🎯 Riesgo estimado: ${best.memory.riskLevel}.`,
-    best.memory.strategy.reason,
+    `🧠 Valoración moderna: ${Number(best.valuation?.valuationScore ?? best.opportunitySignals?.valuationScore ?? 0)}/100.`,
+    `⚡ Timing de mercado: ${Number(best.decision?.marketTimingScore ?? best.marketTimingScore ?? best.opportunitySignals?.marketTimingScore ?? 0)}/100.`,
+    `🎯 Decisión moderna: ${best.decision?.label || best.decision?.action || best.opportunityLevel || "Pendiente"}.`,
+    best.decision?.summary || "Pendiente de señal moderna suficiente.",
   ];
 }
 

@@ -55,19 +55,27 @@ export function buildMasterOpportunityPipeline(records = [], options = {}) {
       comparables,
     };
 
+    const hasReliableValuation =
+      Number(valuation.estimatedMarketValue || 0) > 0 &&
+      (
+        Number(valuation.comparableCount || 0) > 0 ||
+        Number(vehicleValuation?.comparableCount || 0) > 0 ||
+        Number(valuation.valuationConfidence || 0) >= 50 ||
+        Number(vehicleValuation?.confidence || 0) >= 50
+      );
+
     const roi = Number(
-      vehicle.netRoi ??
-      vehicle.roi ??
-      valuation.roi ??
-      0
+      hasReliableValuation
+        ? valuation.roi
+        : vehicle.netRoi ?? vehicle.roi ?? valuation.roi ?? 0
     );
 
     const profit = Number(
-      vehicle.netProfit ??
-      vehicle.profit ??
-      valuation.profit ??
-      0
+      hasReliableValuation
+        ? valuation.profit
+        : vehicle.netProfit ?? vehicle.profit ?? valuation.profit ?? 0
     );
+
     const price = Number(vehicle.price || vehicle.purchasePrice || vehicle.budget || 0);
 
     const opportunity = buildOpportunityScoreV2({

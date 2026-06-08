@@ -133,22 +133,44 @@ export default function MarketFeedSection({ marketFeed }) {
             </div>
 
             <div style={riskBoxStyle}>
-              <h4 style={miniTitleStyle}>🛡️ Riesgo de operación</h4>
+              <h4 style={miniTitleStyle}>🛡️ Control de riesgo moderno</h4>
 
               <div style={marketGridStyle}>
-                <SmallMetric label="Nivel" value={item.dealRisk?.level || "-"} />
+                <SmallMetric
+                  label="Inventario"
+                  value={`${Number(item.decision?.inventoryRiskScore ?? item.inventoryRiskScore ?? 0)}/100`}
+                />
 
                 <SmallMetric
-                  label="Risk score"
-                  value={`${item.dealRisk?.riskScore || 0}/100`}
+                  label="Timing"
+                  value={`${Number(item.decision?.marketTimingScore ?? item.marketTimingScore ?? 0)}/100`}
+                />
+
+                <SmallMetric
+                  label="Confianza"
+                  value={`${Number(
+                    item.decision?.confidence ??
+                      item.valuation?.valuationConfidence ??
+                      item.vehicleValuation?.confidence ??
+                      0
+                  )}/100`}
+                />
+
+                <SmallMetric
+                  label="Acción"
+                  value={item.decision?.label || item.decision?.action || item.opportunityLevel || "-"}
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.dealRisk?.recommendation}</p>
+              <p style={marketInsightStyle}>
+                {item.decision?.summary ||
+                  item.decision?.reasons?.[0] ||
+                  "Riesgo evaluado por el Decision Engine moderno."}
+              </p>
             </div>
 
             <div style={marketBoxStyle}>
-              <h4 style={miniTitleStyle}>📊 Comparables de mercado</h4>
+              <h4 style={miniTitleStyle}>📊 Valoración moderna</h4>
 
               <div style={marketGridStyle}>
                 <SmallMetric
@@ -157,51 +179,90 @@ export default function MarketFeedSection({ marketFeed }) {
                 />
 
                 <SmallMetric
-                  label="Precio justo IA"
-                  value={`${Number(item.comparable?.fairPrice || 0).toLocaleString(
-                    "es-ES"
-                  )} €`}
+                  label="Valor mercado"
+                  value={`${Number(
+                    item.valuation?.estimatedMarketValue ||
+                      item.marketValuation?.estimatedMarketValue ||
+                      item.vehicleValuation?.estimatedMarketValue ||
+                      item.estimatedMarketValue ||
+                      0
+                  ).toLocaleString("es-ES")} €`}
                 />
 
                 <SmallMetric
-                  label="Desviación"
-                  value={`${item.comparable?.deviationPercent || 0}%`}
+                  label="Descuento"
+                  value={`${Number(
+                    item.valuation?.discountPercent ??
+                      item.marketValuation?.discountPercent ??
+                      item.vehicleValuation?.discountPercent ??
+                      item.discountPercent ??
+                      0
+                  ).toFixed(2)}%`}
                 />
 
                 <SmallMetric
                   label="Confianza"
-                  value={`${item.comparable?.confidence || 0}/100`}
+                  value={`${Number(
+                    item.valuation?.valuationConfidence ??
+                      item.marketValuation?.valuationConfidence ??
+                      item.vehicleValuation?.confidence ??
+                      item.valuationConfidence ??
+                      0
+                  )}/100`}
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.comparable?.insight}</p>
+              <p style={marketInsightStyle}>
+                {item.valuation?.marketValueReason ||
+                  item.marketValuation?.marketValueReason ||
+                  item.vehicleValuation?.summary ||
+                  item.decision?.summary ||
+                  "Valoración basada en el pipeline moderno de mercado."}
+              </p>
             </div>
 
             <div style={memoryBoxStyle}>
-              <h4 style={miniTitleStyle}>🧠 Memoria de mercado</h4>
+              <h4 style={miniTitleStyle}>🧠 Señales modernas</h4>
 
               <div style={marketGridStyle}>
                 <SmallMetric
-                  label="Venta estimada"
-                  value={`${item.memory?.resaleSpeed?.days || 0} días`}
+                  label="Comparables"
+                  value={Number(
+                    item.valuation?.comparableCount ??
+                      item.marketValuation?.comparableCount ??
+                      item.vehicleValuation?.comparableCount ??
+                      item.opportunitySignals?.comparableCount ??
+                      0
+                  )}
                 />
 
                 <SmallMetric
-                  label="Demanda"
-                  value={item.memory?.demandLevel || "-"}
-                />
-
-                <SmallMetric label="Riesgo" value={item.memory?.riskLevel || "-"} />
-
-                <SmallMetric
-                  label="Precio máx."
+                  label="Valuation"
                   value={`${Number(
-                    item.memory?.recommendedMaxBid || 0
-                  ).toLocaleString("es-ES")} €`}
+                    item.valuation?.valuationScore ??
+                      item.marketValuation?.valuationScore ??
+                      item.vehicleValuation?.valuationScore ??
+                      item.opportunitySignals?.valuationScore ??
+                      0
+                  )}/100`}
+                />
+
+                <SmallMetric
+                  label="Decisión"
+                  value={item.decision?.action || item.opportunityLevel || "-"}
+                />
+
+                <SmallMetric
+                  label="Timing"
+                  value={item.decision?.marketTiming?.action || item.opportunitySignals?.marketTimingScore || "-"}
                 />
               </div>
 
-              <p style={marketInsightStyle}>{item.memory?.strategy?.reason}</p>
+              <p style={marketInsightStyle}>
+                {item.decision?.reason ||
+                  item.decision?.summary ||
+                  "Señales generadas por el pipeline moderno de oportunidad."}
+              </p>
             </div>
           </div>
         ))}
