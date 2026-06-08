@@ -1,3 +1,4 @@
+import { extractListingsWithDeepSeekApi } from "../extractors/deepSeekListingExtractorApi";
 import { VEHICLE_CATALOG } from "../vehicleCatalog";
 
 const REAL_FEED_TIMEOUT_MS = 7000;
@@ -5,6 +6,7 @@ const MAX_LINKS_TO_TRY = 3;
 
 export async function fetchRealMarketListings(scan = {}, options = {}) {
   const maxListings = Number(options.maxListings || 20);
+  const enableDeepSeekFallback = options.enableDeepSeekFallback !== false;
   const searchLinks = Array.isArray(scan.searchLinks) ? scan.searchLinks : [];
 
   if (searchLinks.length === 0) {
@@ -30,7 +32,7 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         ? await fetchAutoscoutDirectUrlMap(link.url)
         : new Map();
 
-      const { listings: parsedListings, rejectionLog } = parseListingsFromText({
+      const parsedResult = parseListingsFromText({
         text,
         source: link.source,
         country: link.country,
@@ -40,6 +42,29 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         fallbackUrl: link.url,
         autoscoutDirectUrlMap,
       });
+
+      let parsedListings = parsedResult.listings;
+      const rejectionLog = parsedResult.rejectionLog;
+
+      const deepSeekFallback = await maybeExtractListingsWithDeepSeekFallback({
+        enabled: enableDeepSeekFallback,
+        text,
+        source: link.source,
+        country: link.country,
+        query: scan.query,
+        maxBudget: scan.maxBudget,
+        semantic: scan.semantic,
+        fallbackUrl: link.url,
+        currentListings: parsedListings,
+        rejectionLog,
+      });
+
+      if (deepSeekFallback.listings.length > 0) {
+        parsedListings = dedupeListings([
+          ...parsedListings,
+          ...deepSeekFallback.listings,
+        ]);
+      }
 
       diagnostics.push({
         source: link.source,
@@ -61,15 +86,24 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
             : 0,
         durationMs: Date.now() - startedAt,
         rejectionLog,
+        deepSeekFallback: {
+          status: deepSeekFallback.status,
+          attempted: deepSeekFallback.attempted,
+          extractedCount: deepSeekFallback.extractedCount,
+          acceptedCount: deepSeekFallback.listings.length,
+          diagnostics: deepSeekFallback.diagnostics,
+        },
         rejectionSummary: buildRejectionSummary(rejectionLog),
         healthMetrics: buildFeedHealthMetrics(rejectionLog),
         nearMissSummary: buildNearMissSummary(rejectionLog),
         message:
           isAccessDeniedText(text)
             ? "Fuente bloqueada por protección anti-bot / Access denied. No hay datos útiles para parsear."
-            : parsedListings.length > 0
-              ? `${parsedListings.length} anuncios normalizados detectados.`
-              : buildNoResultsMessage(rejectionLog),
+            : deepSeekFallback.listings.length > 0
+              ? `${deepSeekFallback.listings.length} anuncios rescatados por DeepSeek extractor.`
+              : parsedListings.length > 0
+                ? `${parsedListings.length} anuncios normalizados detectados.`
+                : buildNoResultsMessage(rejectionLog),
       });
 
       allListings.push(...parsedListings);
@@ -103,6 +137,201 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
     errors,
     diagnostics,
   };
+}
+
+async function maybeExtractListingsWithDeepSeekFallback({
+  enabled,
+  text,
+  source,
+  country,
+  query,
+  maxBudget,
+  semantic,
+  fallbackUrl,
+  currentListings = [],
+  rejectionLog,
+}) {
+  const emptyResult = {
+    attempted: false,
+    status: "skipped",
+    extractedCount: 0,
+    listings: [],
+    diagnostics: [],
+  };
+
+  if (!enabled) {
+    return {
+      ...emptyResult,
+      diagnostics: ["Fallback DeepSeek desactivado por configuración."],
+    };
+  }
+
+  if (currentListings.length > 0) {
+    return {
+      ...emptyResult,
+      diagnostics: ["Parser principal ya extrajo anuncios; DeepSeek no se invoca."],
+    };
+  }
+
+  if (isAccessDeniedText(text)) {
+    return {
+      ...emptyResult,
+      diagnostics: ["Texto bloqueado por fuente; DeepSeek no se invoca."],
+    };
+  }
+
+  if (!text || text.length < 500) {
+    return {
+      ...emptyResult,
+      diagnostics: ["Texto demasiado corto para extracción DeepSeek."],
+    };
+  }
+
+  if (Number(rejectionLog?.totalBlocks || 0) === 0 && text.length < 1200) {
+    return {
+      ...emptyResult,
+      diagnostics: ["Sin bloques y texto insuficiente para fallback DeepSeek."],
+    };
+  }
+
+  try {
+    const extraction = await extractListingsWithDeepSeekApi(text, {
+      brand: detectBrand(query) || "",
+      model: detectModelFromQuery(query) || "",
+      aiModel: "deepseek-v4-flash",
+      maxTokens: 2200,
+      includeRawText: false,
+    });
+
+    const normalizedListings = normalizeDeepSeekExtractedListings({
+      listings: extraction.listings,
+      source,
+      country,
+      query,
+      maxBudget,
+      semantic,
+      fallbackUrl,
+    });
+
+    return {
+      attempted: true,
+      status: extraction.status,
+      extractedCount: Array.isArray(extraction.listings)
+        ? extraction.listings.length
+        : 0,
+      listings: normalizedListings,
+      diagnostics: extraction.diagnostics || [],
+    };
+  } catch (error) {
+    return {
+      attempted: true,
+      status: "error",
+      extractedCount: 0,
+      listings: [],
+      diagnostics: [
+        error?.message || "Error desconocido en fallback DeepSeek.",
+      ],
+    };
+  }
+}
+
+function normalizeDeepSeekExtractedListings({
+  listings = [],
+  source,
+  country,
+  query,
+  maxBudget,
+  semantic,
+  fallbackUrl,
+}) {
+  if (!Array.isArray(listings)) return [];
+
+  return listings
+    .map((item, index) => {
+      const title = String(item.title || "").trim();
+      const price = Number(item.price || 0);
+      const mileage = Number(item.km || item.mileage || 0);
+      const year = Number(item.year || 0);
+      const fuelType = String(item.fuelType || "").trim();
+      const power = Number(item.hp || item.power || 0);
+      const sourceUrl = String(item.sourceUrl || item.url || "").trim();
+      const brand = item.brand || detectBrand(`${title} ${query}`) || detectBrand(query);
+      const model =
+        item.model ||
+        detectModelFromText(`${title} ${query}`, query) ||
+        detectModelFromQuery(query);
+
+      if (!title || !price || !mileage || !year) {
+        return null;
+      }
+
+      const validation = validateVehicleCompatibility({
+        query,
+        semantic,
+        price,
+        mileage,
+        year,
+        fuelType,
+        powerKw: 0,
+        maxBudget,
+        blockText: `${title} ${fuelType} ${power}`,
+      });
+
+      if (!validation.isCompatible) {
+        return null;
+      }
+
+      return {
+        id: buildListingId({
+          source: `${source}-deepseek`,
+          country,
+          line: title,
+          price,
+          mileage,
+          year,
+        }),
+        title,
+        brand,
+        model,
+        version: item.version || "",
+        price,
+        km: mileage,
+        mileage,
+        year,
+        country: item.country || country,
+        location: item.location || country,
+        fuelType,
+        power,
+        hp: power,
+        drivetrain: detectDrivetrain(title),
+        bodyType: detectBodyType(`${title} ${query}`),
+        performancePackage: detectPerformancePackage(title),
+        electrified: isElectrified(`${title} ${fuelType}`),
+        marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
+        source,
+        sourceExtractor: "deepseek_edge_extractor",
+        url: sourceUrl.startsWith("http") ? sourceUrl : "",
+        imageUrl: "",
+        isRealData: true,
+        identitySource: "deepseek-extractor",
+        semanticScore: validation.score,
+        semanticWarnings: validation.warnings,
+        dataQuality: {
+          hasPrice: true,
+          hasMileage: true,
+          hasYear: true,
+          hasPower: Boolean(power),
+          estimatedMileage: false,
+          estimatedYear: false,
+          sourceFormat: "deepseek-edge-extractor-v1",
+          extractedFromFallbackUrl: fallbackUrl || "",
+        },
+        raw: {
+          deepSeek: item,
+        },
+      };
+    })
+    .filter(Boolean);
 }
 
 function buildNearMissSummary(rejectionLog) {
