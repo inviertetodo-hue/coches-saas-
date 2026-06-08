@@ -7,6 +7,7 @@ const MAX_LINKS_TO_TRY = 3;
 export async function fetchRealMarketListings(scan = {}, options = {}) {
   const maxListings = Number(options.maxListings || 20);
   const enableDeepSeekFallback = options.enableDeepSeekFallback !== false;
+  const userHardFilters = resolveUserHardFilters(scan);
   const searchLinks = Array.isArray(scan.searchLinks) ? scan.searchLinks : [];
 
   if (searchLinks.length === 0) {
@@ -38,6 +39,8 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         country: link.country,
         query: scan.query,
         maxBudget: scan.maxBudget,
+        minYear: userHardFilters.minYear,
+        maxMileage: userHardFilters.maxMileage,
         semantic: scan.semantic,
         fallbackUrl: link.url,
         autoscoutDirectUrlMap,
@@ -53,6 +56,8 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         country: link.country,
         query: scan.query,
         maxBudget: scan.maxBudget,
+        minYear: userHardFilters.minYear,
+        maxMileage: userHardFilters.maxMileage,
         semantic: scan.semantic,
         fallbackUrl: link.url,
         currentListings: parsedListings,
@@ -139,6 +144,37 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
   };
 }
 
+function resolveUserHardFilters(scan = {}) {
+  const minYear = Number(
+    scan.minYear ??
+      scan.yearFrom ??
+      scan.fromYear ??
+      scan.minRegistrationYear ??
+      scan.filters?.minYear ??
+      scan.filters?.yearFrom ??
+      scan.form?.minYear ??
+      scan.form?.yearFrom ??
+      0
+  );
+
+  const maxMileage = Number(
+    scan.maxKm ??
+      scan.maxMileage ??
+      scan.kmMax ??
+      scan.maxKilometers ??
+      scan.filters?.maxKm ??
+      scan.filters?.maxMileage ??
+      scan.form?.maxKm ??
+      scan.form?.maxMileage ??
+      0
+  );
+
+  return {
+    minYear: Number.isFinite(minYear) ? minYear : 0,
+    maxMileage: Number.isFinite(maxMileage) ? maxMileage : 0,
+  };
+}
+
 async function maybeExtractListingsWithDeepSeekFallback({
   enabled,
   text,
@@ -146,6 +182,8 @@ async function maybeExtractListingsWithDeepSeekFallback({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
   fallbackUrl,
   currentListings = [],
@@ -194,6 +232,20 @@ async function maybeExtractListingsWithDeepSeekFallback({
     };
   }
 
+  const totalBlocks = Number(rejectionLog?.totalBlocks || 0);
+  const incompatibleBlocks = Number(rejectionLog?.incompatible || 0);
+  const genericTitleBlocks = Number(rejectionLog?.genericTitle || 0);
+
+  if (totalBlocks > 0 && (incompatibleBlocks > 0 || genericTitleBlocks > 0)) {
+    return {
+      ...emptyResult,
+      status: "skipped_quality_filters",
+      diagnostics: [
+        "Parser detectó bloques, pero fueron rechazados por filtros de compatibilidad/calidad. DeepSeek no se invoca para evitar coste y no saltarse reglas de la SaaS.",
+      ],
+    };
+  }
+
   try {
     const extraction = await extractListingsWithDeepSeekApi(text, {
       brand: detectBrand(query) || "",
@@ -209,6 +261,8 @@ async function maybeExtractListingsWithDeepSeekFallback({
       country,
       query,
       maxBudget,
+      minYear,
+      maxMileage,
       semantic,
       fallbackUrl,
     });
@@ -241,6 +295,8 @@ function normalizeDeepSeekExtractedListings({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
   fallbackUrl,
 }) {
@@ -274,6 +330,8 @@ function normalizeDeepSeekExtractedListings({
         fuelType,
         powerKw: 0,
         maxBudget,
+        minYear,
+        maxMileage,
         blockText: `${title} ${fuelType} ${power}`,
       });
 
@@ -620,6 +678,8 @@ function parseListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
   fallbackUrl = "",
   autoscoutDirectUrlMap = new Map(),
@@ -633,6 +693,8 @@ function parseListingsFromText({
       country,
       query,
       maxBudget,
+      minYear,
+      maxMileage,
       semantic,
       fallbackUrl,
       autoscoutDirectUrlMap,
@@ -646,6 +708,8 @@ function parseListingsFromText({
       country,
       query,
       maxBudget,
+      minYear,
+      maxMileage,
       semantic,
       fallbackUrl,
     });
@@ -657,6 +721,8 @@ function parseListingsFromText({
     country,
     query,
     maxBudget,
+    minYear,
+    maxMileage,
     semantic,
   });
 }
@@ -677,6 +743,8 @@ function parseMobileDeListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
 }) {
   const blocks = splitMobileDeTextIntoBlocks(text);
@@ -734,6 +802,8 @@ function parseMobileDeListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      minYear,
+      maxMileage,
       blockText: title,
     });
 
@@ -851,6 +921,8 @@ function parseAutoscoutListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
   fallbackUrl = "",
   autoscoutDirectUrlMap = new Map(),
@@ -882,9 +954,7 @@ function parseAutoscoutListingsFromText({
     const powerKw = extractPowerKw(blockText);
     const power = extractPower(blockText);
     const imageUrl = extractFirstImageUrl(block.join("\n"));
-    const imageGuid = extractAutoscoutGuidFromImageUrl(imageUrl);
-    const directUrlFromMap = autoscoutDirectUrlMap.get(imageGuid) || "";
-    const sourceUrl = extractFirstUrl(blockText) || directUrlFromMap || "";
+    const sourceUrl = extractFirstUrl(blockText) || "";
 
     // Datos básicos son obligatorios — sin estos no podemos valorar el coche
     if (!price || !mileage || !year) {
@@ -892,14 +962,33 @@ function parseAutoscoutListingsFromText({
       return;
     }
 
-    // AutoScout via Jina no siempre expone título real por anuncio.
-    // Para evitar contaminación entre modelos de la misma marca (X1 dentro de X5),
-    // la identidad principal hereda marca/modelo del query.
+    // DATA INTEGRITY GATE:
+    // Nunca inventamos identidad desde la búsqueda si el bloque no confirma marca/modelo.
+    // Si no podemos confirmar que el bloque es exactamente el coche buscado, no entra al feed.
     const brandFromBlock = detectBrand(blockText);
-    const modelFromBlock = detectModelFromText(blockText, query);
-    const blockHasCompleteIdentity = false;
-    const brand = queryBrand;
-    const model = queryModel;
+    const modelFromBlock = detectModelFromTextOnly(blockText, brandFromBlock || queryBrand);
+    const targetBaseModel = normalizeModelForStrictMatch(queryModel);
+    const blockBaseModel = normalizeModelForStrictMatch(modelFromBlock);
+    const brandMatches =
+      Boolean(brandFromBlock) &&
+      Boolean(queryBrand) &&
+      normalize(brandFromBlock) === normalize(queryBrand);
+    const modelMatches =
+      Boolean(blockBaseModel) &&
+      Boolean(targetBaseModel) &&
+      blockBaseModel === targetBaseModel;
+    const blockHasCompleteIdentity = brandMatches && modelMatches;
+
+    if (!blockHasCompleteIdentity) {
+      rejectionLog.incompatible += 1;
+      rejectionLog.incompatibleReasons.push(
+        `identity_not_confirmed_source_guard: objetivo="${queryBrand || ""} ${queryModel || ""}", bloque="${brandFromBlock || ""} ${modelFromBlock || ""}"`
+      );
+      return;
+    }
+
+    const brand = brandFromBlock;
+    const model = modelFromBlock;
 
     // Construir título desde el bloque o sintético desde los datos disponibles
     const titleFromBlock = findBestTitleLine({ block: normalizedBlock, brand, model, query });
@@ -921,6 +1010,8 @@ function parseAutoscoutListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      minYear,
+      maxMileage,
       blockText: title,
       trustQueryModel: true,
     });
@@ -1120,6 +1211,8 @@ function parseGenericListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
 }) {
   const lines = toUsefulLines(text);
@@ -1163,6 +1256,8 @@ function parseGenericListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      minYear,
+      maxMileage,
       blockText: line,
     });
 
@@ -1219,6 +1314,8 @@ function validateVehicleCompatibility({
   fuelType,
   powerKw,
   maxBudget,
+  minYear,
+  maxMileage,
   blockText = "",
   trustQueryModel = false,
 }) {
@@ -1233,6 +1330,27 @@ function validateVehicleCompatibility({
       score: 0,
       warnings: [`Precio ${price} > presupuesto ${budget}.`],
       rejectionReason: `precio_sobre_presupuesto: ${price} > ${budget}`,
+    };
+  }
+
+  const userMinYear = Number(minYear || 0);
+  const userMaxMileage = Number(maxMileage || 0);
+
+  if (userMinYear > 0 && year > 0 && year < userMinYear) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: [`Año ${year} < mínimo usuario ${userMinYear}.`],
+      rejectionReason: `year_bajo_usuario: ${year} < ${userMinYear}`,
+    };
+  }
+
+  if (userMaxMileage > 0 && mileage > userMaxMileage) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: [`Km ${mileage} > máximo usuario ${userMaxMileage}.`],
+      rejectionReason: `km_sobre_max_usuario: ${mileage} > ${userMaxMileage}`,
     };
   }
 
@@ -1255,6 +1373,23 @@ function validateVehicleCompatibility({
       score: 0,
       warnings: realityCheck.warnings,
       rejectionReason: realityCheck.rejectionReason,
+    };
+  }
+
+  const plausibilityCheck = validateModelPlausibility({
+    targetModel,
+    year,
+    fuelType,
+    powerKw,
+    titleText: blockText,
+  });
+
+  if (!plausibilityCheck.isValid) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: plausibilityCheck.warnings,
+      rejectionReason: plausibilityCheck.rejectionReason,
     };
   }
 
@@ -1326,6 +1461,75 @@ function validateVehicleCompatibility({
   };
 }
 
+
+function validateModelPlausibility({
+  targetModel,
+  year,
+  fuelType,
+  powerKw,
+  titleText = "",
+}) {
+  const model = normalizeModelForStrictMatch(targetModel);
+  const fuel = normalize(fuelType);
+  const text = normalize(titleText);
+  const power = Number(powerKw || 0);
+
+  const compactFamilyModels = new Set([
+    "berlingo",
+    "rifter",
+    "combo",
+    "kangoo",
+    "caddy",
+    "dokker",
+    "partner",
+  ]);
+
+  if (compactFamilyModels.has(model)) {
+    if (power > 135) {
+      return {
+        isValid: false,
+        warnings: [
+          `Potencia improbable para ${targetModel}: ${power} kW.`,
+        ],
+        rejectionReason: `potencia_improbable_modelo: ${targetModel} ${power}kW`,
+      };
+    }
+
+    if ((fuel === "phev" || text.includes("plug in") || text.includes("plug-in")) && model === "berlingo") {
+      return {
+        isValid: false,
+        warnings: [
+          `Tecnología PHEV no plausible para ${targetModel}.`,
+        ],
+        rejectionReason: `fuel_improbable_modelo: ${targetModel} ${fuel || "phev"}`,
+      };
+    }
+
+    if (fuel === "electric" && power > 120) {
+      return {
+        isValid: false,
+        warnings: [
+          `Potencia eléctrica improbable para ${targetModel}: ${power} kW.`,
+        ],
+        rejectionReason: `potencia_electrica_improbable_modelo: ${targetModel} ${power}kW`,
+      };
+    }
+  }
+
+  if (year > new Date().getFullYear() + 1) {
+    return {
+      isValid: false,
+      warnings: [`Año futuro improbable: ${year}.`],
+      rejectionReason: `year_futuro_improbable: ${year}`,
+    };
+  }
+
+  return {
+    isValid: true,
+    warnings: [],
+    rejectionReason: null,
+  };
+}
 
 function validateVehicleReality({ targetModel, year, fuelType, titleText = "" }) {
   const model = normalize(targetModel);
