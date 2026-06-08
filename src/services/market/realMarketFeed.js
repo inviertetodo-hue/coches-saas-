@@ -36,6 +36,8 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
         country: link.country,
         query: scan.query,
         maxBudget: scan.maxBudget,
+        minYear: resolveHardSearchFilters(scan).minYear,
+        maxMileage: resolveHardSearchFilters(scan).maxMileage,
         semantic: scan.semantic,
         fallbackUrl: link.url,
         autoscoutDirectUrlMap,
@@ -103,6 +105,53 @@ export async function fetchRealMarketListings(scan = {}, options = {}) {
     errors,
     diagnostics,
   };
+}
+
+function resolveHardSearchFilters(scan = {}) {
+  const minYear = firstPositiveNumber([
+    scan.minYear,
+    scan.yearFrom,
+    scan.fromYear,
+    scan.yearMin,
+    scan.filters?.minYear,
+    scan.filters?.yearFrom,
+    scan.searchFilters?.minYear,
+    scan.searchFilters?.yearFrom,
+    scan.criteria?.minYear,
+    scan.criteria?.yearFrom,
+  ]);
+
+  const maxMileage = firstPositiveNumber([
+    scan.maxKm,
+    scan.maxMileage,
+    scan.kmMax,
+    scan.mileageMax,
+    scan.maxKilometers,
+    scan.filters?.maxKm,
+    scan.filters?.maxMileage,
+    scan.filters?.kmMax,
+    scan.searchFilters?.maxKm,
+    scan.searchFilters?.maxMileage,
+    scan.criteria?.maxKm,
+    scan.criteria?.maxMileage,
+  ]);
+
+  return {
+    minYear,
+    maxMileage,
+  };
+}
+
+function firstPositiveNumber(values = []) {
+  for (const value of values) {
+    const number = Number(value);
+
+    if (Number.isFinite(number) && number > 0) {
+      return number;
+    }
+  }
+
+  return 0;
 }
 
 function buildNearMissSummary(rejectionLog) {
@@ -391,6 +440,8 @@ function parseListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
   fallbackUrl = "",
   autoscoutDirectUrlMap = new Map(),
@@ -404,6 +455,8 @@ function parseListingsFromText({
       country,
       query,
       maxBudget,
+      minYear,
+      maxMileage,
       semantic,
       fallbackUrl,
       autoscoutDirectUrlMap,
@@ -417,6 +470,8 @@ function parseListingsFromText({
       country,
       query,
       maxBudget,
+      minYear,
+      maxMileage,
       semantic,
       fallbackUrl,
     });
@@ -428,6 +483,8 @@ function parseListingsFromText({
     country,
     query,
     maxBudget,
+    minYear,
+    maxMileage,
     semantic,
   });
 }
@@ -448,6 +505,8 @@ function parseMobileDeListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
 }) {
   const blocks = splitMobileDeTextIntoBlocks(text);
@@ -505,6 +564,8 @@ function parseMobileDeListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      minYear,
+      maxMileage,
       blockText: title,
     });
 
@@ -622,6 +683,8 @@ function parseAutoscoutListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
   fallbackUrl = "",
   autoscoutDirectUrlMap = new Map(),
@@ -692,6 +755,8 @@ function parseAutoscoutListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      minYear,
+      maxMileage,
       blockText: title,
       trustQueryModel: true,
     });
@@ -891,6 +956,8 @@ function parseGenericListingsFromText({
   country,
   query,
   maxBudget,
+  minYear,
+  maxMileage,
   semantic,
 }) {
   const lines = toUsefulLines(text);
@@ -934,6 +1001,8 @@ function parseGenericListingsFromText({
       fuelType,
       powerKw,
       maxBudget,
+      minYear,
+      maxMileage,
       blockText: line,
     });
 
@@ -990,6 +1059,8 @@ function validateVehicleCompatibility({
   fuelType,
   powerKw,
   maxBudget,
+  minYear,
+  maxMileage,
   blockText = "",
   trustQueryModel = false,
 }) {
@@ -997,6 +1068,26 @@ function validateVehicleCompatibility({
   const warnings = [];
   const rejectionReasons = [];
   const budget = Number(maxBudget || 0);
+  const hardMinYear = Number(minYear || 0);
+  const hardMaxMileage = Number(maxMileage || 0);
+
+  if (hardMinYear > 0 && year > 0 && year < hardMinYear) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: [`Año ${year} < año mínimo solicitado ${hardMinYear}.`],
+      rejectionReason: `year_bajo_filtro: ${year} < ${hardMinYear}`,
+    };
+  }
+
+  if (hardMaxMileage > 0 && mileage > 0 && mileage > hardMaxMileage) {
+    return {
+      isCompatible: false,
+      score: 0,
+      warnings: [`Kilometraje ${mileage} > máximo solicitado ${hardMaxMileage}.`],
+      rejectionReason: `km_sobre_filtro: ${mileage} > ${hardMaxMileage}`,
+    };
+  }
 
   if (budget > 0 && price > budget) {
     return {
