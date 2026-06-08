@@ -621,6 +621,31 @@ function inferPrice(item) {
   return priceMatch ? Number(priceMatch[1]) : NaN;
 }
 
+function isConfirmedMarketFeedIdentity(item = {}) {
+  const identitySource = String(item.identitySource || "").toLowerCase();
+  const sourceExtractor = String(item.sourceExtractor || "").toLowerCase();
+
+  if (identitySource === "query-fallback") return false;
+  if (identitySource === "search-fallback") return false;
+  if (identitySource === "inherited") return false;
+
+  const hasConfirmedIdentity =
+    identitySource === "block" ||
+    identitySource === "deepseek-extractor" ||
+    sourceExtractor === "deepseek_edge_extractor";
+
+  return Boolean(
+    hasConfirmedIdentity &&
+      item.isRealData === true &&
+      item.brand &&
+      item.model &&
+      item.title &&
+      item.price &&
+      (item.km || item.mileage) &&
+      item.year
+  );
+}
+
 async function saveBestRealOpportunityToMarketMemory({
   sourceMode,
   opportunities,
@@ -637,6 +662,7 @@ async function saveBestRealOpportunityToMarketMemory({
     const roi = Number(item.netRoi || 0);
 
     return (
+      isConfirmedMarketFeedIdentity(item) &&
       semanticScore >= 80 &&
       finalScore >= 70 &&
       Number.isFinite(profit) &&
