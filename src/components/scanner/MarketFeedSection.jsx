@@ -1,6 +1,7 @@
 import SmallMetric from "./SmallMetric";
 import FeedMetric from "./FeedMetric";
 import DealDecisionPill, { getDecisionColor } from "./DealDecisionPill";
+import VerifiedAutoScoutDetailButton from "../detail/VerifiedAutoScoutDetailButton";
 
 export default function MarketFeedSection({ marketFeed }) {
   if (!marketFeed) return null;
@@ -59,14 +60,21 @@ export default function MarketFeedSection({ marketFeed }) {
               </p>
 
               {item.url && (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={originalListingLinkStyle}
-                >
-                  🔗 Ver anuncio original
-                </a>
+                <>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={originalListingLinkStyle}
+                  >
+                    🔗 Ver anuncio original
+                  </a>
+
+                  <VerifiedAutoScoutDetailButton
+                    url={item.url}
+                    label="Ver ficha enriquecida"
+                  />
+                </>
               )}
             </div>
 
