@@ -149,7 +149,8 @@ export default function MarketFeedSection({ marketFeed }) {
                 <SmallMetric
                   label="Confianza"
                   value={`${Number(
-                    item.decision?.confidence ??
+                    item.decision?.confidence?.score ??
+                      item.decision?.confidence ??
                       item.valuation?.valuationConfidence ??
                       item.vehicleValuation?.confidence ??
                       0
