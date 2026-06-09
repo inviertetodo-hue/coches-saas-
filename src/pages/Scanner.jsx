@@ -19,8 +19,8 @@ export default function Scanner() {
     country: "Europa",
     useCase: "reventa",
     fuel: "",
-    minYear: "",
-    maxMileage: "",
+    minYear: "2020",
+    maxMileage: "90000",
   });
 
   const [searchTriggered, setSearchTriggered] = useState(false);
