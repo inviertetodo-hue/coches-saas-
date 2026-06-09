@@ -4,144 +4,6 @@ import DealDecisionPill, { getDecisionColor } from "./DealDecisionPill";
 import VerifiedAutoScoutInlineCard from "../detail/VerifiedAutoScoutInlineCard";
 import VerifiedAutoScoutDetailButton from "../detail/VerifiedAutoScoutDetailButton";
 
-function getVisibleDecision(item = {}) {
-  const rawLevel = String(
-    item.opportunityLevel ||
-      item.opportunityLevelV2 ||
-      item.opportunity?.opportunityLevelV2 ||
-      item.opportunity?.level ||
-      ""
-  ).toUpperCase();
-
-  const rawDecisionAction = String(
-    getVisibleDecision(item).action ||
-      item.decision?.action ||
-      item.opportunityLevel ||
-      ""
-  ).toUpperCase();
-
-  const roi = Number(
-    item.roi ??
-      item.netRoi ??
-      item.estimatedROI ??
-      item.estimatedRoi ??
-      item.discountPercent ??
-      0
-  );
-
-  const profit = Number(
-    item.netProfit ??
-      item.profit ??
-      item.estimatedProfit ??
-      item.margin ??
-      0
-  );
-
-  const baseAction = normalizeVisibleDecisionAction(rawDecisionAction);
-  const levelAction = normalizeVisibleDecisionAction(rawLevel);
-
-  let action = baseAction;
-
-  if (levelAction === "REJECT") {
-    action = "REJECT";
-  } else if (levelAction === "WATCH") {
-    action = baseAction === "REJECT" ? "REJECT" : "WATCH";
-  } else if (levelAction === "BUY") {
-    action = baseAction === "BUY" ? "BUY" : baseAction === "REJECT" ? "REJECT" : "WATCH";
-  }
-
-  if (action === "BUY" && levelAction !== "BUY") {
-    action = levelAction === "REJECT" ? "REJECT" : "WATCH";
-  }
-
-  if ((roi < 0 || profit < 0) && action !== "REJECT") {
-    action = "WATCH";
-  }
-
-  const label = buildVisibleDecisionLabel({ action, roi, profit });
-
-  const originalExplanation =
-    getVisibleDecision(item).explanation ||
-    item.decision?.summary ||
-    item.decision?.reason ||
-    item.decision?.reasons?.[0] ||
-    "";
-
-  const explanation = buildVisibleDecisionExplanation({
-    label,
-    levelAction,
-    originalExplanation,
-  });
-
-  return {
-    action,
-    label,
-    explanation,
-  };
-}
-
-function normalizeVisibleDecisionAction(value) {
-  const action = String(value || "").trim().toUpperCase();
-
-  if (action === "BUY" || action === "COMPRAR" || action === "CONTACTAR_PRIMERO") {
-    return "BUY";
-  }
-
-  if (
-    action === "WATCH" ||
-    action === "WATCHLIST" ||
-    action === "VIGILAR" ||
-    action === "VALIDAR" ||
-    action === "VALIDAR_OPORTUNIDAD" ||
-    action === "OBSERVAR" ||
-    action === "OBSERVAR_MERCADO"
-  ) {
-    return "WATCH";
-  }
-
-  if (
-    action === "REJECT" ||
-    action === "DESCARTAR" ||
-    action === "AVOID" ||
-    action === "EVITAR"
-  ) {
-    return "REJECT";
-  }
-
-  return action || "WATCH";
-}
-
-function buildVisibleDecisionLabel({ action, roi, profit }) {
-  if (action === "BUY") return "Comprar";
-  if (action === "REJECT") return "Descartar";
-
-  if (roi < 0 || profit < 0) {
-    return "Observar mercado";
-  }
-
-  return "Validar oportunidad";
-}
-
-function buildVisibleDecisionExplanation({
-  label,
-  levelAction,
-  originalExplanation,
-}) {
-  const cleanExplanation = String(originalExplanation || "").trim();
-
-  const coherentPrefix =
-    levelAction && levelAction !== "NONE"
-      ? `Decisión: ${label}. Opportunity Level: ${levelAction}.`
-      : `Decisión: ${label}.`;
-
-  if (!cleanExplanation) {
-    return coherentPrefix;
-  }
-
-  return cleanExplanation.replace(/^Decisión:\s*[^.]+\./, coherentPrefix);
-}
-
-
 export default function MarketFeedSection({ marketFeed }) {
   if (!marketFeed) return null;
 
@@ -170,7 +32,7 @@ export default function MarketFeedSection({ marketFeed }) {
             style={{
               ...feedCardStyle,
               border: `1px solid ${getDecisionColor(
-                getVisibleDecision(item).action
+                item.finalDecision?.action
               )}`,
             }}
           >
@@ -224,8 +86,8 @@ export default function MarketFeedSection({ marketFeed }) {
             </div>
 
             <DealDecisionPill
-              action={getVisibleDecision(item).action}
-              label={getVisibleDecision(item).label}
+              action={item.finalDecision?.action}
+              label={item.finalDecision?.label}
             />
 
             <div style={opportunityBoxStyle}>
@@ -258,7 +120,7 @@ export default function MarketFeedSection({ marketFeed }) {
               />
             </div>
 
-            <div style={decisionStyle}>{getVisibleDecision(item).explanation}</div>
+            <div style={decisionStyle}>{item.finalDecision?.explanation}</div>
 
             <div style={liquidityBoxStyle}>
               <h4 style={miniTitleStyle}>💧 Liquidez</h4>
@@ -312,12 +174,14 @@ export default function MarketFeedSection({ marketFeed }) {
 
                 <SmallMetric
                   label="Acción"
-                  value={getVisibleDecision(item).label}
+                  value={item.decision?.label || item.decision?.action || item.opportunityLevel || "-"}
                 />
               </div>
 
               <p style={marketInsightStyle}>
-                {getVisibleDecision(item).explanation}
+                {item.decision?.summary ||
+                  item.decision?.reasons?.[0] ||
+                  "Riesgo evaluado por el Decision Engine moderno."}
               </p>
             </div>
 
@@ -401,7 +265,7 @@ export default function MarketFeedSection({ marketFeed }) {
 
                 <SmallMetric
                   label="Decisión"
-                  value={getVisibleDecision(item).action}
+                  value={item.decision?.action || item.opportunityLevel || "-"}
                 />
 
                 <SmallMetric
@@ -411,7 +275,9 @@ export default function MarketFeedSection({ marketFeed }) {
               </div>
 
               <p style={marketInsightStyle}>
-                {getVisibleDecision(item).explanation}
+                {item.decision?.reason ||
+                  item.decision?.summary ||
+                  "Señales generadas por el pipeline moderno de oportunidad."}
               </p>
             </div>
           </div>
