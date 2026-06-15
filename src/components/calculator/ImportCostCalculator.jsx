@@ -117,17 +117,20 @@ export default function ImportCostCalculator({ vehicle = {} }) {
           value={`${result.beneficio > 0 ? "+" : ""}${formatEuro(result.beneficio)}`}
           highlight={result.beneficio > 0}
         />
-        <Result label="ROI" value={`${result.roi}%`} highlight={result.roi > 0} />
+        <Result label="ROI" value={formatPercent(result.roi)} highlight={result.roi > 0} />
         <Result
           label="Precio máximo de compra"
           value={formatEuro(result.precioMaximoCompra)}
         />
       </div>
 
-      {!expectedSalePrice && (
+      {(!purchasePrice || !expectedSalePrice) && (
         <p style={hintStyle}>
-          Añade un precio de venta estimado para calcular beneficio, ROI y
-          precio máximo de compra.
+          {!purchasePrice && !expectedSalePrice
+            ? "Añade el precio de compra y el precio de venta estimado para calcular capital necesario, beneficio, ROI y precio máximo de compra."
+            : !purchasePrice
+            ? "Añade el precio de compra para calcular el capital necesario, el beneficio y el ROI."
+            : "Añade un precio de venta estimado para calcular beneficio, ROI y precio máximo de compra."}
         </p>
       )}
     </div>
@@ -173,8 +176,14 @@ function numberOrEmpty(value) {
 }
 
 function formatEuro(value) {
+  if (value === null || value === undefined) return "—";
   const number = Number(value);
   return `${Math.round(Number.isFinite(number) ? number : 0).toLocaleString("es-ES")} €`;
+}
+
+function formatPercent(value) {
+  if (value === null || value === undefined) return "—";
+  return `${value}%`;
 }
 
 const containerStyle = {

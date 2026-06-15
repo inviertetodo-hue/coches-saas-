@@ -34,23 +34,29 @@ export default function Calculator() {
     const listing = await readListingFromUrl(cleanUrl);
     setIsReading(false);
 
-    if (!listing.success) {
-      setMessage(
-        listing.message ||
-          "No se han podido leer datos automáticos. Añade el precio manualmente."
-      );
-      return;
-    }
-
     const data = listing.data || {};
+
+    // Aunque la lectura quede "success" por detección semántica de la URL
+    // (marca/modelo/combustible), si no hay precio del anuncio el usuario
+    // debe rellenarlo a mano para que la calculadora sea útil.
+    const detectedTitle =
+      data.title ||
+      [data.brand, data.model, data.fuel_type].filter(Boolean).join(" ");
 
     setVehicle((current) => ({
       ...current,
-      title: data.title || current.title,
+      title: detectedTitle || current.title,
       price: data.price || current.price,
       country: data.country || current.country,
       id: cleanUrl,
     }));
+
+    if (!data.price) {
+      setMessage(
+        "No he podido leer el precio del anuncio. Introduce el precio de compra y el precio de venta estimado manualmente."
+      );
+      return;
+    }
 
     setMessage(listing.message || "Anuncio leído correctamente.");
   }, [url]);

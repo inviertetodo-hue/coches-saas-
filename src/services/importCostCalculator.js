@@ -39,6 +39,7 @@ export function calculateImportResult({
   const price = safeNumber(purchasePrice);
   const sale = safeNumber(expectedSalePrice);
   const margin = safeNumber(margenDeseado);
+  const hasPrice = price > 0;
 
   const costeTotal =
     safeNumber(transport) +
@@ -49,14 +50,19 @@ export function calculateImportResult({
     safeNumber(riskBuffer) +
     safeNumber(otros);
 
-  const capitalNecesario = price + costeTotal;
-  const beneficio = sale > 0 ? Math.round(sale - capitalNecesario) : 0;
+  // Sin precio de compra, "capital necesario", "beneficio" y "ROI" no se
+  // pueden calcular de verdad (no son solo los costes de importación) — se
+  // devuelven como null para que la UI muestre "—" en vez de un dato
+  // engañoso (p.ej. "capital necesario: 3750€" cuando el precio es 0).
+  const capitalNecesario = hasPrice ? price + costeTotal : null;
+  const beneficio =
+    hasPrice && sale > 0 ? Math.round(sale - capitalNecesario) : null;
   const roi =
-    sale > 0 && capitalNecesario > 0
+    hasPrice && sale > 0 && capitalNecesario > 0
       ? Number(((beneficio / capitalNecesario) * 100).toFixed(1))
-      : 0;
+      : null;
   const precioMaximoCompra =
-    sale > 0 ? Math.round(sale - costeTotal - margin) : 0;
+    sale > 0 ? Math.round(sale - costeTotal - margin) : null;
 
   return {
     costeTotal,
