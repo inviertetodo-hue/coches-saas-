@@ -6,6 +6,7 @@ const Scanner = lazy(() => import("../pages/Scanner"));
 const Importer = lazy(() => import("../pages/Importer"));
 const BulkImport = lazy(() => import("../pages/BulkImport"));
 const History = lazy(() => import("../pages/History"));
+const Calculator = lazy(() => import("../pages/Calculator"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
 export const APP_ROUTES = [
@@ -33,6 +34,11 @@ export const APP_ROUTES = [
     id: "history",
     path: ROUTE_PATHS.history,
     element: History,
+  },
+  {
+    id: "calculator",
+    path: ROUTE_PATHS.calculator,
+    element: Calculator,
   },
   {
     id: "not-found",

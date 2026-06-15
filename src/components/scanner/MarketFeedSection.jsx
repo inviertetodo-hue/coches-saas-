@@ -1,8 +1,11 @@
+import { useState } from "react";
+
 import SmallMetric from "./SmallMetric";
 import FeedMetric from "./FeedMetric";
 import DealDecisionPill, { getDecisionColor } from "./DealDecisionPill";
 import VerifiedAutoScoutInlineCard from "../detail/VerifiedAutoScoutInlineCard";
 import VerifiedAutoScoutDetailButton from "../detail/VerifiedAutoScoutDetailButton";
+import ImportCostCalculator from "../calculator/ImportCostCalculator";
 
 export default function MarketFeedSection({ marketFeed }) {
   if (!marketFeed) return null;
@@ -89,6 +92,8 @@ export default function MarketFeedSection({ marketFeed }) {
               action={item.finalDecision?.action}
               label={item.finalDecision?.label}
             />
+
+            <CalculatorToggle item={item} />
 
             <div style={opportunityBoxStyle}>
               <div style={opportunityHeaderStyle}>🎯 Opportunity Engine</div>
@@ -283,6 +288,41 @@ export default function MarketFeedSection({ marketFeed }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CalculatorToggle({ item }) {
+  const [open, setOpen] = useState(false);
+
+  const estimatedMarketValue = Number(
+    item.valuation?.estimatedMarketValue ||
+      item.marketValuation?.estimatedMarketValue ||
+      item.vehicleValuation?.estimatedMarketValue ||
+      item.estimatedMarketValue ||
+      0
+  );
+
+  return (
+    <div style={calculatorToggleWrapStyle}>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        style={calculatorButtonStyle}
+      >
+        {open ? "Ocultar calculadora" : "🧮 Calcular mi importación"}
+      </button>
+
+      {open && (
+        <ImportCostCalculator
+          vehicle={{
+            id: item.id,
+            price: item.price,
+            estimatedMarketValue,
+            country: item.country,
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -732,6 +772,21 @@ const topOpportunityStyle = {
   fontWeight: "900",
   background: "rgba(250,204,21,0.20)",
   color: "#fde68a",
+};
+
+const calculatorToggleWrapStyle = {
+  marginTop: "16px",
+};
+
+const calculatorButtonStyle = {
+  width: "100%",
+  padding: "13px 16px",
+  borderRadius: "16px",
+  border: "1px solid rgba(168,85,247,0.32)",
+  background: "rgba(168,85,247,0.14)",
+  color: "#e9d5ff",
+  fontWeight: "900",
+  cursor: "pointer",
 };
 
 const opportunityBoxStyle = {

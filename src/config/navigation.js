@@ -31,6 +31,11 @@ export const NAVIGATION_SECTIONS = [
         label: "🌍 Bulk Import",
         path: ROUTE_PATHS.bulkImport,
       },
+      {
+        id: "calculator",
+        label: "🧮 Calculadora de importación",
+        path: ROUTE_PATHS.calculator,
+      },
     ],
   },
 ];

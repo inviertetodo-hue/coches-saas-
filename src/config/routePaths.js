@@ -4,5 +4,6 @@ export const ROUTE_PATHS = {
   importer: "/importer",
   bulkImport: "/bulk-import",
   history: "/history",
+  calculator: "/calculadora",
   notFound: "*",
 };
