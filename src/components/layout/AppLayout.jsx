@@ -1,23 +1,41 @@
+import { useState } from "react";
+
 import AppSidebar from "./AppSidebar";
+import { APP_BRAND } from "../../config/appBrand";
+
+import "./AppLayout.css";
 
 export default function AppLayout({ children }) {
-  return (
-    <div style={layoutStyle}>
-      <AppSidebar />
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-      <main style={contentStyle}>{children}</main>
+  return (
+    <div className="app-layout">
+      <header className="app-topbar">
+        <button
+          type="button"
+          className="app-topbar-menu"
+          aria-label="Abrir menú"
+          onClick={() => setSidebarOpen(true)}
+        >
+          ☰
+        </button>
+
+        <span className="app-topbar-title">{APP_BRAND.title}</span>
+      </header>
+
+      {sidebarOpen ? (
+        <div
+          className="app-sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
+      <AppSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <main className="app-content">{children}</main>
     </div>
   );
 }
-
-const layoutStyle = {
-  minHeight: "100vh",
-  display: "grid",
-  gridTemplateColumns: "280px 1fr",
-  background: "#020617",
-};
-
-const contentStyle = {
-  padding: "32px",
-  overflowX: "hidden",
-};

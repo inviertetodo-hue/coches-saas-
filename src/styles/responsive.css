@@ -1,0 +1,70 @@
+/* Ajustes globales para pantallas de móvil (<=768px). */
+
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Páginas que usan padding fijo de 48px (Scanner, History, Importer) */
+  .app-content [style*="padding: 48px"] {
+    padding: 18px !important;
+  }
+
+  /* Tarjetas/overlays con padding fijo de 42px / 30px / 32px */
+  .app-content [style*="padding: 42px"],
+  .app-content [style*="padding: 30px"],
+  .app-content [style*="padding: 32px"] {
+    padding: 18px !important;
+  }
+
+  /* Grids de 2 columnas iguales -> 1 columna */
+  .app-content [style*="grid-template-columns: 1fr 1fr"],
+  .app-content [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Grids de 3 columnas iguales -> 1 columna */
+  .app-content [style*="grid-template-columns: repeat(3, 1fr)"],
+  .app-content [style*="grid-template-columns: repeat(3,1fr)"],
+  .app-content [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Grids "1fr auto" (filtro + botón) -> 1 columna */
+  .app-content [style*="grid-template-columns: 1fr auto"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Grids de 2 columnas con minmax(0,1fr) -> 1 columna */
+  .app-content [style*="grid-template-columns: repeat(2,minmax(0,1fr))"],
+  .app-content [style*="grid-template-columns: repeat(2, minmax(0,1fr))"],
+  .app-content [style*="grid-template-columns: repeat(2,minmax(0, 1fr))"],
+  .app-content [style*="grid-template-columns: repeat(2, minmax(0, 1fr))"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Grids 1.3fr 1fr / 1.05fr 1fr -> 1 columna */
+  .app-content [style*="grid-template-columns: 1.3fr 1fr"],
+  .app-content [style*="grid-template-columns: 1.05fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Fila icono + texto + botón (80px 1fr 160px) -> 1 columna */
+  .app-content [style*="grid-template-columns: 80px 1fr 160px"] {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+  }
+
+  /* Títulos grandes -> reducir para que no se solapen */
+  .app-content [style*="font-size: 38px"],
+  .app-content [style*="font-size: 44px"] {
+    font-size: 26px !important;
+  }
+
+  .app-content [style*="font-size: 34px"],
+  .app-content [style*="font-size: 30px"],
+  .app-content [style*="font-size: 28px"] {
+    font-size: 22px !important;
+  }
+}

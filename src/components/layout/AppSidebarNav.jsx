@@ -2,7 +2,7 @@ import { NAVIGATION_SECTIONS } from "../../config/navigation";
 
 import AppSidebarNavItem from "./AppSidebarNavItem";
 
-export default function AppSidebarNav() {
+export default function AppSidebarNav({ onNavigate }) {
   return (
     <nav style={navStyle}>
       {NAVIGATION_SECTIONS.map((section) => (
@@ -11,7 +11,11 @@ export default function AppSidebarNav() {
 
           <div style={itemsStyle}>
             {section.items.map((item) => (
-              <AppSidebarNavItem key={item.path} item={item} />
+              <AppSidebarNavItem
+                key={item.path}
+                item={item}
+                onNavigate={onNavigate}
+              />
             ))}
           </div>
         </div>

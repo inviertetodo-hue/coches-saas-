@@ -6,14 +6,14 @@ import RouteErrorBoundary from "./components/common/RouteErrorBoundary";
 
 import AppLayout from "./components/layout/AppLayout";
 import AppRoutes from "./components/layout/AppRoutes";
-import AppSidebar from "./components/layout/AppSidebar";
 
 import "./App.css";
+import "./styles/responsive.css";
 
 export default function App() {
   return (
     <BrowserRouter>
-      <AppLayout sidebar={<AppSidebar />}>
+      <AppLayout>
         <RouteErrorBoundary>
           <Suspense fallback={<LoadingScreen />}>
             <AppRoutes />

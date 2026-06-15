@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
 
-export default function AppSidebarNavItem({ item }) {
+export default function AppSidebarNavItem({ item, onNavigate }) {
   return (
     <NavLink
       to={item.path}
       end={item.path === "/"}
+      onClick={onNavigate}
       style={({ isActive }) => ({
         ...navLinkStyle,
         ...(isActive ? activeNavLinkStyle : {}),
