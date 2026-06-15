@@ -1,0 +1,165 @@
+/* ============================================================
+   Sistema de diseño 2027 — Coches SaaS
+   Capa global: tipografía, paleta, fondo con "globos" de gradiente,
+   glass cards y micro-interacciones. No reemplaza App.css, lo extiende.
+   ============================================================ */
+
+:root {
+  /* Paleta base */
+  --bg-base: #05060f;
+  --accent-violet: #8b5cf6;
+  --accent-cyan: #22d3ee;
+  --accent-pink: #f472b6;
+  --accent-amber: #fbbf24;
+  --accent-green: #34d399;
+
+  --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 45%, #22d3ee 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(34, 211, 238, 0.16));
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.045);
+  --glass-bg-strong: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-blur: 20px;
+
+  /* Tipografía */
+  --font-display: "Outfit", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* Sombra / glow */
+  --shadow-glow: 0 24px 60px rgba(99, 102, 241, 0.18);
+  --shadow-soft: 0 18px 50px rgba(2, 6, 23, 0.45);
+}
+
+/* ---------- Fondo global con "globos" de gradiente ---------- */
+html,
+body {
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 900px 620px at 8% -8%, rgba(139, 92, 246, 0.20), transparent 60%),
+    radial-gradient(ellipse 760px 760px at 104% 6%, rgba(34, 211, 238, 0.15), transparent 60%),
+    radial-gradient(ellipse 1000px 760px at 45% 110%, rgba(244, 114, 182, 0.10), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* La cuadrícula principal deja transparentar el fondo con los globos */
+.app-layout {
+  background: transparent !important;
+}
+
+/* ---------- Tipografía ---------- */
+body {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+.app-topbar-title {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Corrige el line-height heredado de index.css (26px absolutos) que
+   hacía que los títulos grandes (h1 con clamp) se solaparan entre líneas. */
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.18;
+}
+
+p {
+  line-height: 1.6;
+}
+
+/* ---------- Glass cards: panels oscuros -> vidrio translúcido ---------- */
+.app-content [style*="background: rgba(15, 23, 42, 0.82)"],
+.app-content [style*="background: rgba(15,23,42,0.82)"],
+.app-content [style*="background: rgba(15, 23, 42, 0.72)"],
+.app-content [style*="background: rgba(15,23,42,0.72)"],
+.app-content [style*="background: rgba(2, 6, 23, 0.45)"],
+.app-content [style*="background: rgba(2,6,23,0.45)"],
+.app-content [style*="background: rgba(2, 6, 23, 0.48)"],
+.app-content [style*="background: rgba(2,6,23,0.48)"] {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border-color: var(--glass-border) !important;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Las cards de vidrio respiran un poco al pasar el ratón */
+.app-content [style*="background: rgba(15, 23, 42, 0.82)"]:hover,
+.app-content [style*="background: rgba(15,23,42,0.82)"]:hover,
+.app-content [style*="background: rgba(15, 23, 42, 0.72)"]:hover,
+.app-content [style*="background: rgba(15,23,42,0.72)"]:hover,
+.app-content [style*="background: rgba(2, 6, 23, 0.45)"]:hover,
+.app-content [style*="background: rgba(2,6,23,0.45)"]:hover,
+.app-content [style*="background: rgba(2, 6, 23, 0.48)"]:hover,
+.app-content [style*="background: rgba(2,6,23,0.48)"]:hover {
+  background: var(--glass-bg-strong) !important;
+  border-color: rgba(139, 92, 246, 0.30) !important;
+}
+
+/* ---------- Pills / badges ("globos") ---------- */
+.app-content [style*="border-radius: 999px"] {
+  letter-spacing: 0.02em;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.app-content [style*="border-radius: 999px"]:hover {
+  transform: translateY(-1px);
+}
+
+/* ---------- Micro-interacciones globales ---------- */
+a,
+button,
+.app-content [style*="cursor: pointer"],
+.app-content [style*="cursor:pointer"] {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease,
+    background 0.15s ease, border-color 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Foco accesible con el acento nuevo ---------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* ---------- Selección de texto ---------- */
+::selection {
+  background: rgba(139, 92, 246, 0.35);
+  color: #fff;
+}
+
+/* ---------- Scrollbar a juego con el theme ---------- */
+* {
+  scrollbar-color: rgba(139, 92, 246, 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

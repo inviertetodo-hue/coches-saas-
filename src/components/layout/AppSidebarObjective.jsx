@@ -14,13 +14,14 @@ const objectiveBoxStyle = {
   marginTop: "40px",
   padding: "16px",
   borderRadius: "18px",
-  background: "rgba(59,130,246,0.10)",
-  border: "1px solid rgba(59,130,246,0.18)",
+  background:
+    "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(34,211,238,0.08))",
+  border: "1px solid rgba(139,92,246,0.22)",
 };
 
 const objectiveLabelStyle = {
   margin: 0,
-  color: "#93c5fd",
+  color: "#c4b5fd",
   fontWeight: "900",
   fontSize: "13px",
 };

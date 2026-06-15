@@ -27,17 +27,17 @@ const logoStyle = {
   display: "grid",
   placeItems: "center",
   fontWeight: "900",
-  fontSize: "18px",
+  fontSize: "24px",
   color: "white",
-  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-  boxShadow: "0 10px 30px rgba(37,99,235,0.35)",
+  background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 45%, #22d3ee 100%)",
+  boxShadow: "0 10px 30px rgba(139, 92, 246, 0.35)",
 };
 
 const titleStyle = {
   margin: 0,
   color: "white",
   fontSize: "20px",
-  fontWeight: "900",
+  fontWeight: "700",
 };
 
 const subtitleStyle = {

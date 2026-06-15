@@ -1,10 +1,11 @@
 export default function ScannerHeader() {
   return (
     <div style={headerStyle}>
-      <p style={badgeStyle}>RADAR AUTOMÁTICO DE OPORTUNIDADES</p>
+      <p style={badgeStyle}>🚀 Radar automático de oportunidades</p>
 
       <h1 style={titleStyle}>
-        Encuentra oportunidades de compra antes que el mercado
+        Encuentra oportunidades de compra{" "}
+        <span style={highlightStyle}>antes que el mercado</span>
       </h1>
 
       <p style={subtitleStyle}>
@@ -23,17 +24,32 @@ const headerStyle = {
 
 const badgeStyle = {
   display: "inline-block",
-  background: "rgba(34,197,94,0.12)",
-  color: "#86efac",
-  padding: "8px 14px",
+  background:
+    "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(34,211,238,0.12))",
+  border: "1px solid rgba(139,92,246,0.30)",
+  color: "#ddd6fe",
+  padding: "8px 16px",
   borderRadius: "999px",
-  fontWeight: "900",
-  marginBottom: "18px",
+  fontWeight: "700",
+  fontSize: "13px",
+  letterSpacing: "0.02em",
+  marginBottom: "20px",
 };
 
 const titleStyle = {
-  fontSize: "clamp(38px, 6vw, 62px)",
+  fontSize: "clamp(32px, 5.5vw, 58px)",
+  lineHeight: 1.15,
+  letterSpacing: "-0.01em",
   margin: 0,
+};
+
+const highlightStyle = {
+  backgroundImage:
+    "linear-gradient(135deg, #8b5cf6 0%, #6366f1 45%, #22d3ee 100%)",
+  backgroundClip: "text",
+  WebkitBackgroundClip: "text",
+  color: "transparent",
+  WebkitTextFillColor: "transparent",
 };
 
 const subtitleStyle = {

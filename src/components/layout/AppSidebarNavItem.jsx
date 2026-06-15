@@ -27,7 +27,9 @@ const navLinkStyle = {
 };
 
 const activeNavLinkStyle = {
-  color: "#dbeafe",
-  background: "rgba(59,130,246,0.16)",
-  border: "1px solid rgba(59,130,246,0.30)",
+  color: "#ede9fe",
+  background:
+    "linear-gradient(135deg, rgba(139,92,246,0.22), rgba(34,211,238,0.14))",
+  border: "1px solid rgba(139,92,246,0.35)",
+  boxShadow: "0 8px 24px rgba(139,92,246,0.18)",
 };

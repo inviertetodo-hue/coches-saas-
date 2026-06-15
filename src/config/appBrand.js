@@ -1,5 +1,7 @@
 export const APP_BRAND = {
   title: "🚘 Coches SaaS",
+  logo: "🚘",
+  name: "Coches SaaS",
   subtitle: "AI Automotive Opportunity Platform",
   objectiveLabel: "Objetivo",
   objectiveText:

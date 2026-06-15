@@ -8,6 +8,7 @@ import AppLayout from "./components/layout/AppLayout";
 import AppRoutes from "./components/layout/AppRoutes";
 
 import "./App.css";
+import "./styles/design-system.css";
 import "./styles/responsive.css";
 
 export default function App() {
