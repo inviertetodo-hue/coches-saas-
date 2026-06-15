@@ -6,7 +6,7 @@ import {
 } from "../../services/importCostCalculator";
 
 export default function ImportCostCalculator({ vehicle = {} }) {
-  const defaults = getDefaultImportCosts(vehicle.country);
+  const defaults = getDefaultImportCosts(vehicle.country, vehicle.price);
 
   const [purchasePrice, setPurchasePrice] = useState(
     numberOrEmpty(vehicle.price)
@@ -18,6 +18,8 @@ export default function ImportCostCalculator({ vehicle = {} }) {
   const [registration, setRegistration] = useState(defaults.registration);
   const [gestor, setGestor] = useState(defaults.gestor);
   const [itv, setItv] = useState(defaults.itv);
+  const [detailing, setDetailing] = useState(defaults.detailing);
+  const [riskBuffer, setRiskBuffer] = useState(defaults.riskBuffer);
   const [otros, setOtros] = useState(defaults.otros);
   const [margenDeseado, setMargenDeseado] = useState(defaults.margenDeseado);
 
@@ -26,11 +28,13 @@ export default function ImportCostCalculator({ vehicle = {} }) {
     setPurchasePrice(numberOrEmpty(vehicle.price));
     setExpectedSalePrice(numberOrEmpty(vehicle.estimatedMarketValue));
 
-    const nextDefaults = getDefaultImportCosts(vehicle.country);
+    const nextDefaults = getDefaultImportCosts(vehicle.country, vehicle.price);
     setTransport(nextDefaults.transport);
     setRegistration(nextDefaults.registration);
     setGestor(nextDefaults.gestor);
     setItv(nextDefaults.itv);
+    setDetailing(nextDefaults.detailing);
+    setRiskBuffer(nextDefaults.riskBuffer);
     setOtros(nextDefaults.otros);
     setMargenDeseado(nextDefaults.margenDeseado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,6 +46,8 @@ export default function ImportCostCalculator({ vehicle = {} }) {
     registration,
     gestor,
     itv,
+    detailing,
+    riskBuffer,
     otros,
     margenDeseado,
     expectedSalePrice,
@@ -78,6 +84,16 @@ export default function ImportCostCalculator({ vehicle = {} }) {
           onChange={setGestor}
         />
         <NumberField label="ITV (€)" value={itv} onChange={setItv} />
+        <NumberField
+          label="Detailing (€)"
+          value={detailing}
+          onChange={setDetailing}
+        />
+        <NumberField
+          label="Buffer riesgo (€)"
+          value={riskBuffer}
+          onChange={setRiskBuffer}
+        />
         <NumberField
           label="Otros costes (€)"
           value={otros}
