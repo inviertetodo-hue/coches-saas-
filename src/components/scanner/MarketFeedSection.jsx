@@ -39,14 +39,18 @@ export default function MarketFeedSection({ marketFeed }) {
               )}`,
             }}
           >
-            {index === 0 && (
+            {index === 0 && isVerifiedTopOpportunity(item) && (
               <div style={topOpportunityStyle}>🏆 TOP OPPORTUNITY</div>
+            )}
+
+            {index === 0 && !isVerifiedTopOpportunity(item) && (
+              <div style={topOpportunityStyle}>🧭 CANDIDATO A VALIDAR</div>
             )}
 
             <VerifiedAutoScoutInlineCard
               url={item.url}
               opportunity={item}
-              enabled={index === 0}
+              enabled={index === 0 && isVerifiedTopOpportunity(item)}
             />
 
             <div>
@@ -106,7 +110,7 @@ export default function MarketFeedSection({ marketFeed }) {
 
                 <SmallMetric
                   label="Opportunity Level"
-                  value={item.opportunityLevel || "NONE"}
+                  value={getDisplayOpportunityLevel(item)}
                 />
               </div>
             </div>
@@ -290,6 +294,62 @@ export default function MarketFeedSection({ marketFeed }) {
       </div>
     </div>
   );
+}
+
+function isVerifiedTopOpportunity(item = {}) {
+  const verificationLevel = String(
+    item.verificationLevel ||
+      item.decision?.verificationLevel ||
+      item.finalDecision?.modernDecision?.verificationLevel ||
+      ""
+  ).toUpperCase();
+
+  const identitySource = String(item.identitySource || "").toLowerCase();
+  const hasConfirmedIdentity =
+    Boolean(item.hasConfirmedIdentity) || identitySource === "block";
+
+  const listingUrl =
+    item.listingUrl ||
+    item.originalUrl ||
+    item.sourceUrl ||
+    item.url ||
+    "";
+
+  const hasIndividualListingUrl =
+    Boolean(item.hasIndividualListingUrl) ||
+    isIndividualListingUrlForDisplay(listingUrl);
+
+  const finalAction = String(
+    item.finalDecision?.action ||
+      item.decision?.action ||
+      ""
+  ).toUpperCase();
+
+  const netProfit = Number(item.netProfit ?? item.profit ?? 0);
+
+  return (
+    verificationLevel === "VERIFIED_LISTING" &&
+    hasConfirmedIdentity &&
+    hasIndividualListingUrl &&
+    netProfit > 0 &&
+    (finalAction === "BUY" || finalAction === "COMPRAR")
+  );
+}
+
+function getDisplayOpportunityLevel(item = {}) {
+  const level = String(item.opportunityLevel || "NONE").toUpperCase();
+
+  if (level === "BUY" && !isVerifiedTopOpportunity(item)) {
+    return "WATCH";
+  }
+
+  return item.opportunityLevel || "NONE";
+}
+
+function isIndividualListingUrlForDisplay(url = "") {
+  const value = String(url || "").trim().toLowerCase();
+
+  return value.includes("/angebote/") || value.includes("/offers/");
 }
 
 function CalculatorToggle({ item }) {
