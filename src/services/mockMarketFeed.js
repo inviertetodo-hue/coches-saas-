@@ -313,7 +313,7 @@ function buildFeedInsights(opportunities) {
   const best = opportunities[0];
 
   return [
-    `🥇 Mejor oportunidad detectada: ${best.title}.`,
+    `🥇 Mejor candidato a validar: ${best.title}.`,
     `💰 Margen neto estimado: ${best.netProfit.toLocaleString(
       "es-ES"
     )} €.`,

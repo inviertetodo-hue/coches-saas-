@@ -5,7 +5,7 @@ export default function BestOpportunityCard({ best }) {
 
   return (
     <div style={bestDealStyle}>
-      <p style={bestDealLabelStyle}>🏆 Mejor oportunidad detectada</p>
+      <p style={bestDealLabelStyle}>🧭 Mejor candidato a validar</p>
 
       <h3 style={bestDealTitleStyle}>{best.title}</h3>
 

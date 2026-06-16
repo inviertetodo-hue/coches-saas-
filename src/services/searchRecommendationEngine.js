@@ -207,7 +207,7 @@ function buildSummary({
     useCase === "quedarmelo" ? "compra segura" : "reventa con margen";
 
   if (hasRealData) {
-    return `Radar IA está priorizando oportunidades reales encontradas para ${queryLabel} en ${country}. Mejor candidata actual: ${topSearch.label}, prioridad ${topSearch.priority}/100, liquidez ${String(topSearch.liquidity).toLowerCase()} y riesgo ${String(topSearch.risk).toLowerCase()}.`;
+    return `Radar IA está priorizando candidatos reales para validar para ${queryLabel} en ${country}. Candidato principal a validar: ${topSearch.label}, prioridad ${topSearch.priority}/100, liquidez ${String(topSearch.liquidity).toLowerCase()} y riesgo ${String(topSearch.risk).toLowerCase()}.`;
   }
 
   return `Radar IA no tiene aún suficientes anuncios reales compatibles para ${queryLabel}. Mantiene una recomendación provisional para ${objective} en ${country}.`;

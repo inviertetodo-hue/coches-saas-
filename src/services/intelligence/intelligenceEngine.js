@@ -527,7 +527,7 @@ function buildMarketInsights(items, context) {
 
   if (context.bestOpportunity) {
     insights.push(
-      `Mejor oportunidad detectada: ${context.bestOpportunity.title} con Modern Score ${calculateModernOpportunityPower(
+      `Mejor candidato a validar: ${context.bestOpportunity.title} con Modern Score ${calculateModernOpportunityPower(
         context.bestOpportunity
       )}/100, score ${context.bestOpportunity.score} y ROI ${context.bestOpportunity.roi}%.`
     );

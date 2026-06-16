@@ -4,12 +4,12 @@ export default function AIInsightsSection({ insights, best }) {
   const cleanInsights = Array.isArray(insights)
     ? insights.filter(
         (insight) =>
-          !String(insight || "").includes("Mejor oportunidad detectada")
+          !String(insight || "").includes("Mejor candidato a validar")
       )
     : [];
 
   const finalInsights = best
-    ? [`🥇 Mejor oportunidad detectada: ${best.title}.`, ...cleanInsights]
+    ? [`🥇 Mejor candidato a validar: ${best.title}.`, ...cleanInsights]
     : cleanInsights;
 
   return (
