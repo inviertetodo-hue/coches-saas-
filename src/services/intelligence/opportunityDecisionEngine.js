@@ -83,8 +83,9 @@ export function buildOpportunityDecision(vehicle = {}) {
   const allocationTier = vehicle.allocationTier || "";
 
   const successProbability = normalizeNumber(vehicle.successProbability);
+  const verificationGate = resolveVerificationGate(vehicle);
 
-  const decisionScore = calculateDecisionScoreV2({
+  let decisionScore = calculateDecisionScoreV2({
     opportunityScoreV2,
     valuationScore,
     qualityScore,
@@ -102,6 +103,10 @@ export function buildOpportunityDecision(vehicle = {}) {
     allocationScore,
     successProbability,
   });
+
+  if (!verificationGate.canBuy) {
+    decisionScore = Math.min(decisionScore, 64);
+  }
 
   const action = buildActionV2({
     decisionScore,
@@ -123,12 +128,17 @@ export function buildOpportunityDecision(vehicle = {}) {
     allocationScore,
     allocationTier,
     successProbability,
+    verificationGate,
   });
 
   return {
     action: action.action,
     label: action.label,
     decisionScore,
+    verificationGate,
+    verificationLevel: verificationGate.verificationLevel,
+    hasIndividualListingUrl: verificationGate.hasIndividualListingUrl,
+    canBuy: verificationGate.canBuy,
     confidence: buildDecisionConfidenceV2({
       qualityScore,
       comparableConfidence,
@@ -233,6 +243,44 @@ export function enrichWithOpportunityDecision(items = []) {
       ...item,
       decision: item.decision || buildOpportunityDecision(item),
     }));
+}
+
+
+function resolveVerificationGate(vehicle = {}) {
+  const explicitLevel = String(vehicle.verificationLevel || "").toUpperCase();
+  const listingUrl =
+    vehicle.listingUrl ||
+    vehicle.originalUrl ||
+    vehicle.sourceUrl ||
+    vehicle.url ||
+    "";
+
+  const hasIndividualListingUrl =
+    Boolean(vehicle.hasIndividualListingUrl) ||
+    isVerifiedIndividualListingUrl(listingUrl);
+
+  const verificationLevel =
+    explicitLevel ||
+    (hasIndividualListingUrl ? "VERIFIED_LISTING" : "SEARCH_CANDIDATE");
+
+  const canBuy =
+    verificationLevel === "VERIFIED_LISTING" && hasIndividualListingUrl;
+
+  return {
+    verificationLevel,
+    hasIndividualListingUrl,
+    listingUrl: hasIndividualListingUrl ? listingUrl : "",
+    canBuy,
+    reason: canBuy
+      ? "URL individual verificable."
+      : "Sin URL individual verificable; BUY/TOP bloqueado.",
+  };
+}
+
+function isVerifiedIndividualListingUrl(url) {
+  const value = String(url || "").trim().toLowerCase();
+
+  return value.includes("/angebote/") || value.includes("/offers/");
 }
 
 function calculateDecisionScoreV2({
@@ -351,7 +399,17 @@ function buildActionV2({
   allocationScore,
   allocationTier,
   successProbability,
+  verificationGate = { canBuy: true },
 }) {
+  if (!verificationGate.canBuy) {
+    return {
+      action: "WATCH",
+      label: verificationGate.hasIndividualListingUrl
+        ? "Validar anuncio"
+        : "Validar URL original",
+    };
+  }
+
   if (qualityScore > 0 && qualityScore < 60) {
     return { action: "REJECT", label: "Descartar" };
   }

@@ -3,6 +3,11 @@ import { VEHICLE_CATALOG } from "../vehicleCatalog";
 const REAL_FEED_TIMEOUT_MS = 7000;
 const MAX_LINKS_TO_TRY = 3;
 
+const LISTING_VERIFICATION_LEVELS = {
+  VERIFIED_LISTING: "VERIFIED_LISTING",
+  SEARCH_CANDIDATE: "SEARCH_CANDIDATE",
+};
+
 export async function fetchRealMarketListings(scan = {}, options = {}) {
   const maxListings = Number(options.maxListings || 20);
   const searchLinks = Array.isArray(scan.searchLinks) ? scan.searchLinks : [];
@@ -508,6 +513,7 @@ function parseMobileDeListingsFromText({
   minYear,
   maxMileage,
   semantic,
+  fallbackUrl = "",
 }) {
   const blocks = splitMobileDeTextIntoBlocks(text);
   const queryBrand = detectBrand(query);
@@ -579,6 +585,13 @@ function parseMobileDeListingsFromText({
 
     rejectionLog.accepted += 1;
 
+    const identitySource = blockHasCompleteIdentity ? "block" : "query-fallback";
+    const verification = buildListingVerification({
+      sourceUrl,
+      fallbackUrl,
+      identitySource,
+    });
+
     listings.push({
       id: buildListingId({ source, country, line: title, price, mileage, year }),
       title,
@@ -596,10 +609,15 @@ function parseMobileDeListingsFromText({
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
       source,
-      url: sourceUrl,
+      url: verification.listingUrl || verification.searchUrl || sourceUrl,
+      searchUrl: verification.searchUrl,
+      listingUrl: verification.listingUrl,
+      hasIndividualListingUrl: verification.hasIndividualListingUrl,
+      verificationLevel: verification.verificationLevel,
+      verificationReason: verification.verificationReason,
       imageUrl: "",
       isRealData: true,
-      identitySource: blockHasCompleteIdentity ? "block" : "query-fallback",
+      identitySource,
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -771,6 +789,13 @@ function parseAutoscoutListingsFromText({
 
     rejectionLog.accepted += 1;
 
+    const identitySource = blockHasCompleteIdentity ? "block" : "query-fallback";
+    const verification = buildListingVerification({
+      sourceUrl,
+      fallbackUrl,
+      identitySource,
+    });
+
     listings.push({
       id: buildListingId({
         source,
@@ -795,11 +820,16 @@ function parseAutoscoutListingsFromText({
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
       source,
-      url: sourceUrl,
+      url: verification.listingUrl || verification.searchUrl || sourceUrl,
+      searchUrl: verification.searchUrl,
+      listingUrl: verification.listingUrl,
+      hasIndividualListingUrl: verification.hasIndividualListingUrl,
+      verificationLevel: verification.verificationLevel,
+      verificationReason: verification.verificationReason,
       imageUrl,
       isRealData: true,
       // Indica si la identidad vino del bloque o fue heredada del query
-      identitySource: blockHasCompleteIdentity ? "block" : "query-fallback",
+      identitySource,
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -1013,6 +1043,14 @@ function parseGenericListingsFromText({
 
     rejectionLog.accepted += 1;
 
+    const sourceUrl = extractFirstUrl(blockText);
+    const identitySource = "block";
+    const verification = buildListingVerification({
+      sourceUrl,
+      fallbackUrl: "",
+      identitySource,
+    });
+
     listings.push({
       id: buildListingId({ source, country, line, price, mileage, year }),
       title: cleanTitle(line),
@@ -1030,9 +1068,14 @@ function parseGenericListingsFromText({
       electrified: isElectrified(blockText),
       marketMultiplier: estimateMarketMultiplier({ price, mileage, year }),
       source,
-      url: extractFirstUrl(blockText),
+      url: verification.listingUrl || verification.searchUrl || sourceUrl,
+      searchUrl: verification.searchUrl,
+      listingUrl: verification.listingUrl,
+      hasIndividualListingUrl: verification.hasIndividualListingUrl,
+      verificationLevel: verification.verificationLevel,
+      verificationReason: verification.verificationReason,
       isRealData: true,
-      identitySource: "block",
+      identitySource,
       semanticScore: validation.score,
       semanticWarnings: validation.warnings,
       dataQuality: {
@@ -1747,6 +1790,46 @@ function estimateMarketMultiplier({ price, mileage, year }) {
   if (price <= 30000) multiplier += 0.03;
 
   return Number(multiplier.toFixed(2));
+}
+
+
+function buildListingVerification({
+  sourceUrl = "",
+  fallbackUrl = "",
+  identitySource = "",
+} = {}) {
+  const cleanSourceUrl = cleanText(sourceUrl);
+  const cleanFallbackUrl = cleanText(fallbackUrl);
+  const listingUrl = isIndividualListingUrl(cleanSourceUrl) ? cleanSourceUrl : "";
+  const searchUrl = listingUrl
+    ? cleanFallbackUrl || cleanSourceUrl
+    : cleanSourceUrl || cleanFallbackUrl;
+
+  const hasIndividualListingUrl = Boolean(listingUrl);
+  const verificationLevel = hasIndividualListingUrl
+    ? LISTING_VERIFICATION_LEVELS.VERIFIED_LISTING
+    : LISTING_VERIFICATION_LEVELS.SEARCH_CANDIDATE;
+
+  return {
+    searchUrl,
+    listingUrl,
+    hasIndividualListingUrl,
+    verificationLevel,
+    identitySource: cleanText(identitySource),
+    verificationReason: hasIndividualListingUrl
+      ? "URL individual verificable detectada."
+      : "Sin URL individual verificable; candidato heredado de búsqueda.",
+  };
+}
+
+function isIndividualListingUrl(url) {
+  const value = normalizeUrlForVerification(url);
+
+  return value.includes("/angebote/") || value.includes("/offers/");
+}
+
+function normalizeUrlForVerification(url) {
+  return cleanText(url).toLowerCase();
 }
 
 function dedupeListings(listings) {

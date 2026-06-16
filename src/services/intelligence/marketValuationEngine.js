@@ -21,12 +21,15 @@ export function buildMarketValuation(vehicle = {}, options = {}) {
   });
 
   const estimatedMarketValue = resolvedSource.estimatedMarketValue;
+  const importCosts = resolveImportCosts(vehicle);
 
-  const profit = Math.round(estimatedMarketValue - price);
+  const grossProfit = Math.round(estimatedMarketValue - price);
+  const profit = Math.round(estimatedMarketValue - price - importCosts.total);
   const roi = price > 0 ? Number(((profit / price) * 100).toFixed(2)) : 0;
 
-  const discountValue = profit;
-  const discountPercent = roi;
+  const discountValue = grossProfit;
+  const discountPercent =
+    price > 0 ? Number(((grossProfit / price) * 100).toFixed(2)) : 0;
 
   const valuationScore = calculateValuationScore({
     discountPercent,
@@ -40,8 +43,13 @@ export function buildMarketValuation(vehicle = {}, options = {}) {
   return {
     price,
     estimatedMarketValue,
+    grossProfit,
+    importCosts,
+    importCostTotal: importCosts.total,
     profit,
+    netProfit: profit,
     roi,
+    netRoi: roi,
     discountValue,
     discountPercent,
     valuationScore,
@@ -51,6 +59,54 @@ export function buildMarketValuation(vehicle = {}, options = {}) {
     comparableCount: resolvedSource.comparableCount,
     marketValueSources: resolvedSource.sources,
     marketValueReason: resolvedSource.reason,
+  };
+}
+
+
+function resolveImportCosts(vehicle = {}) {
+  const candidates = [
+    vehicle.netCosts?.total,
+    vehicle.importCosts?.total,
+    vehicle.importCostTotal,
+    vehicle.totalImportCosts,
+    vehicle.costs?.importTotal,
+  ];
+
+  for (const candidate of candidates) {
+    const value = toNumber(candidate);
+    if (value > 0) {
+      return {
+        total: Math.round(value),
+        source: "vehicle_import_costs",
+      };
+    }
+  }
+
+  return buildFallbackImportCosts(vehicle);
+}
+
+function buildFallbackImportCosts(vehicle = {}) {
+  const country = String(vehicle.country || "").toLowerCase();
+  const price = toNumber(vehicle.price);
+
+  const transport =
+    country.includes("alemania") || country.includes("germany") ? 900 : 1200;
+  const registration = 750;
+  const gestor = 450;
+  const inspection = 350;
+  const detailing = 400;
+  const riskBuffer = price >= 70000 ? 1800 : 900;
+
+  return {
+    transport,
+    registration,
+    gestor,
+    inspection,
+    detailing,
+    riskBuffer,
+    total:
+      transport + registration + gestor + inspection + detailing + riskBuffer,
+    source: "fallback_import_costs",
   };
 }
 
