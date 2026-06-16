@@ -1800,25 +1800,35 @@ function buildListingVerification({
 } = {}) {
   const cleanSourceUrl = cleanText(sourceUrl);
   const cleanFallbackUrl = cleanText(fallbackUrl);
+  const cleanIdentitySource = cleanText(identitySource);
+  const normalizedIdentitySource = cleanIdentitySource.toLowerCase();
+
   const listingUrl = isIndividualListingUrl(cleanSourceUrl) ? cleanSourceUrl : "";
   const searchUrl = listingUrl
     ? cleanFallbackUrl || cleanSourceUrl
     : cleanSourceUrl || cleanFallbackUrl;
 
   const hasIndividualListingUrl = Boolean(listingUrl);
-  const verificationLevel = hasIndividualListingUrl
-    ? LISTING_VERIFICATION_LEVELS.VERIFIED_LISTING
-    : LISTING_VERIFICATION_LEVELS.SEARCH_CANDIDATE;
+  const hasConfirmedIdentity = normalizedIdentitySource === "block";
+
+  const verificationLevel =
+    hasIndividualListingUrl && hasConfirmedIdentity
+      ? LISTING_VERIFICATION_LEVELS.VERIFIED_LISTING
+      : LISTING_VERIFICATION_LEVELS.SEARCH_CANDIDATE;
 
   return {
     searchUrl,
     listingUrl,
     hasIndividualListingUrl,
+    hasConfirmedIdentity,
     verificationLevel,
-    identitySource: cleanText(identitySource),
-    verificationReason: hasIndividualListingUrl
-      ? "URL individual verificable detectada."
-      : "Sin URL individual verificable; candidato heredado de búsqueda.",
+    identitySource: cleanIdentitySource,
+    verificationReason:
+      verificationLevel === LISTING_VERIFICATION_LEVELS.VERIFIED_LISTING
+        ? "URL individual verificable e identidad confirmada por anuncio."
+        : hasIndividualListingUrl
+          ? "URL individual detectada, pero identidad heredada/no confirmada; candidato a validar."
+          : "Sin URL individual verificable; candidato heredado de búsqueda.",
   };
 }
 
